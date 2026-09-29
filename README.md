@@ -1,2 +1,3 @@
-# Garden-Database
-LCSD garden program database
+
+#LCSD garden program database
+This is a database project for the Lee County School District garden program that focuses on creating a more organized and centralized way to manage garden-related data. The project is based on the program’s current use of Google Sheets and will support areas such as inventory and supplies, garden sizes and components, and growing calendars and crop rotations. The goal is to improve how information is stored, connected, and accessed so staff can better track available resources, locations, distribution, budgets, and other garden program data over time.
