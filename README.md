@@ -6,3 +6,20 @@ This is a database project for the Lee County School District garden program tha
 The current ERD for the inventory portion of the database is shown below.
 
 ![Inventory Database ERD](docs/ERD_inventory_schema.jpeg)
+
+                         ┌──────────────┐
+                         │ team_member  │
+                         └──────┬───────┘
+                     ┌──────────┼─────────────┐
+                     ▼          ▼             ▼
+              PurchaseRequest BudgetExpense InventoryTransaction
+                     │          ▲             ▲
+                     │          │             │
+                     ▼          │             │
+               PurchaseItem     │             │
+                     ▲          │             │
+                     │          │             │
+                   item ────────┘             │
+                     │                        │
+                     ▼                        │
+               InventoryList ─────────────────┘
