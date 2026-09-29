@@ -10,16 +10,16 @@ The current ERD for the inventory portion of the database is shown below.
                          ┌──────────────┐
                          │ team_member  │
                          └──────┬───────┘
-                     ┌──────────┼─────────────┐
-                     ▼          ▼             ▼
-              PurchaseRequest BudgetExpense InventoryTransaction
+                 ┌──────────────┼──────────────────────
+                 ▼              ▼                     ▼
+          [PurchaseRequest] [BudgetExpense] [InventoryTransaction]
                      │          ▲             ▲
                      │          │             │
                      ▼          │             │
-               PurchaseItem     │             │
+              [PurchaseItem]    │             │       [location]
                      ▲          │             │
                      │          │             │
-                   item ────────┘             │
+                  [item] ───────┘             │        [budget]
                      │                        │
                      ▼                        │
-               InventoryList ─────────────────┘
+              [InventoryList] ────────────────┘
