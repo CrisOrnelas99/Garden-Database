@@ -1,0 +1,2 @@
+-- Creates the tables needed to track garden sizes and components at each school location.
+-- Includes garden footprints, irrigation setups, composting units, and active garden beds.
