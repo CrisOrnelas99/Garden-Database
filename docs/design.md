@@ -17,10 +17,8 @@ sql/
 ├── 01_inventory_schema.sql
 ├── 02_garden_schema.sql
 ├── 03_planting_schema.sql
-├── functions/
-│   └── functions.sql
-└── data/
-    └── sample_data.sql
+├── functions.sql
+└── sample_data.sql
 ```
 
 The inventory schema is currently implemented. The garden and planting
@@ -97,19 +95,6 @@ the item - Item - Quantity taken - Notes
 The school references `location`, and the item references
 `InventoryList`.
 
-### Team Member Tracking
-
-The previous `team_member` table was removed. Fields such as
-`requested_by`, `team_member_name`, and `taken_by` are currently stored
-as text.
-
-Authentication and automatic user tracking can be added later if the
-database is connected to an application. Supabase Auth could identify
-users, while fields such as `created_by`, `updated_by`, `created_at`,
-and `updated_at` could provide an audit trail. Row Level Security (RLS)
-could also be added later to control user permissions.
-
-This is not part of the current implementation.
 
 ### Current Functions and Triggers
 
@@ -423,9 +408,7 @@ Current Inventory
   Crop rotation history             Planned
   Seasonal growing information      Planned
   Planting resource requirements    Planned
-  Supabase authentication           Possible later addition
-  User permissions/RLS              Possible later addition
-  Automatic user/audit tracking     Possible later addition
+
 
 The planned design is intended as a starting point. Exact fields and
 relationships for the Garden and Planting portions should be adjusted as
