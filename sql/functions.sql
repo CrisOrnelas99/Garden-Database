@@ -265,6 +265,12 @@ BEGIN
             FROM "InventoryList"
             WHERE item_name = NEW.item_name;
 
+            IF NOT FOUND THEN
+                RAISE EXCEPTION
+                    'Item "%" is not present in InventoryList',
+                    NEW.item_name;
+            END IF;
+            
             IF available_stock < NEW.quantity_taken THEN
                 RAISE EXCEPTION
                     'Not enough "%" in stock. Available: %, requested: %',
@@ -341,7 +347,7 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE TRIGGER trg_inventory_transaction
-AFTER INSERT OR UPDATE OR DELETE
+BEFORE INSERT OR UPDATE OR DELETE
 ON "InventoryTransaction"
 FOR EACH ROW
 EXECUTE FUNCTION update_inventory_after_transaction();
