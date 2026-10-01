@@ -17,7 +17,7 @@ The current ERD for the inventory portion of the database is shown below.
 
 
                          
-                           team_member  
+                        auth[team_member]  
                          
                  ┌──────────────┼──────────────────────
                  ▼              ▼                     ▼
