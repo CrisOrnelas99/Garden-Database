@@ -25,9 +25,9 @@ The current ERD for the inventory portion of the database is shown below.
           [PurchaseRequest] [BudgetExpense] [InventoryTransaction]
                      │          ▲             ▲
                      │          │             │
-                     ▼          │             │
-              [PurchaseItem]    │             │       [location]
-                     ▲          │             │
+                     |          │             │
+                     │          │       [location]
+                     |          │             │
                      │          │             │
                   [item] ───────┘             │        [budget]
                      │                        │
