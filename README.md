@@ -17,9 +17,9 @@ The current ERD for the inventory portion of the database is shown below.
 
 ![Inventory Database ERD](docs/inventory_schema.jpeg)
 
-                         ┌──────────────┐
-                         │ team_member  │
-                         └──────┬───────┘
+                         
+                           team_member  
+                         
                  ┌──────────────┼──────────────────────
                  ▼              ▼                     ▼
           [PurchaseRequest] [BudgetExpense] [InventoryTransaction]
