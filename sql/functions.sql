@@ -1,11 +1,11 @@
 
 -- ============================================================
 -- TRIGGER 1
--- PurchaseItem.total_cost =
+-- PurchaseRequest.total_cost =
 -- qty_requested * item.unit_cost
 -- ============================================================
 
-CREATE OR REPLACE FUNCTION calculate_purchase_item_total()
+CREATE OR REPLACE FUNCTION calculate_purchase_request_total()
 RETURNS TRIGGER AS $$
 DECLARE
     item_unit_cost NUMERIC;
@@ -14,7 +14,7 @@ BEGIN
     SELECT unit_cost
     INTO item_unit_cost
     FROM item
-    WHERE name = NEW.item_name;
+    WHERE item_name = NEW.item_name;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION
@@ -36,70 +36,15 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE TRIGGER trg_calculate_purchase_item_total
+CREATE TRIGGER trg_calculate_purchase_request_total
 BEFORE INSERT OR UPDATE OF item_name, qty_requested
-ON "PurchaseItem"
+ON "PurchaseRequest"
 FOR EACH ROW
-EXECUTE FUNCTION calculate_purchase_item_total();
+EXECUTE FUNCTION calculate_purchase_request_total();
 
 
 -- ============================================================
 -- TRIGGER 2
--- PurchaseRequest.total_cost =
--- SUM(PurchaseItem.total_cost)
--- ============================================================
-
-CREATE OR REPLACE FUNCTION update_purchase_request_total()
-RETURNS TRIGGER AS $$
-BEGIN
-
-    -- Recalculate current/new request
-    IF TG_OP IN ('INSERT', 'UPDATE') THEN
-
-        UPDATE "PurchaseRequest"
-        SET total_cost = (
-            SELECT COALESCE(SUM(total_cost), 0)
-            FROM "PurchaseItem"
-            WHERE request_id = NEW.request_id
-        )
-        WHERE request_id = NEW.request_id;
-
-    END IF;
-
-
-    -- Recalculate old request when deleted
-    -- or when item moves to another request
-    IF TG_OP = 'DELETE'
-       OR (
-            TG_OP = 'UPDATE'
-            AND OLD.request_id IS DISTINCT FROM NEW.request_id
-          )
-    THEN
-
-        UPDATE "PurchaseRequest"
-        SET total_cost = (
-            SELECT COALESCE(SUM(total_cost), 0)
-            FROM "PurchaseItem"
-            WHERE request_id = OLD.request_id
-        )
-        WHERE request_id = OLD.request_id;
-
-    END IF;
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE TRIGGER trg_update_purchase_request_total
-AFTER INSERT OR UPDATE OR DELETE
-ON "PurchaseItem"
-FOR EACH ROW
-EXECUTE FUNCTION update_purchase_request_total();
-
-
--- ============================================================
--- TRIGGER 3
 -- BudgetExpense.total_cost =
 -- quantity * item.unit_cost
 -- ============================================================
@@ -113,7 +58,7 @@ BEGIN
     SELECT unit_cost
     INTO item_unit_cost
     FROM item
-    WHERE name = NEW.item_name;
+    WHERE item_name = NEW.item_name;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION
@@ -143,7 +88,7 @@ EXECUTE FUNCTION calculate_budget_expense_total();
 
 
 -- ============================================================
--- TRIGGER 4
+-- TRIGGER 3
 -- budget.remaining_budget =
 -- budget_amount - SUM(BudgetExpense.total_cost)
 -- ============================================================
@@ -208,7 +153,7 @@ EXECUTE FUNCTION update_remaining_budget();
 
 
 -- ============================================================
--- TRIGGER 5
+-- TRIGGER 4
 -- InventoryTransaction updates InventoryList.instock_Total
 -- ============================================================
 
@@ -270,7 +215,7 @@ BEGIN
                     'Item "%" is not present in InventoryList',
                     NEW.item_name;
             END IF;
-            
+
             IF available_stock < NEW.quantity_taken THEN
                 RAISE EXCEPTION
                     'Not enough "%" in stock. Available: %, requested: %',
