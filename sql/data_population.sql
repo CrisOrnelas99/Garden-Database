@@ -1,24 +1,4 @@
-
 --ROLLBACK --rollback if needed
-
--- ============================================================
--- TEAM MEMBERS
--- ============================================================
-
-INSERT INTO team_member (
-    team_member_name,
-    notes
-)
-VALUES
-(
-    'Alice',
-    'Demo team member'
-),
-(
-    'Bob',
-    'Demo team member'
-);
-
 
 -- ============================================================
 -- LOCATIONS
@@ -53,27 +33,21 @@ VALUES
 
 -- ============================================================
 -- BUDGET
---
--- Initial remaining_budget starts equal to budget_amount.
--- BudgetExpense triggers will calculate the actual remainder.
 -- ============================================================
 
 INSERT INTO budget (
     budget_name,
     budget_amount,
-    remaining_budget,
     notes
 )
 VALUES
 (
     'SGLI Materials',
     1000.00,
-    1000.00,
     'Budget for consumable garden supplies'
 ),
 (
     'GROW RACK',
-    2500.00,
     2500.00,
     'Budget for reusable garden equipment'
 );
@@ -81,9 +55,6 @@ VALUES
 
 -- ============================================================
 -- ITEM
---
--- vendor_name is now normal text.
--- unit_cost is used by PurchaseRequest and BudgetExpense triggers.
 -- ============================================================
 
 INSERT INTO item (
@@ -139,15 +110,6 @@ VALUES
 
 -- ============================================================
 -- INVENTORY LIST
---
--- Starting stock BEFORE transactions:
---
--- Garden Gloves   = 20
--- Potting Soil    = 15
--- Watering Can    = 8
--- Garden Shovel   = 6
---
--- InventoryTransaction trigger will reduce these afterward.
 -- ============================================================
 
 INSERT INTO "InventoryList" (
@@ -200,9 +162,6 @@ VALUES
 
 -- ============================================================
 -- PURCHASE REQUEST
---
--- total_cost begins at 0.
--- Trigger will calculate each request total.
 -- ============================================================
 
 INSERT INTO "PurchaseRequest" (
@@ -270,35 +229,6 @@ VALUES
 
 -- ============================================================
 -- BUDGET EXPENSE
---
--- SGLI Materials:
---
--- Garden Gloves:
--- 7 × $10.00 = $70.00
---
--- Potting Soil:
--- 5 × $8.00 = $40.00
---
--- Total spent = $110.00
---
--- $1,000.00 - $110.00
--- = $890.00 remaining
---
---
--- GROW RACK:
---
--- Watering Can:
--- 2 × $15.00 = $30.00
---
--- Garden Shovel:
--- 3 × $25.00 = $75.00
---
--- Total spent = $105.00
---
--- $2,500.00 - $105.00
--- = $2,395.00 remaining
---
--- total_cost is calculated automatically.
 -- ============================================================
 
 INSERT INTO "BudgetExpense" (
@@ -346,22 +276,6 @@ VALUES
 
 -- ============================================================
 -- INVENTORY TRANSACTIONS
---
--- Starting Stock → Quantity Taken → Final Stock
---
--- Garden Gloves:
--- 20 - 4 = 16
---
--- Potting Soil:
--- 15 - 4 = 11
---
--- Watering Can:
--- 8 - 1 = 7
---
--- Garden Shovel:
--- 6 - 5 = 1
---
--- Inventory trigger calculates the final stock automatically.
 -- ============================================================
 
 INSERT INTO "InventoryTransaction" (
