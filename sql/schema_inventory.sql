@@ -4,8 +4,21 @@
 
 
 -- ============================================================
+-- CUSTOM DOMAINS
+-- Reusable data types and constraints
+-- ============================================================
+
+CREATE DOMAIN dollar AS DECIMAL(12,2)
+    CHECK (VALUE >= 0);
+
+CREATE DOMAIN count AS INT
+    CHECK (VALUE >= 0);
+
+
+-- ============================================================
 -- location
 -- ============================================================
+
 CREATE TABLE location (
     location_id SERIAL PRIMARY KEY,
     location_name VARCHAR(50) NOT NULL UNIQUE,
@@ -16,6 +29,7 @@ CREATE TABLE location (
 -- ============================================================
 -- team_member
 -- ============================================================
+
 CREATE TABLE team_member (
     team_member_id SERIAL PRIMARY KEY,
     team_member_name VARCHAR(50) NOT NULL UNIQUE,
@@ -26,13 +40,14 @@ CREATE TABLE team_member (
 -- ============================================================
 -- budget
 -- ============================================================
+
 CREATE TABLE budget (
     budget_id SERIAL PRIMARY KEY,
     budget_name VARCHAR(50) NOT NULL UNIQUE,
 
-    budget_amount DECIMAL(12,2) NOT NULL
-        CHECK (budget_amount >= 0),
+    budget_amount dollar NOT NULL,
 
+    -- Can become negative if expenses exceed budget
     remaining_budget DECIMAL(12,2),
 
     notes TEXT
@@ -43,8 +58,9 @@ CREATE TABLE budget (
 -- item
 -- Item catalog / master item information
 -- ============================================================
+
 CREATE TABLE item (
-    item_id INT SERIAL PRIMARY KEY,
+    item_id SERIAL PRIMARY KEY,
 
     category VARCHAR(50),
 
@@ -54,8 +70,7 @@ CREATE TABLE item (
 
     quote_link TEXT,
 
-    unit_cost DECIMAL(10,2)
-        CHECK (unit_cost IS NULL OR unit_cost >= 0),
+    unit_cost dollar,
 
     notes TEXT
 );
@@ -65,19 +80,17 @@ CREATE TABLE item (
 -- InventoryList
 -- Actual items currently tracked in inventory
 -- ============================================================
+
 CREATE TABLE "InventoryList" (
     inventory_id SERIAL PRIMARY KEY,
 
     item_name VARCHAR(50) NOT NULL UNIQUE,
 
-    cumulative_asset INT NOT NULL DEFAULT 0
-        CHECK (cumulative_asset >= 0),
+    cumulative_asset count NOT NULL DEFAULT 0,
 
-    "instock_Total" INT NOT NULL DEFAULT 0
-        CHECK ("instock_Total" >= 0),
+    "instock_Total" count NOT NULL DEFAULT 0,
 
-    reorder_point INT
-        CHECK (reorder_point IS NULL OR reorder_point >= 0),
+    reorder_point count,
 
     counted BOOLEAN NOT NULL DEFAULT FALSE,
 
@@ -96,6 +109,7 @@ CREATE TABLE "InventoryList" (
 -- PurchaseRequest
 -- One overall purchase request
 -- ============================================================
+
 CREATE TABLE "PurchaseRequest" (
     request_id SERIAL PRIMARY KEY,
 
@@ -107,8 +121,7 @@ CREATE TABLE "PurchaseRequest" (
 
     notes TEXT,
 
-    total_cost DECIMAL(12,2) NOT NULL DEFAULT 0
-        CHECK (total_cost >= 0),
+    total_cost dollar NOT NULL DEFAULT 0,
 
     funding_source VARCHAR(50),
 
@@ -128,6 +141,7 @@ CREATE TABLE "PurchaseRequest" (
 -- PurchaseItem
 -- Individual items belonging to a PurchaseRequest
 -- ============================================================
+
 CREATE TABLE "PurchaseItem" (
     purchase_item_id SERIAL PRIMARY KEY,
 
@@ -135,11 +149,10 @@ CREATE TABLE "PurchaseItem" (
 
     item_name VARCHAR(50) NOT NULL,
 
-    qty_requested INT NOT NULL
+    qty_requested count NOT NULL
         CHECK (qty_requested > 0),
 
-    total_cost DECIMAL(12,2) NOT NULL DEFAULT 0
-        CHECK (total_cost >= 0),
+    total_cost dollar NOT NULL DEFAULT 0,
 
     delivered_to_fns BOOLEAN NOT NULL DEFAULT FALSE,
 
@@ -165,6 +178,7 @@ CREATE TABLE "PurchaseItem" (
 -- BudgetExpense
 -- Items actually charged against a budget
 -- ============================================================
+
 CREATE TABLE "BudgetExpense" (
     budget_expense_id SERIAL PRIMARY KEY,
 
@@ -176,11 +190,10 @@ CREATE TABLE "BudgetExpense" (
 
     item_name VARCHAR(50) NOT NULL,
 
-    quantity INT NOT NULL
+    quantity count NOT NULL
         CHECK (quantity > 0),
 
-    total_cost DECIMAL(12,2) NOT NULL DEFAULT 0
-        CHECK (total_cost >= 0),
+    total_cost dollar NOT NULL DEFAULT 0,
 
     notes TEXT,
 
@@ -210,6 +223,7 @@ CREATE TABLE "BudgetExpense" (
 -- InventoryTransaction
 -- Records inventory being taken from InventoryList
 -- ============================================================
+
 CREATE TABLE "InventoryTransaction" (
     transaction_id SERIAL PRIMARY KEY,
 
@@ -221,7 +235,7 @@ CREATE TABLE "InventoryTransaction" (
 
     item_name VARCHAR(50) NOT NULL,
 
-    quantity_taken INT NOT NULL
+    quantity_taken count NOT NULL
         CHECK (quantity_taken > 0),
 
     notes TEXT,
