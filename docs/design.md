@@ -389,28 +389,3 @@ Resources Needed
       v
 Current Inventory
 ```
-
-## Current vs. Planned
-
-  Area                              Status
-  --------------------------------- -------------------------
-  Inventory & Supplies              Current implementation
-  Budget tracking                   Current implementation
-  Purchase requests                 Current implementation
-  Inventory distribution            Current implementation
-  Automatic calculations/triggers   Current implementation
-  Garden records                    Planned
-  Garden beds                       Planned
-  Irrigation setups                 Planned
-  Composting units                  Planned
-  Plant/crop information            Planned
-  Planting schedules                Planned
-  Crop rotation history             Planned
-  Seasonal growing information      Planned
-  Planting resource requirements    Planned
-
-
-The planned design is intended as a starting point. Exact fields and
-relationships for the Garden and Planting portions should be adjusted as
-the team receives more information about how the community partner
-currently tracks and uses this data.
