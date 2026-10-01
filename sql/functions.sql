@@ -1,4 +1,3 @@
-
 -- ============================================================
 -- TRIGGER 1
 -- PurchaseRequest.total_cost =
@@ -93,11 +92,30 @@ EXECUTE FUNCTION calculate_budget_expense_total();
 -- budget_amount - SUM(BudgetExpense.total_cost)
 -- ============================================================
 
+CREATE OR REPLACE FUNCTION initialize_remaining_budget()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    IF NEW.remaining_budget IS NULL THEN
+        NEW.remaining_budget := NEW.budget_amount;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER trg_initialize_remaining_budget
+BEFORE INSERT
+ON budget
+FOR EACH ROW
+EXECUTE FUNCTION initialize_remaining_budget();
+
+
 CREATE OR REPLACE FUNCTION update_remaining_budget()
 RETURNS TRIGGER AS $$
 BEGIN
 
-    -- Recalculate current/new budget
     IF TG_OP IN ('INSERT', 'UPDATE') THEN
 
         UPDATE budget b
@@ -116,8 +134,6 @@ BEGIN
     END IF;
 
 
-    -- Recalculate old budget if deleted
-    -- or expense moved to another budget
     IF TG_OP = 'DELETE'
        OR (
             TG_OP = 'UPDATE'
@@ -163,9 +179,6 @@ DECLARE
     available_stock INT;
 BEGIN
 
-    -- ========================================================
-    -- INSERT
-    -- ========================================================
     IF TG_OP = 'INSERT' THEN
 
         SELECT "instock_Total"
@@ -195,16 +208,10 @@ BEGIN
         RETURN NEW;
 
 
-    -- ========================================================
-    -- UPDATE
-    -- ========================================================
     ELSIF TG_OP = 'UPDATE' THEN
 
-        -- Same inventory item
         IF OLD.item_name = NEW.item_name THEN
 
-            -- Check what stock would be after restoring
-            -- the original transaction amount
             SELECT "instock_Total" + OLD.quantity_taken
             INTO available_stock
             FROM "InventoryList"
@@ -233,14 +240,12 @@ BEGIN
 
         ELSE
 
-            -- Restore quantity to original item
             UPDATE "InventoryList"
             SET "instock_Total" =
                 "instock_Total" + OLD.quantity_taken
             WHERE item_name = OLD.item_name;
 
 
-            -- Check new item stock
             SELECT "instock_Total"
             INTO available_stock
             FROM "InventoryList"
@@ -261,7 +266,6 @@ BEGIN
             END IF;
 
 
-            -- Subtract from new item
             UPDATE "InventoryList"
             SET "instock_Total" =
                 "instock_Total" - NEW.quantity_taken
@@ -272,10 +276,6 @@ BEGIN
         RETURN NEW;
 
 
-    -- ========================================================
-    -- DELETE
-    -- Restore inventory when transaction is removed
-    -- ========================================================
     ELSIF TG_OP = 'DELETE' THEN
 
         UPDATE "InventoryList"
@@ -296,4 +296,3 @@ BEFORE INSERT OR UPDATE OR DELETE
 ON "InventoryTransaction"
 FOR EACH ROW
 EXECUTE FUNCTION update_inventory_after_transaction();
-
