@@ -2,7 +2,6 @@
 -- Inventory Schema
 -- ============================================================
 
-
 -- ============================================================
 -- CUSTOM DOMAINS
 -- Reusable data types and constraints
@@ -21,7 +20,9 @@ CREATE DOMAIN count AS INT
 
 CREATE TABLE location (
     location_id SERIAL PRIMARY KEY,
-    location_name VARCHAR(50) NOT NULL UNIQUE,
+
+    location_name VARCHAR(200) NOT NULL UNIQUE,
+
     notes TEXT
 );
 
@@ -32,7 +33,9 @@ CREATE TABLE location (
 
 CREATE TABLE team_member (
     team_member_id SERIAL PRIMARY KEY,
+
     team_member_name VARCHAR(50) NOT NULL UNIQUE,
+
     notes TEXT
 );
 
@@ -43,6 +46,7 @@ CREATE TABLE team_member (
 
 CREATE TABLE budget (
     budget_id SERIAL PRIMARY KEY,
+
     budget_name VARCHAR(50) NOT NULL UNIQUE,
 
     budget_amount dollar NOT NULL,
@@ -64,7 +68,7 @@ CREATE TABLE item (
 
     category VARCHAR(50),
 
-    name VARCHAR(50) NOT NULL UNIQUE,
+    item_name VARCHAR(200) NOT NULL UNIQUE,
 
     vendor_name VARCHAR(50),
 
@@ -84,7 +88,7 @@ CREATE TABLE item (
 CREATE TABLE "InventoryList" (
     inventory_id SERIAL PRIMARY KEY,
 
-    item_name VARCHAR(50) NOT NULL UNIQUE,
+    item_name VARCHAR(200) NOT NULL UNIQUE,
 
     cumulative_asset count NOT NULL DEFAULT 0,
 
@@ -94,13 +98,13 @@ CREATE TABLE "InventoryList" (
 
     counted BOOLEAN NOT NULL DEFAULT FALSE,
 
-    storage_location VARCHAR(50),
+    storage_location VARCHAR(200),
 
     notes TEXT,
 
     CONSTRAINT fk_inventory_item
         FOREIGN KEY (item_name)
-        REFERENCES item(name)
+        REFERENCES item(item_name)
         ON UPDATE CASCADE
 );
 
@@ -113,41 +117,13 @@ CREATE TABLE "InventoryList" (
 CREATE TABLE "PurchaseRequest" (
     request_id SERIAL PRIMARY KEY,
 
-    requested_by VARCHAR(50) NOT NULL,
-
-    requesting_for VARCHAR(50),
-
     school_year VARCHAR(9),
 
-    notes TEXT,
+    requested_by VARCHAR(50) NOT NULL,
 
-    total_cost dollar NOT NULL DEFAULT 0,
+    requesting_for VARCHAR(200),
 
-    funding_source VARCHAR(50),
-
-    CONSTRAINT fk_purchase_request_requested_by
-        FOREIGN KEY (requested_by)
-        REFERENCES team_member(team_member_name)
-        ON UPDATE CASCADE,
-
-    CONSTRAINT fk_purchase_request_requesting_for
-        FOREIGN KEY (requesting_for)
-        REFERENCES location(location_name)
-        ON UPDATE CASCADE
-);
-
-
--- ============================================================
--- PurchaseItem
--- Individual items belonging to a PurchaseRequest
--- ============================================================
-
-CREATE TABLE "PurchaseItem" (
-    purchase_item_id SERIAL PRIMARY KEY,
-
-    request_id INT NOT NULL,
-
-    item_name VARCHAR(50) NOT NULL,
+    item_name VARCHAR(200) NOT NULL,
 
     qty_requested count NOT NULL
         CHECK (qty_requested > 0),
@@ -160,16 +136,23 @@ CREATE TABLE "PurchaseItem" (
 
     ordered BOOLEAN NOT NULL DEFAULT FALSE,
 
+    funding_source VARCHAR(50),
+
     notes TEXT,
 
-    CONSTRAINT fk_purchase_item_request
-        FOREIGN KEY (request_id)
-        REFERENCES "PurchaseRequest"(request_id)
-        ON DELETE CASCADE,
+    CONSTRAINT fk_purchase_request_requested_by
+        FOREIGN KEY (requested_by)
+        REFERENCES team_member(team_member_name)
+        ON UPDATE CASCADE,
 
-    CONSTRAINT fk_purchase_item_item
+    CONSTRAINT fk_purchase_request_requesting_for
+        FOREIGN KEY (requesting_for)
+        REFERENCES location(location_name)
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_purchase_request_item
         FOREIGN KEY (item_name)
-        REFERENCES item(name)
+        REFERENCES item(item_name)
         ON UPDATE CASCADE
 );
 
@@ -182,13 +165,13 @@ CREATE TABLE "PurchaseItem" (
 CREATE TABLE "BudgetExpense" (
     budget_expense_id SERIAL PRIMARY KEY,
 
-    location VARCHAR(50),
+    location VARCHAR(200),
 
     budget_name VARCHAR(50) NOT NULL,
 
     team_member_name VARCHAR(50),
 
-    item_name VARCHAR(50) NOT NULL,
+    item_name VARCHAR(200) NOT NULL,
 
     quantity count NOT NULL
         CHECK (quantity > 0),
@@ -214,7 +197,7 @@ CREATE TABLE "BudgetExpense" (
 
     CONSTRAINT fk_budget_expense_item
         FOREIGN KEY (item_name)
-        REFERENCES item(name)
+        REFERENCES item(item_name)
         ON UPDATE CASCADE
 );
 
@@ -231,9 +214,9 @@ CREATE TABLE "InventoryTransaction" (
 
     taken_by VARCHAR(50) NOT NULL,
 
-    for_school VARCHAR(50),
+    for_school VARCHAR(200),
 
-    item_name VARCHAR(50) NOT NULL,
+    item_name VARCHAR(200) NOT NULL,
 
     quantity_taken count NOT NULL
         CHECK (quantity_taken > 0),
