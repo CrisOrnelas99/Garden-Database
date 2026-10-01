@@ -1,12 +1,3 @@
---SAMPLE DATA
-
-
-
--- ============================================================
--- RESET FAILED TRANSACTION IF NEEDED
--- ============================================================
-
---ROLLBACK;
 
 -- ============================================================
 -- TEAM MEMBERS
@@ -90,12 +81,12 @@ VALUES
 -- ITEM
 --
 -- vendor_name is now normal text.
--- unit_cost is used by PurchaseItem and BudgetExpense triggers.
+-- unit_cost is used by PurchaseRequest and BudgetExpense triggers.
 -- ============================================================
 
 INSERT INTO item (
     category,
-    name,
+    item_name,
     vendor_name,
     quote_link,
     unit_cost,
@@ -209,108 +200,68 @@ VALUES
 -- PURCHASE REQUEST
 --
 -- total_cost begins at 0.
--- PurchaseItem trigger will update each request total.
+-- Trigger will calculate each request total.
 -- ============================================================
 
 INSERT INTO "PurchaseRequest" (
+    school_year,
     requested_by,
     requesting_for,
-    school_year,
-    notes,
-    total_cost,
-    funding_source
-)
-VALUES
-(
-    'Alice',
-    'Estero High School',
-    '2026-2027',
-    'Fall garden supplies',
-    0.00,
-    'SGLI Materials'
-),
-(
-    'Bob',
-    'Three Oaks Middle School',
-    '2026-2027',
-    'Garden equipment request',
-    0.00,
-    'GROW RACK'
-);
-
-
--- ============================================================
--- PURCHASE ITEMS
---
--- REQUEST 1
---
--- Garden Gloves:
--- 7 × $10.00 = $70.00
---
--- Seed Pack:
--- 10 × $5.00 = $50.00
---
--- REQUEST 1 TOTAL = $120.00
---
---
--- REQUEST 2
---
--- Watering Can:
--- 4 × $15.00 = $60.00
---
--- Garden Shovel:
--- 2 × $25.00 = $50.00
---
--- REQUEST 2 TOTAL = $110.00
---
--- total_cost is NOT manually inserted.
--- Trigger calculates it.
--- ============================================================
-
-INSERT INTO "PurchaseItem" (
-    request_id,
     item_name,
     qty_requested,
     delivered_to_fns,
     review_status,
     ordered,
+    funding_source,
     notes
 )
 VALUES
 (
-    1,
+    '2026-2027',
+    'Alice',
+    'Estero High School',
     'Garden Gloves',
     7,
     FALSE,
     'Approved',
     TRUE,
+    'SGLI Materials',
     'Gloves for students, has not been delivered'
 ),
 (
-    1,
+    '2026-2027',
+    'Alice',
+    'Estero High School',
     'Seed Pack',
     10,
     FALSE,
     'Approved',
     TRUE,
+    'SGLI Materials',
     'Seeds for fall planting'
 ),
 (
-    2,
+    '2026-2027',
+    'Bob',
+    'Three Oaks Middle School',
     'Watering Can',
     4,
     FALSE,
     'Approved',
     TRUE,
+    'GROW RACK',
     'Additional watering cans'
 ),
 (
-    2,
+    '2026-2027',
+    'Bob',
+    'Three Oaks Middle School',
     'Garden Shovel',
     2,
     FALSE,
     'Approved',
     TRUE,
+    'GROW RACK',
     'Additional garden shovels'
 );
 
