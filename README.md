@@ -15,7 +15,6 @@ Plan planting schedules, manage crop rotations to maintain soil health, and trac
 
 The current ERD for the inventory portion of the database is shown below.
 
-![Inventory Database](docs/inventory_schema.jpeg)
 
                          
                            team_member  
