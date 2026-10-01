@@ -2,6 +2,7 @@
 -- Inventory Schema
 -- ============================================================
 
+
 -- ============================================================
 -- CUSTOM DOMAINS
 -- Reusable data types and constraints
@@ -22,19 +23,6 @@ CREATE TABLE location (
     location_id SERIAL PRIMARY KEY,
 
     location_name VARCHAR(200) NOT NULL UNIQUE,
-
-    notes TEXT
-);
-
-
--- ============================================================
--- team_member
--- ============================================================
-
-CREATE TABLE team_member (
-    team_member_id SERIAL PRIMARY KEY,
-
-    team_member_name VARCHAR(50) NOT NULL UNIQUE,
 
     notes TEXT
 );
@@ -140,11 +128,6 @@ CREATE TABLE "PurchaseRequest" (
 
     notes TEXT,
 
-    CONSTRAINT fk_purchase_request_requested_by
-        FOREIGN KEY (requested_by)
-        REFERENCES team_member(team_member_name)
-        ON UPDATE CASCADE,
-
     CONSTRAINT fk_purchase_request_requesting_for
         FOREIGN KEY (requesting_for)
         REFERENCES location(location_name)
@@ -190,11 +173,6 @@ CREATE TABLE "BudgetExpense" (
         REFERENCES budget(budget_name)
         ON UPDATE CASCADE,
 
-    CONSTRAINT fk_budget_expense_team_member
-        FOREIGN KEY (team_member_name)
-        REFERENCES team_member(team_member_name)
-        ON UPDATE CASCADE,
-
     CONSTRAINT fk_budget_expense_item
         FOREIGN KEY (item_name)
         REFERENCES item(item_name)
@@ -222,11 +200,6 @@ CREATE TABLE "InventoryTransaction" (
         CHECK (quantity_taken > 0),
 
     notes TEXT,
-
-    CONSTRAINT fk_inventory_transaction_taken_by
-        FOREIGN KEY (taken_by)
-        REFERENCES team_member(team_member_name)
-        ON UPDATE CASCADE,
 
     CONSTRAINT fk_inventory_transaction_school
         FOREIGN KEY (for_school)
