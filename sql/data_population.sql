@@ -1,5 +1,6 @@
 --ROLLBACK --rollback if needed
 
+
 -- ============================================================
 -- LOCATIONS
 -- ============================================================
@@ -10,24 +11,44 @@ INSERT INTO location (
 )
 VALUES
 (
-    'FGCU',
-    'FGCU demonstration location'
+    'Gulf Elementary School',
+    'School garden location'
 ),
 (
-    'Estero High School',
-    'Demo high school'
+    'Buckingham Exceptional Center',
+    'School garden location'
 ),
 (
-    'Three Oaks Middle School',
-    'Demo middle school'
+    'Caloosa Middle School',
+    'School garden location'
 ),
 (
-    'All HLC Gardens',
-    'Represents all HLC garden locations'
+    'Cape Coral High School',
+    'School garden location'
 ),
 (
-    'FGCU and Estero',
-    'Used when activity applies to both locations'
+    'Heights Elementary',
+    'School garden location'
+),
+(
+    'The Alva School',
+    'School garden location'
+),
+(
+    'All 19 HLC Gardens',
+    'All HLC garden locations'
+),
+(
+    'General HLC',
+    'General HLC location'
+),
+(
+    'HLC Office',
+    'HLC office location'
+),
+(
+    'School Garden Training',
+    'School garden training'
 );
 
 
@@ -42,14 +63,19 @@ INSERT INTO budget (
 )
 VALUES
 (
-    'SGLI Materials',
+    'SGLT Materials',
     1000.00,
-    'Budget for consumable garden supplies'
+    'Materials budget'
 ),
 (
-    'GROW RACK',
-    2500.00,
-    'Budget for reusable garden equipment'
+    'Grow Rack',
+    3200.00,
+    'Grow rack budget'
+),
+(
+    'Garden Start-up and Maintenance',
+    40000.00,
+    'Garden budget'
 );
 
 
@@ -67,44 +93,84 @@ INSERT INTO item (
 )
 VALUES
 (
-    'Garden Supplies',
-    'Garden Gloves',
-    'Walmart',
-    'https://walmart.com/example',
+    'Garden',
+    'Garden - 4 inch nursery pots',
+    'Amazon',
+    'https://amazon.com',
+    20.89,
+    'Garden item'
+),
+(
+    'Garden',
+    'Garden - Black 2.5 in pots, bulk',
+    'Greenhouse Megastore',
+    'https://walmart.com',
+    96.00,
+    'Garden item'
+),
+(
+    'Garden',
+    'Garden - Euro pots 6in (17cm), Case',
+    'Greenhouse Megastore',
+    'https://walmart.com',
+    117.00,
+    'Garden item'
+),
+(
+    'Garden',
+    'Garden - Garden gloves, Adult Large 6pk',
+    'Amazon',
+    'https://amazon.com',
+    15.45,
+    'Garden gloves'
+),
+(
+    'Garden',
+    'Garden - Garden gloves, Kids large 6pk',
+    'Amazon',
+    'https://amazon.com',
+    14.99,
+    'Garden gloves'
+),
+(
+    'Garden',
+    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    'Amazon',
+    'https://amazon.com',
+    45.99,
+    'Garden growing supplies'
+),
+(
+    'Garden',
+    'Garden - Sakata Seeds',
+    'Sakata',
+    'https://walmart.com',
     10.00,
-    'Reusable garden gloves'
+    'Garden seeds'
 ),
 (
-    'Garden Supplies',
-    'Potting Soil',
-    'Walmart',
-    'https://walmart.com/example',
-    8.00,
-    'Bag of potting soil'
-),
-(
-    'Garden Equipment',
-    'Watering Can',
+    'Hydroponics',
+    'Hydroponics - Micro line, drip line 10x125ft',
     'Amazon',
-    'https://amazon.com/example',
-    15.00,
-    'Standard watering can'
-),
-(
-    'Garden Equipment',
-    'Garden Shovel',
-    'Amazon',
-    'https://amazon.com/example',
+    'https://amazon.com',
     25.00,
-    'General purpose garden shovel'
+    'Hydroponic supplies'
 ),
 (
-    'Seeds',
-    'Seed Pack',
+    'Media',
+    'Media - Jolly Gardener Grower''s mix',
     'Walmart',
-    'https://walmart.com/example',
-    5.00,
-    'Vegetable seed pack'
+    'https://walmart.com',
+    20.00,
+    'Growing media'
+),
+(
+    'Garden',
+    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    'Amazon',
+    'https://amazon.com',
+    32.99,
+    'Garden supplies'
 );
 
 
@@ -123,40 +189,94 @@ INSERT INTO "InventoryList" (
 )
 VALUES
 (
-    'Garden Gloves',
-    20,
-    20,
-    5,
-    TRUE,
-    'Connex',
-    'Starting demo inventory'
-),
-(
-    'Potting Soil',
-    15,
-    15,
+    'Garden - 4 inch nursery pots',
+    0,
+    0,
     5,
     TRUE,
     'SGM Office',
-    'Starting demo inventory'
+    'Inventory item'
 ),
 (
-    'Watering Can',
-    8,
-    8,
-    2,
+    'Garden - Black 2.5 in pots, bulk',
+    1000,
+    940,
+    5,
     TRUE,
-    'Connex',
-    'Starting demo inventory'
+    'SGM Office',
+    'Inventory item'
 ),
 (
-    'Garden Shovel',
-    6,
-    6,
+    'Garden - Euro pots 6in (17cm), Case',
+    302,
+    302,
+    5,
+    TRUE,
+    'SGM Office',
+    'Inventory item'
+),
+(
+    'Garden - Garden gloves, Adult Large 6pk',
+    10,
+    10,
+    5,
+    TRUE,
+    'SGM Office',
+    'Inventory item'
+),
+(
+    'Garden - Garden gloves, Kids large 6pk',
+    3,
+    3,
+    5,
+    TRUE,
+    'SGM Office',
+    'Inventory item'
+),
+(
+    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    4,
+    4,
+    0,
+    TRUE,
+    'SGM Office',
+    'Inventory item'
+),
+(
+    'Garden - Sakata Seeds',
+    10,
+    10,
+    5,
+    TRUE,
+    'SGM Office',
+    'Inventory item'
+),
+(
+    'Hydroponics - Micro line, drip line 10x125ft',
+    7,
+    7,
     2,
     TRUE,
+    'SGM Office',
+    'Inventory item'
+),
+(
+    'Media - Jolly Gardener Grower''s mix',
+    155,
+    155,
+    10,
+    TRUE,
+    'SGM Office',
+    'Inventory item'
+),
+(
+    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    0,
+    0,
+    5,
+    FALSE,
     'Connex',
-    'Starting demo inventory'
+    'Inventory item'
 );
 
 
@@ -179,51 +299,99 @@ INSERT INTO "PurchaseRequest" (
 VALUES
 (
     '2026-2027',
-    'Alice',
-    'Estero High School',
-    'Garden Gloves',
-    7,
-    FALSE,
-    'Approved',
+    'Daniela',
+    'All 19 HLC Gardens',
+    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    1,
     TRUE,
-    'SGLI Materials',
-    'Gloves for students, has not been delivered'
+    'Ordered',
+    TRUE,
+    'Garden Start-up and Maintenance',
+    'Garden supplies'
 ),
 (
     '2026-2027',
-    'Alice',
-    'Estero High School',
-    'Seed Pack',
-    10,
-    FALSE,
-    'Approved',
+    'Susie',
+    'School Garden Training',
+    'Garden - 4 inch nursery pots',
+    5,
     TRUE,
-    'SGLI Materials',
-    'Seeds for fall planting'
+    'Ordered',
+    TRUE,
+    'SGLT Materials',
+    'Training supplies'
 ),
 (
     '2026-2027',
-    'Bob',
-    'Three Oaks Middle School',
-    'Watering Can',
-    4,
-    FALSE,
-    'Approved',
+    'Mary',
+    'All 19 HLC Gardens',
+    'Garden - Garden gloves, Adult Large 6pk',
+    2,
     TRUE,
-    'GROW RACK',
-    'Additional watering cans'
+    'Ordered',
+    TRUE,
+    'Garden Start-up and Maintenance',
+    'Garden supplies'
 ),
 (
     '2026-2027',
-    'Bob',
-    'Three Oaks Middle School',
-    'Garden Shovel',
+    'Daniela',
+    'Cape Coral High School',
+    'Garden - Garden gloves, Kids large 6pk',
     2,
     FALSE,
-    'Approved',
+    'Under Review',
+    FALSE,
+    'Garden Start-up and Maintenance',
+    'Garden supplies'
+),
+(
+    '2026-2027',
+    'Leisha',
+    'General HLC',
+    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    1,
     TRUE,
-    'GROW RACK',
-    'Additional garden shovels'
+    'Ordered',
+    TRUE,
+    'SGLT Materials',
+    'Growing supplies'
+),
+(
+    '2026-2027',
+    'Mark',
+    'Caloosa Middle School',
+    'Hydroponics - Micro line, drip line 10x125ft',
+    1,
+    TRUE,
+    'Ordered',
+    TRUE,
+    'Grow Rack',
+    'Hydroponic supplies'
+),
+(
+    '2026-2027',
+    'Mark',
+    'Gulf Elementary School',
+    'Garden - Sakata Seeds',
+    1,
+    TRUE,
+    'Ordered',
+    TRUE,
+    'Garden Start-up and Maintenance',
+    'Garden seeds'
+),
+(
+    '2026-2027',
+    'Mary',
+    'The Alva School',
+    'Media - Jolly Gardener Grower''s mix',
+    5,
+    TRUE,
+    'Ordered',
+    TRUE,
+    'Garden Start-up and Maintenance',
+    'Growing media'
 );
 
 
@@ -241,36 +409,68 @@ INSERT INTO "BudgetExpense" (
 )
 VALUES
 (
-    'FGCU',
-    'SGLI Materials',
-    'Alice',
-    'Garden Gloves',
-    7,
-    'Demo glove expense'
-),
-(
-    'Estero High School',
-    'SGLI Materials',
-    'Alice',
-    'Potting Soil',
+    'School Garden Training',
+    'SGLT Materials',
+    'Susie',
+    'Garden - 4 inch nursery pots',
     5,
-    'Soil for garden beds'
+    'Materials expense'
 ),
 (
-    'Three Oaks Middle School',
-    'GROW RACK',
-    'Bob',
-    'Watering Can',
+    'All 19 HLC Gardens',
+    'Garden Start-up and Maintenance',
+    'Daniela',
+    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    1,
+    'Garden expense'
+),
+(
+    'Caloosa Middle School',
+    'Grow Rack',
+    'Mark',
+    'Hydroponics - Micro line, drip line 10x125ft',
+    1,
+    'Grow rack expense'
+),
+(
+    'Cape Coral High School',
+    'Garden Start-up and Maintenance',
+    'Daniela',
+    'Garden - Garden gloves, Kids large 6pk',
     2,
-    'Demo watering can expense'
+    'Garden expense'
 ),
 (
-    'FGCU',
-    'GROW RACK',
-    'Bob',
-    'Garden Shovel',
-    3,
-    'Demo shovel expense'
+    'All 19 HLC Gardens',
+    'Garden Start-up and Maintenance',
+    'Mary',
+    'Garden - Garden gloves, Adult Large 6pk',
+    2,
+    'Garden expense'
+),
+(
+    'General HLC',
+    'SGLT Materials',
+    'Leisha',
+    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    1,
+    'Materials expense'
+),
+(
+    'Gulf Elementary School',
+    'Garden Start-up and Maintenance',
+    'Mark',
+    'Garden - Sakata Seeds',
+    1,
+    'Garden expense'
+),
+(
+    'The Alva School',
+    'Garden Start-up and Maintenance',
+    'Mary',
+    'Media - Jolly Gardener Grower''s mix',
+    5,
+    'Garden expense'
 );
 
 
@@ -288,34 +488,66 @@ INSERT INTO "InventoryTransaction" (
 )
 VALUES
 (
-    CURRENT_DATE,
-    'Alice',
-    'Estero High School',
-    'Garden Gloves',
-    4,
-    'Issued for student gardening'
-),
-(
-    CURRENT_DATE,
-    'Alice',
-    'Estero High School',
-    'Potting Soil',
-    4,
-    'Used for garden beds'
-),
-(
-    CURRENT_DATE,
-    'Bob',
-    'Three Oaks Middle School',
-    'Watering Can',
+    '2026-09-01',
+    'Mark',
+    'Gulf Elementary School',
+    'Garden - Sakata Seeds',
     1,
-    'Issued to school'
+    'Seeds'
 ),
 (
-    CURRENT_DATE,
-    'Bob',
-    'All HLC Gardens',
-    'Garden Shovel',
+    '2026-09-01',
+    'Mark',
+    'Buckingham Exceptional Center',
+    'Hydroponics - Micro line, drip line 10x125ft',
+    1,
+    'Hydroponic supplies'
+),
+(
+    '2026-09-14',
+    'Mark',
+    'Caloosa Middle School',
+    'Hydroponics - Micro line, drip line 10x125ft',
+    1,
+    'Hydroponic supplies'
+),
+(
+    '2026-09-15',
+    'Mark',
+    'Cape Coral High School',
+    'Garden - Sakata Seeds',
+    1,
+    'Seeds'
+),
+(
+    '2026-09-15',
+    'Mary',
+    'Caloosa Middle School',
+    'Garden - Garden gloves, Kids large 6pk',
+    2,
+    'Garden gloves'
+),
+(
+    '2026-09-22',
+    'Mark',
+    'Caloosa Middle School',
+    'Media - Jolly Gardener Grower''s mix',
+    4,
+    'Growing media'
+),
+(
+    '2026-09-22',
+    'Mark',
+    'Cape Coral High School',
+    'Media - Jolly Gardener Grower''s mix',
     5,
-    'Issued to school'
+    'Growing media'
+),
+(
+    '2026-09-23',
+    'Mark',
+    'The Alva School',
+    'Media - Jolly Gardener Grower''s mix',
+    10,
+    'Garden restart'
 );
