@@ -44,52 +44,7 @@ EXECUTE FUNCTION calculate_purchase_request_total();
 
 -- ============================================================
 -- TRIGGER 2
--- BudgetExpense.total_cost =
--- quantity * item.unit_cost
--- ============================================================
-
-CREATE OR REPLACE FUNCTION calculate_budget_expense_total()
-RETURNS TRIGGER AS $$
-DECLARE
-    item_unit_cost NUMERIC;
-BEGIN
-
-    SELECT unit_cost
-    INTO item_unit_cost
-    FROM item
-    WHERE item_name = NEW.item_name;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION
-            'Item "%" was not found in item',
-            NEW.item_name;
-    END IF;
-
-    IF item_unit_cost IS NULL THEN
-        RAISE EXCEPTION
-            'Item "%" does not have a unit_cost in item',
-            NEW.item_name;
-    END IF;
-
-    NEW.total_cost :=
-        NEW.quantity * item_unit_cost;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE TRIGGER trg_calculate_budget_expense_total
-BEFORE INSERT OR UPDATE OF item_name, quantity
-ON "BudgetExpense"
-FOR EACH ROW
-EXECUTE FUNCTION calculate_budget_expense_total();
-
-
--- ============================================================
--- TRIGGER 3
--- budget.remaining_budget =
--- budget_amount - SUM(BudgetExpense.total_cost)
+-- Initialize budget.remaining_budget
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION initialize_remaining_budget()
@@ -112,20 +67,26 @@ FOR EACH ROW
 EXECUTE FUNCTION initialize_remaining_budget();
 
 
+-- ============================================================
+-- TRIGGER 3
+-- budget.remaining_budget =
+-- budget_amount - SUM(PurchaseRequest.total_cost)
+-- ============================================================
+
 CREATE OR REPLACE FUNCTION update_remaining_budget()
 RETURNS TRIGGER AS $$
 BEGIN
 
-    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+    IF TG_OP IN ('INSERT', 'UPDATE') AND NEW.budget_name IS NOT NULL THEN
 
         UPDATE budget b
         SET remaining_budget =
             b.budget_amount -
             COALESCE(
                 (
-                    SELECT SUM(be.total_cost)
-                    FROM "BudgetExpense" be
-                    WHERE be.budget_name = NEW.budget_name
+                    SELECT SUM(pr.total_cost)
+                    FROM "PurchaseRequest" pr
+                    WHERE pr.budget_name = NEW.budget_name
                 ),
                 0
             )
@@ -141,18 +102,22 @@ BEGIN
           )
     THEN
 
-        UPDATE budget b
-        SET remaining_budget =
-            b.budget_amount -
-            COALESCE(
-                (
-                    SELECT SUM(be.total_cost)
-                    FROM "BudgetExpense" be
-                    WHERE be.budget_name = OLD.budget_name
-                ),
-                0
-            )
-        WHERE b.budget_name = OLD.budget_name;
+        IF OLD.budget_name IS NOT NULL THEN
+
+            UPDATE budget b
+            SET remaining_budget =
+                b.budget_amount -
+                COALESCE(
+                    (
+                        SELECT SUM(pr.total_cost)
+                        FROM "PurchaseRequest" pr
+                        WHERE pr.budget_name = OLD.budget_name
+                    ),
+                    0
+                )
+            WHERE b.budget_name = OLD.budget_name;
+
+        END IF;
 
     END IF;
 
@@ -163,7 +128,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_remaining_budget
 AFTER INSERT OR UPDATE OR DELETE
-ON "BudgetExpense"
+ON "PurchaseRequest"
 FOR EACH ROW
 EXECUTE FUNCTION update_remaining_budget();
 
