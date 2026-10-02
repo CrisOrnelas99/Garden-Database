@@ -99,7 +99,7 @@ CREATE TABLE "InventoryList" (
 
 -- ============================================================
 -- PurchaseRequest
--- One overall purchase request
+-- Purchase requests and their assigned budget
 -- ============================================================
 
 CREATE TABLE "PurchaseRequest" (
@@ -124,6 +124,8 @@ CREATE TABLE "PurchaseRequest" (
 
     ordered BOOLEAN NOT NULL DEFAULT FALSE,
 
+    budget_name VARCHAR(50),
+
     funding_source VARCHAR(50),
 
     notes TEXT,
@@ -136,46 +138,11 @@ CREATE TABLE "PurchaseRequest" (
     CONSTRAINT fk_purchase_request_item
         FOREIGN KEY (item_name)
         REFERENCES item(item_name)
-        ON UPDATE CASCADE
-);
-
-
--- ============================================================
--- BudgetExpense
--- Items actually charged against a budget
--- ============================================================
-
-CREATE TABLE "BudgetExpense" (
-    budget_expense_id SERIAL PRIMARY KEY,
-
-    location VARCHAR(200),
-
-    budget_name VARCHAR(50) NOT NULL,
-
-    team_member_name VARCHAR(50),
-
-    item_name VARCHAR(200) NOT NULL,
-
-    quantity count NOT NULL
-        CHECK (quantity > 0),
-
-    total_cost dollar NOT NULL DEFAULT 0,
-
-    notes TEXT,
-
-    CONSTRAINT fk_budget_expense_location
-        FOREIGN KEY (location)
-        REFERENCES location(location_name)
         ON UPDATE CASCADE,
 
-    CONSTRAINT fk_budget_expense_budget
+    CONSTRAINT fk_purchase_request_budget
         FOREIGN KEY (budget_name)
         REFERENCES budget(budget_name)
-        ON UPDATE CASCADE,
-
-    CONSTRAINT fk_budget_expense_item
-        FOREIGN KEY (item_name)
-        REFERENCES item(item_name)
         ON UPDATE CASCADE
 );
 
