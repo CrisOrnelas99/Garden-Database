@@ -94,7 +94,7 @@ INSERT INTO item (
 VALUES
 (
     'Garden',
-    'Garden - 4 inch nursery pots',
+    '4 inch nursery pots',
     'Amazon',
     'https://amazon.com',
     20.89,
@@ -102,7 +102,7 @@ VALUES
 ),
 (
     'Garden',
-    'Garden - Black 2.5 in pots, bulk',
+    'Black 2.5 in pots, bulk',
     'Greenhouse Megastore',
     'https://walmart.com',
     96.00,
@@ -110,7 +110,7 @@ VALUES
 ),
 (
     'Garden',
-    'Garden - Euro pots 6in (17cm), Case',
+    'Euro pots 6in (17cm), Case',
     'Greenhouse Megastore',
     'https://walmart.com',
     117.00,
@@ -118,7 +118,7 @@ VALUES
 ),
 (
     'Garden',
-    'Garden - Garden gloves, Adult Large 6pk',
+    'Garden gloves, Adult Large 6pk',
     'Amazon',
     'https://amazon.com',
     15.45,
@@ -126,7 +126,7 @@ VALUES
 ),
 (
     'Garden',
-    'Garden - Garden gloves, Kids large 6pk',
+    'Garden gloves, Kids large 6pk',
     'Amazon',
     'https://amazon.com',
     14.99,
@@ -134,7 +134,7 @@ VALUES
 ),
 (
     'Garden',
-    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    'Germination Cell & Flat Tray + plant labels, 10 sets',
     'Amazon',
     'https://amazon.com',
     45.99,
@@ -142,7 +142,7 @@ VALUES
 ),
 (
     'Garden',
-    'Garden - Sakata Seeds',
+    'Sakata Seeds',
     'Sakata',
     'https://walmart.com',
     10.00,
@@ -150,7 +150,7 @@ VALUES
 ),
 (
     'Hydroponics',
-    'Hydroponics - Micro line, drip line 10x125ft',
+    'Micro line, drip line 10x125ft',
     'Amazon',
     'https://amazon.com',
     25.00,
@@ -158,7 +158,7 @@ VALUES
 ),
 (
     'Media',
-    'Media - Jolly Gardener Grower''s mix',
+    'Jolly Gardener Grower''s mix',
     'Walmart',
     'https://walmart.com',
     20.00,
@@ -166,7 +166,7 @@ VALUES
 ),
 (
     'Garden',
-    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    'Tomato Tape, 1/2 x150, 24 ct',
     'Amazon',
     'https://amazon.com',
     32.99,
@@ -189,7 +189,7 @@ INSERT INTO "InventoryList" (
 )
 VALUES
 (
-    'Garden - 4 inch nursery pots',
+    '4 inch nursery pots',
     0,
     0,
     5,
@@ -198,7 +198,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Garden - Black 2.5 in pots, bulk',
+    'Black 2.5 in pots, bulk',
     1000,
     940,
     5,
@@ -207,7 +207,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Garden - Euro pots 6in (17cm), Case',
+    'Euro pots 6in (17cm), Case',
     302,
     302,
     5,
@@ -216,7 +216,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Garden - Garden gloves, Adult Large 6pk',
+    'Garden gloves, Adult Large 6pk',
     10,
     10,
     5,
@@ -225,7 +225,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Garden - Garden gloves, Kids large 6pk',
+    'Garden gloves, Kids large 6pk',
     3,
     3,
     5,
@@ -234,7 +234,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    'Germination Cell & Flat Tray + plant labels, 10 sets',
     4,
     4,
     0,
@@ -243,7 +243,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Garden - Sakata Seeds',
+    'Sakata Seeds',
     10,
     10,
     5,
@@ -252,7 +252,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Hydroponics - Micro line, drip line 10x125ft',
+    'Micro line, drip line 10x125ft',
     7,
     7,
     2,
@@ -261,7 +261,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Media - Jolly Gardener Grower''s mix',
+    'Jolly Gardener Grower''s mix',
     155,
     155,
     10,
@@ -270,7 +270,7 @@ VALUES
     'Inventory item'
 ),
 (
-    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    'Tomato Tape, 1/2 x150, 24 ct',
     0,
     0,
     5,
@@ -301,7 +301,7 @@ VALUES
     '2026-2027',
     'Daniela',
     'All 19 HLC Gardens',
-    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    'Tomato Tape, 1/2 x150, 24 ct',
     1,
     TRUE,
     'Ordered',
@@ -313,7 +313,7 @@ VALUES
     '2026-2027',
     'Susie',
     'School Garden Training',
-    'Garden - 4 inch nursery pots',
+    '4 inch nursery pots',
     5,
     TRUE,
     'Ordered',
@@ -325,7 +325,7 @@ VALUES
     '2026-2027',
     'Mary',
     'All 19 HLC Gardens',
-    'Garden - Garden gloves, Adult Large 6pk',
+    'Garden gloves, Adult Large 6pk',
     2,
     TRUE,
     'Ordered',
@@ -337,7 +337,7 @@ VALUES
     '2026-2027',
     'Daniela',
     'Cape Coral High School',
-    'Garden - Garden gloves, Kids large 6pk',
+    'Garden gloves, Kids large 6pk',
     2,
     FALSE,
     'Under Review',
@@ -349,7 +349,7 @@ VALUES
     '2026-2027',
     'Leisha',
     'General HLC',
-    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    'Germination Cell & Flat Tray + plant labels, 10 sets',
     1,
     TRUE,
     'Ordered',
@@ -361,7 +361,7 @@ VALUES
     '2026-2027',
     'Mark',
     'Caloosa Middle School',
-    'Hydroponics - Micro line, drip line 10x125ft',
+    'Micro line, drip line 10x125ft',
     1,
     TRUE,
     'Ordered',
@@ -373,7 +373,7 @@ VALUES
     '2026-2027',
     'Mark',
     'Gulf Elementary School',
-    'Garden - Sakata Seeds',
+    'Sakata Seeds',
     1,
     TRUE,
     'Ordered',
@@ -385,7 +385,7 @@ VALUES
     '2026-2027',
     'Mary',
     'The Alva School',
-    'Media - Jolly Gardener Grower''s mix',
+    'Jolly Gardener Grower''s mix',
     5,
     TRUE,
     'Ordered',
@@ -412,7 +412,7 @@ VALUES
     'School Garden Training',
     'SGLT Materials',
     'Susie',
-    'Garden - 4 inch nursery pots',
+    '4 inch nursery pots',
     5,
     'Materials expense'
 ),
@@ -420,7 +420,7 @@ VALUES
     'All 19 HLC Gardens',
     'Garden Start-up and Maintenance',
     'Daniela',
-    'Garden - Tomato Tape, 1/2 x150, 24 ct',
+    'Tomato Tape, 1/2 x150, 24 ct',
     1,
     'Garden expense'
 ),
@@ -428,7 +428,7 @@ VALUES
     'Caloosa Middle School',
     'Grow Rack',
     'Mark',
-    'Hydroponics - Micro line, drip line 10x125ft',
+    'Micro line, drip line 10x125ft',
     1,
     'Grow rack expense'
 ),
@@ -436,7 +436,7 @@ VALUES
     'Cape Coral High School',
     'Garden Start-up and Maintenance',
     'Daniela',
-    'Garden - Garden gloves, Kids large 6pk',
+    'Garden gloves, Kids large 6pk',
     2,
     'Garden expense'
 ),
@@ -444,7 +444,7 @@ VALUES
     'All 19 HLC Gardens',
     'Garden Start-up and Maintenance',
     'Mary',
-    'Garden - Garden gloves, Adult Large 6pk',
+    'Garden gloves, Adult Large 6pk',
     2,
     'Garden expense'
 ),
@@ -452,7 +452,7 @@ VALUES
     'General HLC',
     'SGLT Materials',
     'Leisha',
-    'Garden - Germination Cell & Flat Tray + plant labels, 10 sets',
+    'Germination Cell & Flat Tray + plant labels, 10 sets',
     1,
     'Materials expense'
 ),
@@ -460,7 +460,7 @@ VALUES
     'Gulf Elementary School',
     'Garden Start-up and Maintenance',
     'Mark',
-    'Garden - Sakata Seeds',
+    'Sakata Seeds',
     1,
     'Garden expense'
 ),
@@ -468,7 +468,7 @@ VALUES
     'The Alva School',
     'Garden Start-up and Maintenance',
     'Mary',
-    'Media - Jolly Gardener Grower''s mix',
+    'Jolly Gardener Grower''s mix',
     5,
     'Garden expense'
 );
@@ -491,7 +491,7 @@ VALUES
     '2026-09-01',
     'Mark',
     'Gulf Elementary School',
-    'Garden - Sakata Seeds',
+    'Sakata Seeds',
     1,
     'Seeds'
 ),
@@ -499,7 +499,7 @@ VALUES
     '2026-09-01',
     'Mark',
     'Buckingham Exceptional Center',
-    'Hydroponics - Micro line, drip line 10x125ft',
+    'Micro line, drip line 10x125ft',
     1,
     'Hydroponic supplies'
 ),
@@ -507,7 +507,7 @@ VALUES
     '2026-09-14',
     'Mark',
     'Caloosa Middle School',
-    'Hydroponics - Micro line, drip line 10x125ft',
+    'Micro line, drip line 10x125ft',
     1,
     'Hydroponic supplies'
 ),
@@ -515,7 +515,7 @@ VALUES
     '2026-09-15',
     'Mark',
     'Cape Coral High School',
-    'Garden - Sakata Seeds',
+    'Sakata Seeds',
     1,
     'Seeds'
 ),
@@ -523,7 +523,7 @@ VALUES
     '2026-09-15',
     'Mary',
     'Caloosa Middle School',
-    'Garden - Garden gloves, Kids large 6pk',
+    'Garden gloves, Kids large 6pk',
     2,
     'Garden gloves'
 ),
@@ -531,7 +531,7 @@ VALUES
     '2026-09-22',
     'Mark',
     'Caloosa Middle School',
-    'Media - Jolly Gardener Grower''s mix',
+    'Jolly Gardener Grower''s mix',
     4,
     'Growing media'
 ),
@@ -539,7 +539,7 @@ VALUES
     '2026-09-22',
     'Mark',
     'Cape Coral High School',
-    'Media - Jolly Gardener Grower''s mix',
+    'Jolly Gardener Grower''s mix',
     5,
     'Growing media'
 ),
@@ -547,7 +547,7 @@ VALUES
     '2026-09-23',
     'Mark',
     'The Alva School',
-    'Media - Jolly Gardener Grower''s mix',
+    'Jolly Gardener Grower''s mix',
     10,
     'Garden restart'
 );
