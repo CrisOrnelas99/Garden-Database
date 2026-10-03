@@ -17,8 +17,7 @@ sql/
 ├── 01_inventory_schema.sql
 ├── 02_garden_schema.sql
 ├── 03_planting_schema.sql
-├── functions.sql
-└── sample_data.sql
+└── demo_data.sql
 ```
 
 The inventory schema is currently implemented. The garden and planting
@@ -178,7 +177,7 @@ New Stock:         16
 The function also prevents a transaction from taking more inventory than
 is currently available.
 
-### Current Views
+## Current Views
 
 The inventory database also uses views to provide useful information
 without storing duplicate data.
@@ -188,19 +187,94 @@ without storing duplicate data.
 Shows inventory items where the current stock is at or below the
 reorder point.
 
-#### `PendingPurchaseRequests`
+Main information:
 
-Shows purchase requests that have not yet been ordered.
+- Inventory ID
+- Item name
+- Current stock total
+- Reorder point
+- Storage location
 
-#### `SchoolInventoryUsage`
+#### `PendingRequests`
 
-Summarizes the quantity of each inventory item distributed to each
-school.
+Shows purchase requests that are still pending because they have either
+not been ordered or have been ordered but not yet delivered to FNS.
 
-#### `BudgetPurchaseSummary`
+Each request includes a request status of either `Unordered` or
+`Undelivered`.
 
-Shows the purchase requests associated with each budget along with the
-budget amount and remaining balance.
+Main information:
+
+- Request ID
+- Request status
+- Requested by
+- Requesting location
+- Item
+- Quantity requested
+- Total cost
+- Review status
+- Budget
+- Funding source
+- Notes
+
+#### `SchoolInventory`
+
+Provides a summary of inventory use and purchase request costs for each
+school or location.
+
+Main information:
+
+- School name
+- Items checked out
+- Items still requested
+- Total spent
+- Unordered cost
+
+`items_checked_out` represents the total quantity taken through inventory
+transactions.
+
+`items_still_requested` represents items from purchase requests that
+have not yet been ordered or delivered.
+
+`total_spent` represents the cost of purchase requests that have been
+ordered.
+
+`unordered_cost` represents the cost of purchase requests that have not
+yet been ordered.
+
+#### `BudgetPurchases`
+
+Shows purchase requests associated with each budget.
+
+Main information:
+
+- Budget name
+- School year
+- Request ID
+- Item
+- Quantity requested
+- Total cost
+- Requested by
+- Requesting location
+
+#### `YearlyPurchaseSummary`
+
+Summarizes purchase request spending for each school year.
+
+Main information:
+
+- School year
+- Total requested
+- Total spent
+- Unordered spending
+
+`total_requested` represents the total cost of all purchase requests for
+the school year.
+
+`total_spent` represents the cost of requests that have been ordered.
+
+`unordered_spending` represents the cost of requests that have not yet
+been ordered.
 
 ---
 
