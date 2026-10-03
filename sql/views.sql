@@ -11,43 +11,86 @@ FROM "InventoryList"
 WHERE "instock_Total" <= reorder_point;
 
 
---view purchase requests that have not been ordered yet
-CREATE OR REPLACE VIEW "PendingPurchaseRequests" AS
+--view purchase requests that have not been ordered or delivered
+CREATE OR REPLACE VIEW "PendingRequests" AS
 SELECT
     request_id,
-    school_year,
+
+    CASE
+        WHEN ordered = FALSE THEN 'Unordered'
+        WHEN delivered_to_fns = FALSE THEN 'Undelivered'
+    END AS request_status,
+
     requested_by,
     requesting_for,
     item_name,
     qty_requested,
     total_cost,
-    delivered_to_fns,
     review_status,
     budget_name,
     funding_source,
     notes
+
 FROM "PurchaseRequest"
-WHERE ordered = FALSE;
+WHERE ordered = FALSE
+   OR delivered_to_fns = FALSE;
 
-
---view inventory that schools use
-CREATE OR REPLACE VIEW "SchoolInventoryUsage" AS
+--view inventory and costs for each school
+CREATE OR REPLACE VIEW "SchoolInventory" AS
 SELECT
-    for_school,
-    item_name,
-    SUM(quantity_taken) AS total_quantity_taken
-FROM "InventoryTransaction"
-WHERE for_school IS NOT NULL
-GROUP BY for_school, item_name
-ORDER BY for_school, item_name;
+    l.location_name AS school_name,
+
+    COALESCE(
+        (
+            SELECT SUM(it.quantity_taken)
+            FROM "InventoryTransaction" it
+            WHERE it.for_school = l.location_name
+        ),
+        0
+    ) AS items_checked_out,
+
+    COALESCE(
+        (
+            SELECT SUM(pr.qty_requested)
+            FROM "PurchaseRequest" pr
+            WHERE pr.requesting_for = l.location_name
+            AND (
+                pr.ordered = FALSE
+                OR pr.delivered_to_fns = FALSE
+            )
+        ),
+        0
+    ) AS items_still_requested,
+
+    COALESCE(
+        (
+            SELECT SUM(pr.total_cost)
+            FROM "PurchaseRequest" pr
+            WHERE pr.requesting_for = l.location_name
+            AND pr.ordered = TRUE
+        ),
+        0
+    ) AS total_spent,
+
+    COALESCE(
+        (
+            SELECT SUM(pr.total_cost)
+            FROM "PurchaseRequest" pr
+            WHERE pr.requesting_for = l.location_name
+            AND pr.ordered = FALSE
+        ),
+        0
+    ) AS unordered_cost
+
+FROM location l
+ORDER BY l.location_name;
 
 
---view items used from budget
-CREATE OR REPLACE VIEW "BudgetPurchaseSummary" AS
+--view purchases made from each budget
+CREATE OR REPLACE VIEW "BudgetPurchases" AS
 SELECT
     b.budget_name,
-    b.budget_amount,
-    b.remaining_budget,
+    pr.school_year,
     pr.request_id,
     pr.item_name,
     pr.qty_requested,
@@ -58,13 +101,6 @@ FROM budget b
 LEFT JOIN "PurchaseRequest" pr
     ON b.budget_name = pr.budget_name;
 
---view total budget, money spent, and remaining budget
-CREATE OR REPLACE VIEW "TotalBudgetSummary" AS
-SELECT
-    SUM(budget_amount) AS total_budget,
-    SUM(budget_amount) - SUM(remaining_budget) AS total_spent,
-    SUM(remaining_budget) AS total_remaining
-FROM budget;
 
 --view purchase request spending by school year
 CREATE OR REPLACE VIEW "YearlyPurchaseSummary" AS
@@ -78,14 +114,14 @@ SELECT
             WHEN ordered = TRUE THEN total_cost
             ELSE 0
         END
-    ) AS total_ordered,
+    ) AS total_spent,
 
     SUM(
         CASE
             WHEN ordered = FALSE THEN total_cost
             ELSE 0
         END
-    ) AS waiting_to_be_spent
+    ) AS unordered_spending
 
 FROM "PurchaseRequest"
 GROUP BY school_year
