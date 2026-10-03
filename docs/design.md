@@ -12,7 +12,7 @@ on the **Inventory & Supplies** portion of the project.
 
 ### Current Schema Files
 
-``` text
+```text
 sql/
 ├── 01_inventory_schema.sql
 ├── 02_garden_schema.sql
@@ -28,8 +28,8 @@ schemas are planned for later development.
 
 The inventory schema uses reusable PostgreSQL domains:
 
--   `dollar` --- `DECIMAL(12,2)` values that cannot be negative.
--   `count` --- integer values that cannot be negative.
+- `dollar` — `DECIMAL(12,2)` values that cannot be negative.
+- `count` — integer values that cannot be negative.
 
 ### Current Inventory Tables
 
@@ -38,63 +38,95 @@ The inventory schema uses reusable PostgreSQL domains:
 Stores school or program locations that can be referenced throughout the
 database.
 
-Main information: - Location ID - Location name - Notes
+Main information:
+
+- Location ID
+- Location name
+- Notes
 
 #### `budget`
 
 Stores available budgets and their remaining balances.
 
-Main information: - Budget ID - Budget name - Budget amount - Remaining
-budget - Notes
+Main information:
+
+- Budget ID
+- Budget name
+- Budget amount
+- Remaining budget
+- Notes
 
 #### `item`
 
 Acts as the master catalog for inventory and purchasing items.
 
-Main information: - Item ID - Category - Item name - Vendor name - Quote
-link - Unit cost - Notes
+Main information:
+
+- Item ID
+- Category
+- Item name
+- Vendor name
+- Quote link
+- Unit cost
+- Notes
 
 #### `InventoryList`
 
 Tracks items that are currently part of inventory.
 
-Main information: - Inventory ID - Item name - Cumulative asset count -
-Current stock total - Reorder point - Counted status - Storage
-location - Notes
+Main information:
+
+- Inventory ID
+- Item name
+- Cumulative asset count
+- Current stock total
+- Reorder point
+- Counted status
+- Storage location
+- Notes
 
 `item_name` references the master `item` table.
 
 #### `PurchaseRequest`
 
-Tracks individual supply requests.
+Tracks individual supply requests and the budget associated with each
+request.
 
-Main information: - Request ID - School year - Requested by - Requesting
-location - Item - Quantity requested - Total cost - Delivered status -
-Review status - Ordered status - Funding source - Notes
+Main information:
 
-The requested item references the `item` table, and the requesting
-location references `location`.
+- Request ID
+- School year
+- Requested by
+- Requesting location
+- Item
+- Quantity requested
+- Total cost
+- Delivered status
+- Review status
+- Ordered status
+- Budget
+- Funding source
+- Notes
 
-#### `BudgetExpense`
-
-Tracks items charged against a budget.
-
-Main information: - Expense ID - Location - Budget - Team member name -
-Item - Quantity - Total cost - Notes
-
-This connects expenses to the existing `location`, `budget`, and `item`
-tables.
+The requested item references the `item` table, the requesting location
+references `location`, and the assigned budget references `budget`.
 
 #### `InventoryTransaction`
 
 Tracks inventory that is taken or distributed.
 
-Main information: - Transaction ID - Date - Taken by - School receiving
-the item - Item - Quantity taken - Notes
+Main information:
+
+- Transaction ID
+- Date
+- Taken by
+- School receiving the item
+- Item
+- Quantity taken
+- Notes
 
 The school references `location`, and the item references
 `InventoryList`.
-
 
 ### Current Functions and Triggers
 
@@ -105,32 +137,29 @@ automate several calculations.
 
 Automatically calculates:
 
-``` text
+```text
 PurchaseRequest.total_cost =
 qty_requested × item.unit_cost
-```
-
-#### Budget Expense Total
-
-Automatically calculates:
-
-``` text
-BudgetExpense.total_cost =
-quantity × item.unit_cost
 ```
 
 #### Remaining Budget
 
 A new budget starts with its remaining budget equal to its budget
-amount. Expenses then update the remaining balance:
+amount.
 
-``` text
+Purchase requests assigned to a budget are used to calculate the
+remaining balance:
+
+```text
 remaining_budget =
-budget_amount - SUM(BudgetExpense.total_cost)
+budget_amount - SUM(PurchaseRequest.total_cost)
 ```
 
-The remaining amount is recalculated when expenses are inserted,
-updated, or deleted.
+The remaining amount is recalculated when purchase requests are
+inserted, updated, or deleted.
+
+The exact point at which a purchase request should count against a
+budget may be refined later based on the community partner's workflow.
 
 #### Inventory Transactions
 
@@ -139,7 +168,7 @@ Inventory transactions automatically update the current stock in
 
 For example:
 
-``` text
+```text
 Current Stock:     20
 Quantity Taken:     4
                   ----
@@ -149,7 +178,31 @@ New Stock:         16
 The function also prevents a transaction from taking more inventory than
 is currently available.
 
-------------------------------------------------------------------------
+### Current Views
+
+The inventory database also uses views to provide useful information
+without storing duplicate data.
+
+#### `RestockList`
+
+Shows inventory items where the current stock is at or below the
+reorder point.
+
+#### `PendingPurchaseRequests`
+
+Shows purchase requests that have not yet been ordered.
+
+#### `SchoolInventoryUsage`
+
+Summarizes the quantity of each inventory item distributed to each
+school.
+
+#### `BudgetPurchaseSummary`
+
+Shows the purchase requests associated with each budget along with the
+budget amount and remaining balance.
+
+---
 
 # Planned Garden Schema
 
@@ -162,7 +215,7 @@ school table.
 
 A possible structure is:
 
-``` text
+```text
 location
    |
    v
@@ -179,15 +232,20 @@ Garden
 
 Represents an individual garden at a school or other location.
 
-Possible information: - Garden ID - Location - Garden name - Physical
-footprint/size - Notes
+Possible information:
+
+- Garden ID
+- Location
+- Garden name
+- Physical footprint/size
+- Notes
 
 A single location could have more than one garden.
 
 Example:
 
-``` text
-Estero High School
+```text
+Example High School
 ├── Main Garden
 └── Courtyard Garden
 ```
@@ -196,8 +254,14 @@ Estero High School
 
 Represents individual beds belonging to a garden.
 
-Possible information: - Bed ID - Garden ID - Bed name - Bed size -
-Active status - Notes
+Possible information:
+
+- Bed ID
+- Garden ID
+- Bed name
+- Bed size
+- Active status
+- Notes
 
 Instead of manually storing an active bed count in `Garden`, the
 database could calculate the number of active beds from the `GardenBed`
@@ -205,7 +269,7 @@ records.
 
 Example:
 
-``` text
+```text
 Main Garden
 ├── Bed 1 - Active
 ├── Bed 2 - Active
@@ -217,8 +281,13 @@ Main Garden
 
 Stores irrigation systems associated with a garden.
 
-Possible information: - Irrigation ID - Garden ID - Irrigation type -
-Status - Notes
+Possible information:
+
+- Irrigation ID
+- Garden ID
+- Irrigation type
+- Status
+- Notes
 
 The exact information that should be tracked about irrigation systems
 should be refined with the community partner.
@@ -227,13 +296,18 @@ should be refined with the community partner.
 
 Stores composting units associated with a garden.
 
-Possible information: - Composting unit ID - Garden ID - Composting
-type - Status - Notes
+Possible information:
+
+- Composting unit ID
+- Garden ID
+- Composting type
+- Status
+- Notes
 
 The exact composting information should also be refined based on what
 the community partner needs to maintain.
 
-------------------------------------------------------------------------
+---
 
 # Planned Planting Schema
 
@@ -245,7 +319,7 @@ The Planting schema will connect to `GardenBed` from the Garden schema.
 
 A possible structure is:
 
-``` text
+```text
 GardenBed
     |
     v
@@ -262,7 +336,11 @@ PlantingResource
 
 Acts as the master list of plants or crops used by the garden program.
 
-Possible information: - Plant ID - Plant name - Notes
+Possible information:
+
+- Plant ID
+- Plant name
+- Notes
 
 Additional growing information can be added later if the partner
 identifies specific plant information they want to track.
@@ -271,12 +349,20 @@ identifies specific plant information they want to track.
 
 Represents a planting event or growing cycle for a specific garden bed.
 
-Possible information: - Planting ID - Plant ID - Garden bed ID -
-Planting date - Expected harvest date - Season - School year - Notes
+Possible information:
+
+- Planting ID
+- Plant ID
+- Garden bed ID
+- Planting date
+- Expected harvest date
+- Season
+- School year
+- Notes
 
 Example:
 
-``` text
+```text
 Bed 1 | Tomato      | Fall 2026
 Bed 2 | Lettuce     | Fall 2026
 Bed 1 | Green Beans | Winter 2027
@@ -295,7 +381,7 @@ planted in each garden bed.
 
 Example:
 
-``` text
+```text
 Bed 1
 Fall 2026   -> Tomato
 Winter 2027 -> Green Beans
@@ -318,11 +404,15 @@ later.
 This table could connect future planting schedules to the existing
 inventory system.
 
-Possible information: - Planting ID - Item - Quantity needed
+Possible information:
+
+- Planting ID
+- Item
+- Quantity needed
 
 Example:
 
-``` text
+```text
 Fall Tomato Planting
 ├── Potting Soil × 5
 ├── Garden Gloves × 10
@@ -335,13 +425,13 @@ planned growing cycles with the resources needed to support them.
 A future implementation could then compare the resources needed for
 upcoming planting cycles with the inventory currently available.
 
-------------------------------------------------------------------------
+---
 
 # Overall Planned Structure
 
 The three main areas would eventually connect together:
 
-``` text
+```text
 location
    |
    v
@@ -362,13 +452,14 @@ PlantingResource
    +------> InventoryList
    |
    +------> PurchaseRequest
-   |
-   +------> BudgetExpense
+                 |
+                 v
+              budget
 ```
 
 This allows the database to connect:
 
-``` text
+```text
 School Location
       |
       v
@@ -389,3 +480,5 @@ Resources Needed
       v
 Current Inventory
 ```
+
+---
