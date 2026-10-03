@@ -474,28 +474,6 @@ historical information instead of replacing previous schedules. This can
 allow growing cycles from different seasons or years to be compared
 later.
 
-## `PlantingResource`
-
-This table could connect future planting schedules to the existing
-inventory system.
-
-Possible information:
-
-- Planting ID
-- Item
-- Quantity needed
-
-Example:
-
-```text
-Fall Tomato Planting
-├── Potting Soil × 5
-├── Garden Gloves × 10
-└── Seed Pack × 3
-```
-
-The item could reference the existing `item` table. This would connect
-planned growing cycles with the resources needed to support them.
 
 A future implementation could then compare the resources needed for
 upcoming planting cycles with the inventory currently available.
@@ -532,28 +510,6 @@ PlantingResource
               budget
 ```
 
-This allows the database to connect:
 
-```text
-School Location
-      |
-      v
-Physical Garden
-      |
-      v
-Garden Bed
-      |
-      v
-Growing Cycle
-      |
-      v
-Plant/Crop
-      |
-      v
-Resources Needed
-      |
-      v
-Current Inventory
-```
 
 ---
