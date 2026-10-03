@@ -13,22 +13,22 @@ Plan planting schedules, manage crop rotations to maintain soil health, and trac
 
 ## Current Inventory Database Schema
 
-The current ERD for the inventory portion of the database is shown below.
+The current diagram is for the inventory portion of the database is shown below.
 
 
                          
-                        auth[team_member]  
+                             auth[team_member]  
                          
-                 ┌──────────────┼──────────────────────
-                 ▼              ▼                     ▼
-          [PurchaseRequest] [BudgetExpense] [InventoryTransaction]
-                     │          ▲                     ▲
-                     │          │                     │
-                     |          │                     │
-                     │          │               [location]
-                     |          │                     │
-                     │          │─────[budget]        │
-                  [item] ───────┘                     │        
+                    ┌──────────────────────────────────
+                    ▼                                 ▼
+|budget|────────[PurchaseRequest]               [InventoryTransaction]
+                     │                                ▲
+                     │                                │
+                     |───────── [location]────────────|          
+                     │                                |
+                     |                                │
+                     │                                │
+                  [item]             │        
                      │                                │
                      ▼                                │
               [InventoryList] ────────────────────────┘
