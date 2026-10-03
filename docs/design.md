@@ -281,12 +281,12 @@ been ordered.
 
 # Planned Garden Schema
 
-The Garden schema will address the community partner's requirement to
+The Garden schema is planned to address the community partner's requirement to
 maintain records of **physical garden footprints, irrigation setups,
 composting units, and active bed counts for each school site**.
 
-The existing `location` table can be reused instead of creating another
-school table.
+The existing `location` table can be reused to connect future garden records
+to school or program locations.
 
 A possible structure is:
 
@@ -305,92 +305,74 @@ Garden
 
 ## `Garden`
 
-Represents an individual garden at a school or other location.
+Could represent an individual garden at a school or other location.
 
 Possible information:
 
 - Garden ID
-- Location
 - Garden name
+- Location name
 - Physical footprint/size
 - Notes
 
-A single location could have more than one garden.
-
-Example:
-
-```text
-Example High School
-├── Main Garden
-└── Courtyard Garden
-```
+A location could have one or more gardens.
 
 ## `GardenBed`
 
-Represents individual beds belonging to a garden.
+Could represent individual planting beds belonging to a garden.
 
 Possible information:
 
 - Bed ID
-- Garden ID
+- Garden name
 - Bed name
 - Bed size
 - Active status
 - Notes
 
-Instead of manually storing an active bed count in `Garden`, the
-database could calculate the number of active beds from the `GardenBed`
-records.
-
-Example:
-
-```text
-Main Garden
-├── Bed 1 - Active
-├── Bed 2 - Active
-├── Bed 3 - Active
-└── Bed 4 - Inactive
-```
+Individual garden beds would allow the database to determine active bed
+counts and could later support planting schedules and crop rotation history.
 
 ## `IrrigationSetup`
 
-Stores irrigation systems associated with a garden.
+Could store irrigation systems associated with a garden.
 
 Possible information:
 
 - Irrigation ID
-- Garden ID
+- Garden name
 - Irrigation type
 - Status
 - Notes
 
-The exact information that should be tracked about irrigation systems
-should be refined with the community partner.
+The exact irrigation information can be refined based on what the community
+partner needs to maintain.
 
 ## `CompostingUnit`
 
-Stores composting units associated with a garden.
+Could store composting units associated with a garden.
 
 Possible information:
 
 - Composting unit ID
-- Garden ID
+- Garden name
 - Composting type
 - Status
 - Notes
 
-The exact composting information should also be refined based on what
-the community partner needs to maintain.
+The exact composting information can also be refined based on the community
+partner's needs.
 
 ---
 
 # Planned Planting Schema
 
-The Planting schema will address the requirement to **plan planting
-schedules, manage crop rotations, track seasonal variations, support
-soil health, and prepare resources for growing cycles**.
+The Planting schema is planned to address the requirement to **plan planting
+schedules, manage crop rotations, track seasonal variations, support soil
+health, and prepare for growing cycles**.
 
-The Planting schema will connect to `GardenBed` from the Garden schema.
+A future Planting schema could connect to `GardenBed` from the planned Garden
+schema.
 
 A possible structure is:
 
@@ -398,86 +380,89 @@ A possible structure is:
 GardenBed
     |
     v
- Planting <------ Plant
-    |
-    v
-PlantingResource
-    |
-    v
-   item
+Planting <------ Plant
 ```
 
 ## `Plant`
 
-Acts as the master list of plants or crops used by the garden program.
+Could act as the master list of plants or crops used by the garden program.
 
 Possible information:
 
 - Plant ID
 - Plant name
+- Best season
+- Days to harvest
 - Notes
 
-Additional growing information can be added later if the partner
-identifies specific plant information they want to track.
+`best_season` could identify when a plant is generally best suited for
+growing.
+
+`days_to_harvest` could help with planning planting and expected harvest
+schedules.
+
+Other plant-specific growing information could remain in notes unless the
+community partner identifies additional information that needs to be tracked
+separately.
 
 ## `Planting`
 
-Represents a planting event or growing cycle for a specific garden bed.
+Could represent a planting event or growing cycle for a specific garden bed.
 
 Possible information:
 
 - Planting ID
-- Plant ID
-- Garden bed ID
+- Bed name
+- Plant name
 - Planting date
 - Expected harvest date
-- Season
-- School year
+- Status
 - Notes
 
-Example:
-
-```text
-Bed 1 | Tomato      | Fall 2026
-Bed 2 | Lettuce     | Fall 2026
-Bed 1 | Green Beans | Winter 2027
-```
+The planting record could connect a plant to a specific garden bed and
+preserve the history of what has been grown there.
 
 ### Planting Schedules
 
-The dates and seasons stored in `Planting` can be used to determine what
-is scheduled to be planted and harvested during a particular period.
+Planting dates, expected harvest dates, plant information, and growing status
+could be used to plan and monitor growing cycles.
+
+The best season and days to harvest stored for each plant could also help
+with planning future planting schedules.
 
 ### Crop Rotation
 
-A separate crop rotation table may not be necessary at first. The
-history of `Planting` records can show which crops were previously
-planted in each garden bed.
+A separate crop rotation table may not be necessary at first.
+
+The history of planting records for each garden bed could show which plants
+were previously grown there.
 
 Example:
 
 ```text
-Bed 1
-Fall 2026   -> Tomato
-Winter 2027 -> Green Beans
-Spring 2027 -> Lettuce
+Hogwarts_Bed_1
+      |
+      ├── Tomato
+      ├── Green Beans
+      └── Lettuce
 ```
 
-This history could later be queried to help plan crop rotations. If the
-partner has specific crop rotation or soil-health rules that need to be
-stored, additional tables can be added later.
+This history could later help with planning crop rotations and maintaining
+soil health.
 
 ### Seasonal Variations
 
-Keeping planting records by date, season, and school year will preserve
-historical information instead of replacing previous schedules. This can
-allow growing cycles from different seasons or years to be compared
-later.
+The planting date could show when each growing cycle actually occurred,
+while the plant's best season could provide general information about when
+that plant is best suited for growing.
 
+Over time, planting records from different times of the year could be
+compared to help identify seasonal differences.
 
-A future implementation could then compare the resources needed for
-upcoming planting cycles with the inventory currently available.
+### Growing Cycle Preparation
 
----
+Plant information such as best season and days to harvest could help with
+planning upcoming growing cycles.
 
-
+The existing inventory and purchasing system could continue to handle
+supplies, inventory levels, reorder needs, and purchase requests separately.
