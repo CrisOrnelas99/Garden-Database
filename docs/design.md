@@ -14,9 +14,10 @@ on the **Inventory & Supplies** portion of the project.
 
 ```text
 sql/
-├── 01_inventory_schema.sql
-├── 02_garden_schema.sql
-├── 03_planting_schema.sql
+├── inventory_schema.sql
+├── garden_schema.sql
+├── planting_schema.sql
+├── summary_views.sql
 └── demo_data.sql
 ```
 
