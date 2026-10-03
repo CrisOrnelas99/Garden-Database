@@ -480,36 +480,4 @@ upcoming planting cycles with the inventory currently available.
 
 ---
 
-# Overall Planned Structure
 
-The three main areas would eventually connect together:
-
-```text
-location
-   |
-   v
-Garden
-   |
-   v
-GardenBed
-   |
-   v
-Planting <------ Plant
-   |
-   v
-PlantingResource
-   |
-   v
- item
-   |
-   +------> InventoryList
-   |
-   +------> PurchaseRequest
-                 |
-                 v
-              budget
-```
-
-
-
----
