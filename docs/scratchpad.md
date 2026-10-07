@@ -1,4 +1,4 @@
-### future needs for Project
+# Future needs for Project
 * Revise Garden/planting. Create functions, views, data population
 * Create ER diagram
 * diagram using class example
