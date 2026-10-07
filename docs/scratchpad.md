@@ -2,8 +2,8 @@
 * Revise Garden/planting. Create functions, views, data population
 * Create ER diagram
 * diagram using class example
-* Create Crop rotation/ rotation resource
-* roles and permissions?
+* Create Crop rotation/ rotation resource with functions, views, data population
+* roles and permissions to tables and views?
 * figure out which database to use? 
 * system handoff and get comfortable with system: add any last fixes
 * Work on powerpoint, etc
@@ -14,6 +14,7 @@
 * schedule meeting for Garden/planting (midpoint meeting?)
 * add crop/rotation to github/ supabase for demo
 * schedule meeting for crop rotation/ rotation resource.
+* add roles and permissions to tables/columns/views if needed
 * schedule final meeting
 
 ## Nicolas
