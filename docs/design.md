@@ -180,6 +180,7 @@ Possible information:
 - Bed name
 - Bed size
 - Active status
+- soil health
 - Notes
 
 Individual garden beds would allow the database to determine active bed
@@ -314,6 +315,33 @@ Hogwarts_Bed_1
 
 This would allow future crop rotations to be planned while the `Planting` table could preserve what was actually planted.
 
+## `RotationResource`
+
+Could store the resources needed for each planned growing cycle.
+
+Possible information:
+
+- Rotation resource ID
+- Rotation ID
+- Item name
+- Quantity needed
+- Notes
+
+Each crop rotation could have multiple resources associated with it.
+
+Example:
+
+```text
+Spring 2027 → Tomato
+      |
+      ├── Tomato Seeds
+      ├── Potting Soil
+      └── Tomato Stakes
+```
+
+The item could reference the existing `item` table from the inventory schema.
+
+This would allow resources to be planned for a specific growing cycle instead of only tracking general resources for an entire garden.
 
 ### Planting Schedules
 
@@ -337,12 +365,14 @@ Planned and actual planting dates could show when growing cycles occur throughou
 
 The plant's best season could provide general information about when the plant is best suited for growing.
 
-Over time, planting records from different times of the year could be compared to help identify seasonal differences.
+Over time, planned and actual planting records from different times of the year could be compared to help identify seasonal differences.
 
 ### Growing Cycle Preparation
 
 Future crop rotations and planting schedules could show what plants are planned for upcoming growing cycles.
 
-`GardenResource` could identify resources needed for each garden, while the existing inventory and purchasing system could continue to handle available inventory, reorder needs, and purchase requests.
+`RotationResource` could identify the resources needed for each planned growing cycle.
 
-This could connect the growing plan with the resources that need to be prepared for each school's garden.
+The existing inventory and purchasing system could then handle available inventory, reorder needs, and purchase requests for those resources.
+
+This could connect each planned growing cycle with the resources that need to be prepared before planting.
