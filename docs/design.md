@@ -282,39 +282,67 @@ could be used to plan and monitor growing cycles.
 The best season and days to harvest stored for each plant could also help
 with planning future planting schedules.
 
-### Crop Rotation
+## `CropRotation`
 
-A separate crop rotation table may not be necessary at first.
+Could be used to plan future crops for individual garden beds and manage crop rotations.
 
-The history of planting records for each garden bed could show which plants
-were previously grown there.
+Possible information:
+
+- Rotation ID
+- Garden name
+- Bed name
+- Plant name
+- Planned planting date
+- Planned harvest date
+- Status
+- Notes
+
+Each garden could have multiple beds, and each bed could have multiple planned crops over time.
 
 Example:
 
 ```text
+Hogwarts Garden
+      |
+      v
 Hogwarts_Bed_1
       |
-      ├── Tomato
-      ├── Green Beans
-      └── Lettuce
+      ├── Spring 2027 → Tomato
+      ├── Summer 2027 → Green Beans
+      └── Fall 2027   → Lettuce
 ```
 
-This history could later help with planning crop rotations and maintaining
-soil health.
+This would allow future crop rotations to be planned while the `Planting` table could preserve what was actually planted.
+
+
+### Planting Schedules
+
+`CropRotation` could store planned planting and harvest dates for future growing cycles.
+
+Once planting occurs, `Planting` could record the actual planting event and its growing status.
+
+Plant information such as best season and days to harvest could also help with planning these schedules.
+
+### Crop Rotation and Soil Health
+
+Crop rotations could be planned for individual garden beds using `CropRotation`.
+
+The planting history stored in `Planting` could then show what was actually grown in each bed.
+
+Together, these records could help avoid repeatedly planting the same crops in the same beds and support future crop rotation decisions related to soil health.
 
 ### Seasonal Variations
 
-The planting date could show when each growing cycle actually occurred,
-while the plant's best season could provide general information about when
-that plant is best suited for growing.
+Planned and actual planting dates could show when growing cycles occur throughout the year.
 
-Over time, planting records from different times of the year could be
-compared to help identify seasonal differences.
+The plant's best season could provide general information about when the plant is best suited for growing.
+
+Over time, planting records from different times of the year could be compared to help identify seasonal differences.
 
 ### Growing Cycle Preparation
 
-Plant information such as best season and days to harvest could help with
-planning upcoming growing cycles.
+Future crop rotations and planting schedules could show what plants are planned for upcoming growing cycles.
 
-The existing inventory and purchasing system could continue to handle
-supplies, inventory levels, reorder needs, and purchase requests separately.
+`GardenResource` could identify resources needed for each garden, while the existing inventory and purchasing system could continue to handle available inventory, reorder needs, and purchase requests.
+
+This could connect the growing plan with the resources that need to be prepared for each school's garden.
