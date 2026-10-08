@@ -178,16 +178,17 @@ CREATE TABLE "InventoryTransaction" (
         ON UPDATE CASCADE
 );
 
+
 -- ============================================================
---FUNCTIONS
+-- Inventory FUNCTIONS
 -- ============================================================
+
 
 -- ============================================================
 -- TRIGGER 1
 -- PurchaseRequest.total_cost =
 -- qty_requested * item.unit_cost
 -- ============================================================
-
 CREATE OR REPLACE FUNCTION calculate_purchase_request_total()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -230,7 +231,6 @@ EXECUTE FUNCTION calculate_purchase_request_total();
 -- TRIGGER 2
 -- Initialize budget.remaining_budget
 -- ============================================================
-
 CREATE OR REPLACE FUNCTION initialize_remaining_budget()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -256,7 +256,6 @@ EXECUTE FUNCTION initialize_remaining_budget();
 -- budget.remaining_budget =
 -- budget_amount - SUM(PurchaseRequest.total_cost)
 -- ============================================================
-
 CREATE OR REPLACE FUNCTION update_remaining_budget()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -321,7 +320,6 @@ EXECUTE FUNCTION update_remaining_budget();
 -- TRIGGER 4
 -- InventoryTransaction updates InventoryList.instock_Total
 -- ============================================================
-
 CREATE OR REPLACE FUNCTION update_inventory_after_transaction()
 RETURNS TRIGGER AS $$
 DECLARE
