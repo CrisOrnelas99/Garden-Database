@@ -1,5 +1,7 @@
-
---View items that need to be reordered
+-- ============================================================
+-- UpcomingRotations
+-- View items that need to be reordered
+-- ============================================================
 CREATE OR REPLACE VIEW "RestockList" AS
 SELECT
     inventory_id,
@@ -11,7 +13,10 @@ FROM "InventoryList"
 WHERE "instock_Total" <= reorder_point;
 
 
---view purchase requests that have not been ordered or delivered
+-- ============================================================
+-- UpcomingRotations
+-- view purchase requests that have not been ordered or delivered
+-- ============================================================
 CREATE OR REPLACE VIEW "PendingRequests" AS
 SELECT
     request_id,
@@ -35,7 +40,11 @@ FROM "PurchaseRequest"
 WHERE ordered = FALSE
    OR delivered_to_fns = FALSE;
 
---view inventory and costs for each school
+
+-- ============================================================
+-- UpcomingRotations
+-- view inventory and costs for each school
+-- ============================================================
 CREATE OR REPLACE VIEW "SchoolInventory" AS
 SELECT
     l.location_name AS school_name,
@@ -86,7 +95,10 @@ FROM location l
 ORDER BY l.location_name;
 
 
---view purchases made from each budget
+-- ============================================================
+-- BudgetPurchases
+-- view purchases made from each budget
+-- ============================================================
 CREATE OR REPLACE VIEW "BudgetPurchases" AS
 SELECT
     b.budget_name,
@@ -102,7 +114,10 @@ LEFT JOIN "PurchaseRequest" pr
     ON b.budget_name = pr.budget_name;
 
 
---view purchase request spending by school year
+-- ============================================================
+-- YearlyPurchaseSummary
+-- view purchase request spending by school year
+-- ============================================================
 CREATE OR REPLACE VIEW "YearlyPurchaseSummary" AS
 SELECT
     school_year,
@@ -126,3 +141,28 @@ SELECT
 FROM "PurchaseRequest"
 GROUP BY school_year
 ORDER BY school_year;
+
+
+-- ============================================================
+-- UpcomingRotations
+-- View upcoming planned crops for each school garden
+-- ============================================================
+
+CREATE OR REPLACE VIEW "UpcomingRotations" AS
+SELECT
+    l.location_name AS school_name,
+    g.garden_name,
+    cr.bed_name,
+    cr.rotation_name,
+    cr.plant_name,
+    cr.planned_planting_date,
+    cr.planned_harvest_date,
+    cr.status,
+    cr.notes
+FROM "CropRotation" cr
+JOIN garden g
+    ON cr.garden_name = g.garden_name
+JOIN location l
+    ON g.location_name = l.location_name
+WHERE cr.planned_planting_date >= CURRENT_DATE
+  AND cr.status = 'Planned';
