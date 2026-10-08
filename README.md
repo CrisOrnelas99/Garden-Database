@@ -18,6 +18,10 @@ Maintain up-to-date records of physical garden footprints, irrigation setups, co
 
 Plan planting schedules, manage crop rotations to maintain soil health, and track seasonal variations systematically while ensuring resources are prepared for the various growing cycles.
 
+# IMPLEMENTATION
+## The inventory & Supply + Budget is in the inventory schema
+## The Garden Sizes & Components + Growing Calendars & Crop Rotations tables are all in the garden schema
+
 # Current Inventory Database Schema
 
 The current database schema focuses on the inventory portion of the project.
