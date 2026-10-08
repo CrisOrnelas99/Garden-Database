@@ -90,4 +90,109 @@ erDiagram
     }
 ```
 
+```mermaid
+erDiagram
+    LOCATION ||--o{ GARDEN : contains
+    GARDEN ||--o{ GARDEN_BEDS : has
+    GARDEN ||--o{ IRRIGATION_SETUP : uses
+    GARDEN ||--o{ COMPOSTING_UNITS : uses
+    GARDEN ||--o{ GARDEN_RESOURCE : needs
+    ITEM ||--o{ GARDEN_RESOURCE : supplies
+    GARDEN_BEDS ||--o{ PLANTING : records
+    PLANT ||--o{ PLANTING : grows
+    GARDEN ||--o{ CROP_ROTATION : plans
+    GARDEN_BEDS ||--o{ CROP_ROTATION : schedules
+    PLANT ||--o{ CROP_ROTATION : includes
+
+    LOCATION {
+        int location_id PK
+        varchar location_name
+        varchar location_type
+        text notes
+    }
+
+    GARDEN {
+        int garden_id PK
+        varchar location_name FK
+        varchar garden_name UK
+        decimal footprint_sq_ft
+        varchar garden_status
+        varchar garden_manager
+        text notes
+    }
+
+    GARDEN_BEDS {
+        int bed_id PK
+        varchar garden_name FK
+        varchar bed_name UK
+        varchar bed_type
+        varchar bed_size
+        boolean active
+        varchar soil_health
+        text notes
+    }
+
+    IRRIGATION_SETUP {
+        int irrigation_id PK
+        varchar garden_name FK
+        varchar irrigation_type
+        varchar status
+        text notes
+    }
+
+    COMPOSTING_UNITS {
+        int composting_unit_id PK
+        varchar garden_name FK
+        varchar composting_type
+        varchar status
+        text notes
+    }
+
+    ITEM {
+        int item_id PK
+        varchar item_name UK
+        varchar category
+        dollar unit_cost
+    }
+
+    GARDEN_RESOURCE {
+        int garden_resource_id PK
+        varchar garden_name FK
+        varchar item_name FK
+        count quantity_needed
+        text notes
+    }
+
+    PLANT {
+        int plant_id PK
+        varchar plant_name UK
+        varchar plant_type
+        count days_to_harvest
+        text notes
+    }
+
+    PLANTING {
+        int planting_id PK
+        varchar plant_name FK
+        varchar bed_name FK
+        date planting_date
+        date expected_harvest_date
+        varchar school_year
+        count quantity
+        varchar status
+        text notes
+    }
+
+    CROP_ROTATION {
+        int rotation_id PK
+        varchar rotation_name UK
+        varchar garden_name FK
+        varchar bed_name FK
+        varchar plant_name FK
+        date planned_planting_date
+        varchar status
+        text notes
+    }
+```
+    
 > Authentication and user tracking are planned for a future stage of the project and are not currently part of the inventory schema.
