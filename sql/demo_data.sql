@@ -16,23 +16,33 @@ INSERT INTO location (
 VALUES
 (
     'Hogwarts Academy',
+    'School',
     'Demo school garden'
 ),
 (
     'Sunshine Elementary',
+    'School',
     'Demo school garden'
 ),
 (
     'Green Valley Middle School',
+    'School',
     'Demo school garden'
 ),
 (
     'Oakwood High School',
+    'School',
     'Demo school garden'
 ),
 (
     'Riverbend Academy',
+    'School',
     'Demo school garden'
+),
+(
+    'HLC Office',
+    'Other',
+    'Main office location'
 );
 
 
