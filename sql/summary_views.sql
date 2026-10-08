@@ -156,7 +156,6 @@ SELECT
     cr.rotation_name,
     cr.plant_name,
     cr.planned_planting_date,
-    cr.planned_harvest_date,
     cr.status,
     cr.notes
 FROM "CropRotation" cr
