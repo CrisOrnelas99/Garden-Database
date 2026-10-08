@@ -23,9 +23,9 @@ Plan planting schedules, manage crop rotations to maintain soil health, and trac
 The inventory & Supply + Budget is in the inventory schema.                        
 The Garden Sizes & Components + Growing Calendars & Crop Rotations tables are all in the garden schema
 
-# Current Inventory Database Schema
+# Current Database Schema
 
-The current database schema focuses on the inventory portion of the project.
+The current inventory schema focuses on the inventory portion of the project.
 
 ```mermaid
 erDiagram
@@ -89,6 +89,8 @@ erDiagram
         int quantity_taken
     }
 ```
+
+The current garden schema focuses on the garden portion of the project.
 
 ```mermaid
 erDiagram
