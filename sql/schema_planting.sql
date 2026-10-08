@@ -1,2 +1,0 @@
--- Creates the tables needed to track growing calendars and crop rotations.
--- Includes planting schedules, seasonal growing information, and crop history for garden beds.
