@@ -20,7 +20,7 @@ Plan planting schedules, manage crop rotations to maintain soil health, and trac
 
 
 # IMPLEMENTATION
-The inventory & Supply + Budget is in the inventory schema
+The inventory & Supply + Budget is in the inventory schema.                        
 The Garden Sizes & Components + Growing Calendars & Crop Rotations tables are all in the garden schema
 
 # Current Inventory Database Schema
