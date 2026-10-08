@@ -22,6 +22,8 @@ CREATE TABLE location (
     location_id SERIAL PRIMARY KEY,
 
     location_name VARCHAR(200) NOT NULL UNIQUE,
+    
+    location_type VARCHAR(50),
 
     notes TEXT
 );
