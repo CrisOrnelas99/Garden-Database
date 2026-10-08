@@ -1,6 +1,5 @@
 # Future needs for Project
-* Create functions, views, data population for garden/planting
-* functions, views, data population for crop rotation
+* Create functions, views, data population for garden/planting/crop rotation
 * Create ER diagram
 * diagram using class example
   
