@@ -41,6 +41,7 @@ Information:
 
 - Location ID
 - Location name
+- location type
 - Notes
 
 ### `budget`
