@@ -17,11 +17,11 @@ The current database is built in PostgreSQL using Supabase and covers
 sql/
 ├── inventory_schema.sql
 ├── garden_schema.sql
-├── planting_schema.sql
 └── demo_data.sql
+├── summary_view.sql
 ```
 
-The inventory, garden, and planting schemas are currently implemented.
+The inventory and garden schemas are currently implemented.
 
 ### Custom Domains
 
@@ -129,7 +129,7 @@ The school references `location`, and the item references
 
 
 
-## Garden and Planting Schema
+## Garden Schema
 
 The Garden and Planting schema maintains garden footprints, irrigation systems,
 composting units, active beds, resources, planting records, and crop rotations.
@@ -139,22 +139,6 @@ growing cycles.
 The existing `location` table connects gardens to school or program locations.
 The garden and planting tables are documented together below; the schema file
 list above retains the existing SQL file names.
-
-### Relationships
-
-```text
-location
-   |
-   v
-garden
-   +--> IrrigationSetup
-   +--> CompostingUnit
-   +--> garden_resource <--- item
-   +--> garden_beds
-   |       +--> planting <--- plant
-   |       +--> CropRotation <--- plant
-   +----------> CropRotation
-```
 
 ### `garden`
 
@@ -228,9 +212,11 @@ catalog.
 
 Information:
 
+- Garden Resource ID
 - Garden name
 - Item name
 - Quantity needed
+- Notes
 
 The records associate a garden with an item and the quantity needed. Users
 review the garden's beds and upcoming crops, determine the required supplies,
