@@ -160,3 +160,37 @@ CREATE TABLE garden_resource (
     CONSTRAINT chk_garden_resource_quantity
         CHECK (quantity_needed > 0)
 );
+
+
+-- ============================================================
+-- CropRotation
+-- Planned crops for individual garden beds
+-- ============================================================
+
+CREATE TABLE "CropRotation" (
+    rotation_id SERIAL PRIMARY KEY,
+    rotation_name VARCHAR(200) NOT NULL UNIQUE,
+    garden_name VARCHAR(200) NOT NULL,
+    bed_name VARCHAR(100) NOT NULL,
+    plant_name VARCHAR(100) NOT NULL,
+    planned_planting_date DATE,
+    status VARCHAR(50) DEFAULT 'Planned',
+    notes TEXT,
+
+    CONSTRAINT fk_rotation_garden
+        FOREIGN KEY (garden_name)
+        REFERENCES garden(garden_name)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_rotation_bed
+        FOREIGN KEY (bed_name)
+        REFERENCES garden_beds(bed_name)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_rotation_plant
+        FOREIGN KEY (plant_name)
+        REFERENCES plant(plant_name)
+        ON UPDATE CASCADE
+);
