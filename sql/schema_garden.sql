@@ -1,5 +1,5 @@
 -- ============================================================
--- Garden and Planting Schema
+-- Garden Schema
 -- ============================================================
 
 
@@ -7,7 +7,6 @@
 -- garden
 -- Garden information for each location
 -- ============================================================
-
 CREATE TABLE garden (
     garden_id SERIAL PRIMARY KEY,
     location_name VARCHAR(200) NOT NULL,
@@ -28,7 +27,6 @@ CREATE TABLE garden (
 -- garden_beds
 -- Individual garden beds belonging to a garden
 -- ============================================================
-
 CREATE TABLE garden_beds (
     bed_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
@@ -51,7 +49,6 @@ CREATE TABLE garden_beds (
 -- irrigation_setup
 -- Irrigation systems used by each garden
 -- ============================================================
-
 CREATE TABLE irrigation_setup (
     irrigation_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
@@ -71,7 +68,6 @@ CREATE TABLE irrigation_setup (
 -- composting_units
 -- Composting units used by each garden
 -- ============================================================
-
 CREATE TABLE composting_units (
     composting_unit_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
@@ -91,7 +87,6 @@ CREATE TABLE composting_units (
 -- plant
 -- Plant catalog / master plant information
 -- ============================================================
-
 CREATE TABLE plant (
     plant_id SERIAL PRIMARY KEY,
     plant_name VARCHAR(100) NOT NULL UNIQUE,
@@ -108,7 +103,6 @@ CREATE TABLE plant (
 -- planting
 -- Records plants being grown in individual garden beds
 -- ============================================================
-
 CREATE TABLE planting (
     planting_id SERIAL PRIMARY KEY,
     plant_name VARCHAR(100) NOT NULL,
@@ -138,7 +132,6 @@ CREATE TABLE planting (
 -- garden_resource
 -- Resources needed for each garden
 -- ============================================================
-
 CREATE TABLE garden_resource (
     garden_resource_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
@@ -166,7 +159,6 @@ CREATE TABLE garden_resource (
 -- CropRotation
 -- Planned crops for individual garden beds
 -- ============================================================
-
 CREATE TABLE "CropRotation" (
     rotation_id SERIAL PRIMARY KEY,
     rotation_name VARCHAR(200) NOT NULL UNIQUE,
@@ -194,3 +186,7 @@ CREATE TABLE "CropRotation" (
         REFERENCES plant(plant_name)
         ON UPDATE CASCADE
 );
+
+-- ============================================================
+-- Garden Functions
+-- ============================================================
