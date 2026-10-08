@@ -42,7 +42,7 @@ VALUES
 (
     'HLC Office',
     'Other',
-    'Main office location'
+    NULL
 );
 
 
