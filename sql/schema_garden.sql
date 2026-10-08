@@ -91,7 +91,7 @@ CREATE TABLE plant (
     plant_id SERIAL PRIMARY KEY,
     plant_name VARCHAR(100) NOT NULL UNIQUE,
     plant_type VARCHAR(50),
-    days_to_harvest INT,
+    days_to_harvest count,
     notes TEXT,
 
     CONSTRAINT chk_days_to_harvest
@@ -110,7 +110,7 @@ CREATE TABLE planting (
     planting_date DATE,
     expected_harvest_date DATE,
     school_year VARCHAR(20),
-    quantity INT,
+    quantity count,
     status VARCHAR(50),
     notes TEXT,
 
@@ -136,7 +136,7 @@ CREATE TABLE garden_resource (
     garden_resource_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
     item_name VARCHAR(200) NOT NULL,
-    quantity_needed INT NOT NULL,
+    quantity_needed count NOT NULL,
     notes TEXT,
 
     CONSTRAINT fk_garden_resource_garden
