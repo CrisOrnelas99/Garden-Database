@@ -1,5 +1,5 @@
 -- ============================================================
--- UpcomingRotations
+-- RestockList
 -- View items that need to be reordered
 -- ============================================================
 CREATE OR REPLACE VIEW "RestockList" AS
@@ -12,10 +12,9 @@ SELECT
 FROM "InventoryList"
 WHERE "instock_Total" <= reorder_point;
 
-
 -- ============================================================
--- UpcomingRotations
--- view purchase requests that have not been ordered or delivered
+-- PendingRequests
+-- View purchase requests that have not been ordered or delivered
 -- ============================================================
 CREATE OR REPLACE VIEW "PendingRequests" AS
 SELECT
@@ -42,8 +41,8 @@ WHERE ordered = FALSE
 
 
 -- ============================================================
--- UpcomingRotations
--- view inventory and costs for each school
+-- SchoolInventory
+-- View inventory and costs for each school
 -- ============================================================
 CREATE OR REPLACE VIEW "SchoolInventory" AS
 SELECT
