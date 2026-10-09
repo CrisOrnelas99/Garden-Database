@@ -412,8 +412,8 @@ EXECUTE FUNCTION update_inventory_after_transaction();
 CREATE OR REPLACE FUNCTION update_inventory_when_received()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Remove the old delivered quantity when necessary
-    IF TG_OP = 'UPDATE'
+    -- Remove inventory for an old delivered request
+    IF TG_OP IN ('UPDATE', 'DELETE')
        AND OLD.delivered_to_fns = TRUE
     THEN
         UPDATE "InventoryList"
@@ -428,8 +428,10 @@ BEGIN
         END IF;
     END IF;
 
-    -- Add the new delivered quantity when necessary
-    IF NEW.delivered_to_fns = TRUE THEN
+    -- Add inventory for a newly delivered request
+    IF TG_OP IN ('INSERT', 'UPDATE')
+       AND NEW.delivered_to_fns = TRUE
+    THEN
         UPDATE "InventoryList"
         SET cumulative_asset = cumulative_asset + NEW.qty_requested,
             "instock_Total" = "instock_Total" + NEW.qty_requested
@@ -442,7 +444,7 @@ BEGIN
         END IF;
     END IF;
 
-    RETURN NEW;
+    RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -450,7 +452,7 @@ DROP TRIGGER IF EXISTS trg_update_inventory_when_received
 ON "PurchaseRequest";
 
 CREATE TRIGGER trg_update_inventory_when_received
-AFTER INSERT OR UPDATE OF delivered_to_fns, qty_requested, item_name
+AFTER INSERT OR UPDATE OR DELETE
 ON "PurchaseRequest"
 FOR EACH ROW
 EXECUTE FUNCTION update_inventory_when_received();
@@ -465,7 +467,7 @@ EXECUTE FUNCTION update_inventory_when_received();
 CREATE OR REPLACE FUNCTION update_remaining_budget_after_budget_change()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.remaining_budget =
+    NEW.remaining_budget :=
         NEW.budget_amount
         - COALESCE(
             (
