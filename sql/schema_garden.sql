@@ -11,6 +11,7 @@ CREATE TABLE garden (
     garden_id SERIAL PRIMARY KEY,
     location_name VARCHAR(200) NOT NULL,
     garden_name VARCHAR(200) NOT NULL UNIQUE,
+    garden_type VARCHAR(100),
     footprint_sq_ft DECIMAL(10,2),
     garden_status VARCHAR(50),
     garden_manager VARCHAR(100),
@@ -30,7 +31,7 @@ CREATE TABLE garden (
 CREATE TABLE garden_beds (
     bed_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
-    bed_name VARCHAR(100) NOT NULL UNIQUE,
+    bed_name VARCHAR(100) NOT NULL,
     bed_type VARCHAR(50),
     bed_size VARCHAR(100),
     active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -41,7 +42,10 @@ CREATE TABLE garden_beds (
         FOREIGN KEY (garden_name)
         REFERENCES garden(garden_name)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT uq_garden_bed
+    UNIQUE (garden_name, bed_name)
 );
 
 
@@ -91,6 +95,7 @@ CREATE TABLE plant (
     plant_id SERIAL PRIMARY KEY,
     plant_name VARCHAR(100) NOT NULL UNIQUE,
     plant_type VARCHAR(50),
+    growing_months VARCHAR(100),
     days_to_harvest count,
     notes TEXT,
 
@@ -147,9 +152,9 @@ CREATE TABLE "CropRotation" (
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_rotation_bed
-        FOREIGN KEY (bed_name)
-        REFERENCES garden_beds(bed_name)
+    CONSTRAINT fk_rotation_garden_bed
+        FOREIGN KEY (garden_name, bed_name)
+        REFERENCES garden_beds(garden_name, bed_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
