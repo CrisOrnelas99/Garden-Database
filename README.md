@@ -55,8 +55,6 @@ erDiagram
     ITEM {
         int item_id PK
         varchar item_name
-        varchar category
-        varchar vendor_name
         decimal unit_cost
     }
 
@@ -66,8 +64,6 @@ erDiagram
         int cumulative_asset
         int instock_Total
         int reorder_point
-        boolean counted
-        varchar storage_location
     }
 
     PURCHASE_REQUEST {
@@ -78,7 +74,7 @@ erDiagram
         int qty_requested
         decimal total_cost
         boolean ordered
-        varchar funding_source
+        varchar budget
     }
 
     INVENTORY_TRANSACTION {
@@ -109,19 +105,15 @@ erDiagram
         varchar garden_name UK
         decimal footprint_sq_ft
         varchar garden_status
-        varchar garden_manager
-        text notes
     }
 
     GARDEN_BEDS {
         int bed_id PK
         varchar garden_name FK
         varchar bed_name UK
-        varchar bed_type
         varchar bed_size
         boolean active
         varchar soil_health
-        text notes
     }
 
     IRRIGATION_SETUP {
@@ -129,7 +121,6 @@ erDiagram
         varchar garden_name FK
         varchar irrigation_type
         varchar status
-        text notes
     }
 
     COMPOSTING_UNITS {
@@ -137,7 +128,6 @@ erDiagram
         varchar garden_name FK
         varchar composting_type
         varchar status
-        text notes
     }
 
     GARDEN_RESOURCE {
@@ -145,7 +135,6 @@ erDiagram
         varchar garden_name FK
         varchar item_name FK
         count quantity_needed
-        text notes
     }
 
     PLANT {
@@ -153,7 +142,6 @@ erDiagram
         varchar plant_name UK
         varchar plant_type
         count days_to_harvest
-        text notes
     }
 
     CROP_ROTATION {
@@ -164,7 +152,6 @@ erDiagram
         varchar plant_name FK
         date planned_planting_date
         varchar status
-        text notes
     }
 ```
     
