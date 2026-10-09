@@ -95,7 +95,6 @@ erDiagram
     GARDEN ||--o{ GARDEN_BEDS : has
     GARDEN ||--o{ IRRIGATION_SETUP : uses
     GARDEN ||--o{ COMPOSTING_UNITS : uses
-    GARDEN ||--o{ GARDEN_RESOURCE : needs
     GARDEN ||--o{ CROP_ROTATION : plans
     GARDEN_BEDS ||--o{ CROP_ROTATION : schedules
     PLANT ||--o{ CROP_ROTATION : includes
@@ -130,13 +129,6 @@ erDiagram
         varchar garden_name FK
         varchar composting_type
         varchar status
-    }
-
-    GARDEN_RESOURCE {
-        int garden_resource_id PK
-        varchar garden_name FK
-        varchar item_name FK
-        count quantity_needed
     }
 
     PLANT {
