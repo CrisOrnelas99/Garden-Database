@@ -208,26 +208,6 @@ Information:
 
 A garden can have multiple composting units.
 
-### `garden_resource`
-
-Records resources needed for a garden, using items from the existing inventory
-catalog.
-
-Information:
-
-- Garden Resource ID
-- Garden name
-- Item name
-- Quantity needed
-- Notes
-
-The records associate a garden with an item and the quantity needed. Users
-review the garden's beds and upcoming crops, determine the required supplies,
-and manually enter or update the garden's resource needs.
-
-Resource planning is maintained at the garden level. Users do not need to
-create a separate resource list for every planned crop in every bed. Required
-items and quantities are not automatically inferred from the planting plan.
 
 ### `plant`
 
