@@ -136,6 +136,7 @@ CREATE TABLE "CropRotation" (
     garden_name VARCHAR(200) NOT NULL,
     bed_name VARCHAR(100) NOT NULL,
     plant_name VARCHAR(100) NOT NULL,
+    season VARCHAR(20),
     planned_planting_date DATE,
     status VARCHAR(50) DEFAULT 'Planned',
     notes TEXT,
