@@ -226,29 +226,33 @@ EXECUTE FUNCTION initialize_remaining_budget();
 
 -- ============================================================
 -- TRIGGER 3
--- budget.remaining_budget =
--- budget_amount - SUM(PurchaseRequest.total_cost)
+-- Recalculate remaining budget using ordered requests only
 -- ============================================================
+
 CREATE OR REPLACE FUNCTION update_remaining_budget()
 RETURNS TRIGGER AS $$
 BEGIN
+    -- Recalculate the new budget allocation
     IF TG_OP IN ('INSERT', 'UPDATE')
        AND NEW.budget_id IS NOT NULL
     THEN
         UPDATE budget b
         SET remaining_budget =
-            b.budget_amount -
-            COALESCE(
+            b.budget_amount
+            - COALESCE(
                 (
                     SELECT SUM(pr.total_cost)
                     FROM "PurchaseRequest" pr
                     WHERE pr.budget_id = NEW.budget_id
+                      AND pr.ordered = TRUE
                 ),
                 0
             )
         WHERE b.budget_id = NEW.budget_id;
     END IF;
 
+
+    -- Recalculate the old budget allocation when needed
     IF TG_OP = 'DELETE'
        OR (
             TG_OP = 'UPDATE'
@@ -258,12 +262,13 @@ BEGIN
         IF OLD.budget_id IS NOT NULL THEN
             UPDATE budget b
             SET remaining_budget =
-                b.budget_amount -
-                COALESCE(
+                b.budget_amount
+                - COALESCE(
                     (
                         SELECT SUM(pr.total_cost)
                         FROM "PurchaseRequest" pr
                         WHERE pr.budget_id = OLD.budget_id
+                          AND pr.ordered = TRUE
                     ),
                     0
                 )
@@ -453,18 +458,21 @@ EXECUTE FUNCTION update_inventory_when_received();
 
 -- ============================================================
 -- TRIGGER 6
--- Recalculate remaining budget when the budget amount changes
+-- Recalculate remaining budget when budget amount changes
+-- Ordered requests only
 -- ============================================================
+
 CREATE OR REPLACE FUNCTION update_remaining_budget_after_budget_change()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.remaining_budget :=
+    NEW.remaining_budget =
         NEW.budget_amount
         - COALESCE(
             (
                 SELECT SUM(pr.total_cost)
                 FROM "PurchaseRequest" pr
                 WHERE pr.budget_id = NEW.budget_id
+                  AND pr.ordered = TRUE
             ),
             0
         );
