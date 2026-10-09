@@ -60,21 +60,18 @@ VALUES
 (
     'Garden Supplies',
     'SHCF_26-27_#9556',
-    '2026-2027',
     5000.00,
     'General garden supplies'
 ),
 (
     'Hydroponics',
     'Collaboratory_26-27_#9446',
-    '2026-2027',
     3000.00,
     'Hydroponic supplies'
 ),
 (
     'Garden Maintenance',
     'DonatedFunds_5120',
-    '2026-2027',
     10000.00,
     'Garden maintenance'
 );
