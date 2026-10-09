@@ -45,6 +45,8 @@ erDiagram
         varchar budget_name
         decimal budget_amount
         decimal remaining_budget
+        varchar funding_source
+        varchar school_year
     }
 
     LOCATION {
@@ -70,19 +72,19 @@ erDiagram
         int request_id PK
         varchar requesting_for FK
         varchar item_name FK
-        varchar budget_name FK
+        INT budget_id FK
         int qty_requested
         decimal total_cost
         boolean ordered
-        varchar budget
     }
 
     INVENTORY_TRANSACTION {
         int transaction_id PK
         date date
+        varchar status
         varchar for_school FK
         varchar item_name FK
-        int quantity_taken
+        int quantity
     }
 ```
 
