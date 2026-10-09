@@ -1,9 +1,7 @@
 # Garden Database Design
 
 This document summarizes the current database implementation for inventory,
-garden management, planting schedules, and crop rotations. It is a working
-design document that can be refined as the community partner provides more
-details.
+garden management, and crop rotations.
 
 ## Current Implementation
 
@@ -42,6 +40,8 @@ Information:
 - Location ID
 - Location name
 - location type
+- Contact
+- Email
 - Notes
 
 ### `budget`
@@ -52,6 +52,7 @@ Information:
 
 - Budget ID
 - Budget name
+- Funding Source
 - Budget amount
 - Remaining budget
 - Notes
@@ -95,7 +96,7 @@ request.
 Information:
 
 - Request ID
-- School year
+- Request date
 - Requested by
 - Requesting location
 - Item
@@ -104,25 +105,29 @@ Information:
 - Delivered status
 - Review status
 - Ordered status
-- Budget
-- Funding source
+- Budget ID
+- School year
 - Notes
 
 The requested item references the `item` table, the requesting location
-references `location`, and the assigned budget references `budget`.
+references `location`, and `budget_id` references the assigned row in
+`budget`. The budget row provides the budget name, funding source, and school
+year.
 
 ### `InventoryTransaction`
 
 Tracks inventory that is taken or distributed.
+The status records whether inventory was checked in or checked out.
 
 Information:
 
 - Transaction ID
 - Date
+- Status
 - Taken by
 - School receiving the item
 - Item
-- Quantity taken
+- Quantity
 - Notes
 
 The school references `location`, and the item references
