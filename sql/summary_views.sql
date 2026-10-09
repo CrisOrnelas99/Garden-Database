@@ -17,37 +17,38 @@ SELECT
 FROM "InventoryList"
 WHERE "instock_Total" <= reorder_point;
 
+
 -- ============================================================
 -- PendingRequests
--- View purchase requests that have not been ordered or delivered
+-- Purchase requests that have not been ordered or delivered
 -- ============================================================
 CREATE OR REPLACE VIEW "PendingRequests" AS
 SELECT
-    request_id,
-
+    pr.request_id,
     CASE
-        WHEN ordered = FALSE THEN 'Unordered'
-        WHEN delivered_to_fns = FALSE THEN 'Undelivered'
+        WHEN pr.ordered = FALSE THEN 'Unordered'
+        WHEN pr.delivered_to_fns = FALSE THEN 'Undelivered'
     END AS request_status,
-
-    requested_by,
-    requesting_for,
-    item_name,
-    qty_requested,
-    total_cost,
-    review_status,
-    budget_name,
-    funding_source,
-    notes
-
-FROM "PurchaseRequest"
-WHERE ordered = FALSE
-   OR delivered_to_fns = FALSE;
+    pr.requested_by,
+    pr.requesting_for,
+    pr.item_name,
+    pr.qty_requested,
+    pr.total_cost,
+    pr.review_status,
+    b.budget_name,
+    b.funding_source,
+    pr.school_year,
+    pr.notes
+FROM "PurchaseRequest" pr
+LEFT JOIN budget b
+    ON pr.budget_id = b.budget_id
+WHERE pr.ordered = FALSE
+   OR pr.delivered_to_fns = FALSE;
 
 
 -- ============================================================
 -- SchoolInventory
--- View inventory and costs for each school
+-- Inventory and purchase activity for each location
 -- ============================================================
 CREATE OR REPLACE VIEW "SchoolInventory" AS
 SELECT
@@ -55,9 +56,10 @@ SELECT
 
     COALESCE(
         (
-            SELECT SUM(it.quantity_taken)
+            SELECT SUM(it.quantity)
             FROM "InventoryTransaction" it
             WHERE it.for_school = l.location_name
+              AND it.status = 'Checked Out'
         ),
         0
     ) AS items_checked_out,
@@ -67,10 +69,10 @@ SELECT
             SELECT SUM(pr.qty_requested)
             FROM "PurchaseRequest" pr
             WHERE pr.requesting_for = l.location_name
-            AND (
-                pr.ordered = FALSE
-                OR pr.delivered_to_fns = FALSE
-            )
+              AND (
+                  pr.ordered = FALSE
+                  OR pr.delivered_to_fns = FALSE
+              )
         ),
         0
     ) AS items_still_requested,
@@ -80,7 +82,7 @@ SELECT
             SELECT SUM(pr.total_cost)
             FROM "PurchaseRequest" pr
             WHERE pr.requesting_for = l.location_name
-            AND pr.ordered = TRUE
+              AND pr.ordered = TRUE
         ),
         0
     ) AS total_spent,
@@ -90,7 +92,7 @@ SELECT
             SELECT SUM(pr.total_cost)
             FROM "PurchaseRequest" pr
             WHERE pr.requesting_for = l.location_name
-            AND pr.ordered = FALSE
+              AND pr.ordered = FALSE
         ),
         0
     ) AS unordered_cost
@@ -101,22 +103,42 @@ ORDER BY l.location_name;
 
 -- ============================================================
 -- BudgetPurchases
--- view purchases made from each budget
+-- Purchases grouped by budget name and item
 -- ============================================================
 CREATE OR REPLACE VIEW "BudgetPurchases" AS
 SELECT
     b.budget_name,
-    pr.school_year,
-    pr.request_id,
     pr.item_name,
-    pr.qty_requested,
-    pr.total_cost,
-    pr.requested_by,
-    pr.requesting_for,
-    b.remaining_budget
+    SUM(pr.qty_requested) AS total_quantity_requested,
+    SUM(pr.total_cost) AS total_spent
 FROM budget b
-LEFT JOIN "PurchaseRequest" pr
-    ON b.budget_name = pr.budget_name;
+JOIN "PurchaseRequest" pr
+    ON b.budget_id = pr.budget_id
+GROUP BY
+    b.budget_name,
+    pr.item_name
+ORDER BY
+    b.budget_name,
+    pr.item_name;
+
+
+-- ============================================================
+-- FundingSourceSpending
+-- Spending totals by funding source
+-- ============================================================
+CREATE OR REPLACE VIEW "FundingSourceSpending" AS
+SELECT
+    COALESCE(b.funding_source, 'Unassigned') AS funding_source,
+    SUM(pr.total_cost) AS total_spent,
+    SUM(pr.qty_requested) AS total_quantity_requested,
+    COUNT(pr.request_id) AS request_count
+FROM budget b
+JOIN "PurchaseRequest" pr
+    ON b.budget_id = pr.budget_id
+GROUP BY
+    b.funding_source
+ORDER BY
+    funding_source;
 
 
 -- ============================================================
