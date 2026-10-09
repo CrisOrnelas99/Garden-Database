@@ -179,7 +179,6 @@ SELECT
     l.location_name AS school_name,
     g.garden_name,
     cr.bed_name,
-    cr.rotation_name,
     cr.plant_name,
     p.plant_type,
     p.growing_months,
