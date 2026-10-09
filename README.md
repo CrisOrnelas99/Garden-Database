@@ -25,7 +25,7 @@ The Garden Sizes & Components + Growing Calendars & Crop Rotations tables are al
 
 # Current Database Schema
 
-The current inventory schema focuses on the inventory portion of the project.
+The current inventory schema focuses on the inventory portion of the project(does not include all columns).
 
 ```mermaid
 erDiagram
@@ -90,7 +90,7 @@ erDiagram
     }
 ```
 
-The current garden schema focuses on the garden portion of the project.
+The current garden schema focuses on the garden portion of the project(does not include all columns).
 
 ```mermaid
 erDiagram
