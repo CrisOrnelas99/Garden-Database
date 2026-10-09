@@ -100,8 +100,6 @@ erDiagram
     GARDEN ||--o{ COMPOSTING_UNITS : uses
     GARDEN ||--o{ GARDEN_RESOURCE : needs
     ITEM ||--o{ GARDEN_RESOURCE : supplies
-    GARDEN_BEDS ||--o{ PLANTING : records
-    PLANT ||--o{ PLANTING : grows
     GARDEN ||--o{ CROP_ROTATION : plans
     GARDEN_BEDS ||--o{ CROP_ROTATION : schedules
     PLANT ||--o{ CROP_ROTATION : includes
@@ -170,18 +168,6 @@ erDiagram
         varchar plant_name UK
         varchar plant_type
         count days_to_harvest
-        text notes
-    }
-
-    PLANTING {
-        int planting_id PK
-        varchar plant_name FK
-        varchar bed_name FK
-        date planting_date
-        date expected_harvest_date
-        varchar school_year
-        count quantity
-        varchar status
         text notes
     }
 
