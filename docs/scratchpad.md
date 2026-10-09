@@ -1,7 +1,6 @@
 # Future needs for Project
 * Create functions, views, data population for garden/planting/crop rotation
-* Create ER diagram
-* diagram using class example
+* Create ER diagram, relational diagram, schema diagram
   
 * roles and permissions to tables, columns and views?
   
