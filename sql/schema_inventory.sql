@@ -40,7 +40,6 @@ CREATE TABLE budget (
     budget_id SERIAL PRIMARY KEY,
     budget_name VARCHAR(100) NOT NULL,
     funding_source VARCHAR(100),
-    school_year VARCHAR(9),
     budget_amount dollar NOT NULL,
     remaining_budget DECIMAL(12,2),
     notes TEXT,
