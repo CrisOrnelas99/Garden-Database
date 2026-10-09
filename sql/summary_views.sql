@@ -135,6 +135,7 @@ SELECT
 FROM budget b
 JOIN "PurchaseRequest" pr
     ON b.budget_id = pr.budget_id
+WHERE pr.budget_ordered = True
 GROUP BY
     b.funding_source
 ORDER BY
