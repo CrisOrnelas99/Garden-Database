@@ -11,6 +11,7 @@
 
 INSERT INTO location (
     location_name,
+    location_type,
     notes
 )
 VALUES
