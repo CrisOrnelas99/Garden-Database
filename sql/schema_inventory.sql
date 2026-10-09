@@ -3,8 +3,8 @@
 -- ============================================================
 
 -- ============================================================
--- CUSTOM DOMAINS
--- Reusable data types and constraints
+-- CUSTOM
+-- Reusable data types, enums and constraints
 -- ============================================================
 
 CREATE DOMAIN dollar AS DECIMAL(12,2)
@@ -13,18 +13,23 @@ CREATE DOMAIN dollar AS DECIMAL(12,2)
 CREATE DOMAIN count AS INT
     CHECK (VALUE >= 0);
 
+CREATE TYPE inventory_transaction_status AS ENUM (
+    'Checked In',
+    'Checked Out'
+);
+
 
 -- ============================================================
 -- location
 -- ============================================================
 
 CREATE TABLE location (
-    location_id SERIAL PRIMARY KEY,
-
-    location_name VARCHAR(200) NOT NULL UNIQUE,
     
+    location_id SERIAL PRIMARY KEY,
+    location_name VARCHAR(200) NOT NULL UNIQUE,
     location_type VARCHAR(50),
-
+    contact VARCHAR(100),
+    email VARCHAR(200),
     notes TEXT
 );
 
@@ -34,6 +39,7 @@ CREATE TABLE location (
 -- ============================================================
 
 CREATE TABLE budget (
+    
     budget_id SERIAL PRIMARY KEY,
 
     budget_name VARCHAR(50) NOT NULL UNIQUE,
@@ -106,7 +112,7 @@ CREATE TABLE "InventoryList" (
 CREATE TABLE "PurchaseRequest" (
     request_id SERIAL PRIMARY KEY,
 
-    school_year VARCHAR(9),
+    request_date DATE,
 
     requested_by VARCHAR(50) NOT NULL,
 
@@ -114,8 +120,7 @@ CREATE TABLE "PurchaseRequest" (
 
     item_name VARCHAR(200) NOT NULL,
 
-    qty_requested count NOT NULL
-        CHECK (qty_requested > 0),
+    qty_requested count NOT NULL,
 
     total_cost dollar NOT NULL DEFAULT 0,
 
@@ -128,6 +133,8 @@ CREATE TABLE "PurchaseRequest" (
     budget_name VARCHAR(50),
 
     funding_source VARCHAR(50),
+
+    school_year VARCHAR(9),
 
     notes TEXT,
 
@@ -158,14 +165,16 @@ CREATE TABLE "InventoryTransaction" (
 
     date DATE DEFAULT CURRENT_DATE,
 
+    status inventory_transaction_status NOT NULL,
+
     taken_by VARCHAR(50) NOT NULL,
 
     for_school VARCHAR(200),
 
     item_name VARCHAR(200) NOT NULL,
 
-    quantity_taken count NOT NULL
-        CHECK (quantity_taken > 0),
+    quantity count NOT NULL
+        CHECK (quantity > 0),
 
     notes TEXT,
 
