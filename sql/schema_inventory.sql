@@ -38,11 +38,15 @@ CREATE TABLE location (
 CREATE TABLE budget (
     
     budget_id SERIAL PRIMARY KEY,
-    budget_name VARCHAR(50) NOT NULL UNIQUE,
+    budget_name VARCHAR(100) NOT NULL,
+    funding_source VARCHAR(100),
+    school_year VARCHAR(9),
     budget_amount dollar NOT NULL,
-    -- Can become negative if expenses exceed budget
     remaining_budget DECIMAL(12,2),
-    notes TEXT
+    notes TEXT,
+
+CONSTRAINT uq_budget_allocation
+    UNIQUE (budget_name, funding_source, school_year)
 );
 
 
