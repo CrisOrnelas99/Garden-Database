@@ -132,14 +132,13 @@ The school references `location`, and the item references
 
 ## Garden Schema
 
-The Garden and Planting schema maintains garden footprints, irrigation systems,
-composting units, active beds, resources, planting records, and crop rotations.
-It supports growing calendars, soil health records, and preparation for upcoming
-growing cycles.
+The Garden schema maintains garden footprints, irrigation systems,
+composting units, active beds, resources, plant information, and crop
+rotations. It supports growing calendars, soil health records, and preparation
+for upcoming growing cycles.
 
 The existing `location` table connects gardens to school or program locations.
-The garden and planting tables are documented together below; the schema file
-list above retains the existing SQL file names.
+The garden tables are documented together below.
 
 ### `garden`
 
@@ -174,9 +173,7 @@ Information:
 - Soil health
 - Notes
 
-Individual garden beds support active bed counts, planting schedules, and crop
-rotation history. Bed type describes the bed, while soil health records
-information that users can consider when planning future crops.
+Individual garden beds support active bed counts and crop rotation planning.
 
 ### `IrrigationSetup`
 
@@ -248,25 +245,6 @@ Other plant-specific growing information can remain in notes unless the
 community partner identifies additional information that needs to be tracked
 separately.
 
-### `planting`
-
-Represents a planting event or growing cycle for a specific garden bed.
-
-Information:
-
-- Planting ID
-- School year
-- Bed name
-- Plant name
-- Quantity
-- Planting date
-- Expected harvest date
-- Status
-- Notes
-
-The planting record connects a plant to a specific garden bed and preserves
-the history of what has been grown there. School year groups records for
-program reporting, and quantity records how much was planted.
 
 ### `CropRotation`
 
@@ -304,5 +282,5 @@ Hogwarts_Bed_1
       +-- Hogwarts Bed 1 Fall 2027 Lettuce --> Lettuce
 ```
 
-These rotation names identify distinct plans. `CropRotation` records what is
-planned, while `planting` preserves what was actually planted.
+These rotation names identify distinct plans. `CropRotation` records the
+planned crops, planting dates, and statuses for each garden bed.
