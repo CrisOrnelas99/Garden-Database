@@ -137,7 +137,6 @@ CREATE TABLE garden_resource (
 -- ============================================================
 CREATE TABLE "CropRotation" (
     rotation_id SERIAL PRIMARY KEY,
-    rotation_name VARCHAR(200) NOT NULL UNIQUE,
     garden_name VARCHAR(200) NOT NULL,
     bed_name VARCHAR(100) NOT NULL,
     plant_name VARCHAR(100) NOT NULL,
