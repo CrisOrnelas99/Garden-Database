@@ -131,16 +131,14 @@ CREATE OR REPLACE VIEW "FundingSourceSpending" AS
 SELECT
     COALESCE(b.funding_source, 'Unassigned') AS funding_source,
     SUM(pr.total_cost) AS total_spent,
-    SUM(pr.qty_requested) AS total_quantity_requested,
-    COUNT(pr.request_id) AS request_count
+    SUM(pr.qty_requested) AS total_quantity_ordered,
+    COUNT(*) AS request_count
 FROM budget b
 JOIN "PurchaseRequest" pr
     ON b.budget_id = pr.budget_id
-WHERE pr.ordered = True
-GROUP BY
-    b.funding_source
-ORDER BY
-    funding_source;
+WHERE pr.ordered = TRUE
+GROUP BY COALESCE(b.funding_source, 'Unassigned')
+ORDER BY funding_source;
 
 
 -- ============================================================
