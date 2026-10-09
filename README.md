@@ -94,22 +94,14 @@ The current garden schema focuses on the garden portion of the project.
 
 ```mermaid
 erDiagram
-    LOCATION ||--o{ GARDEN : contains
     GARDEN ||--o{ GARDEN_BEDS : has
     GARDEN ||--o{ IRRIGATION_SETUP : uses
     GARDEN ||--o{ COMPOSTING_UNITS : uses
     GARDEN ||--o{ GARDEN_RESOURCE : needs
-    ITEM ||--o{ GARDEN_RESOURCE : supplies
     GARDEN ||--o{ CROP_ROTATION : plans
     GARDEN_BEDS ||--o{ CROP_ROTATION : schedules
     PLANT ||--o{ CROP_ROTATION : includes
 
-    LOCATION {
-        int location_id PK
-        varchar location_name
-        varchar location_type
-        text notes
-    }
 
     GARDEN {
         int garden_id PK
@@ -146,13 +138,6 @@ erDiagram
         varchar composting_type
         varchar status
         text notes
-    }
-
-    ITEM {
-        int item_id PK
-        varchar item_name UK
-        varchar category
-        dollar unit_cost
     }
 
     GARDEN_RESOURCE {
