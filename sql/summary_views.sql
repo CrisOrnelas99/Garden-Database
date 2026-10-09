@@ -112,7 +112,8 @@ SELECT
     pr.qty_requested,
     pr.total_cost,
     pr.requested_by,
-    pr.requesting_for
+    pr.requesting_for,
+    b.remaining_budget
 FROM budget b
 LEFT JOIN "PurchaseRequest" pr
     ON b.budget_name = pr.budget_name;
