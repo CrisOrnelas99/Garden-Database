@@ -8,7 +8,6 @@
 -- ============================================================
 -- LOCATIONS
 -- ============================================================
-
 INSERT INTO location (
     location_name,
     location_type,
@@ -50,25 +49,32 @@ VALUES
 -- ============================================================
 -- BUDGET
 -- ============================================================
-
 INSERT INTO budget (
     budget_name,
+    funding_source,
+    school_year,
     budget_amount,
     notes
 )
 VALUES
 (
     'Garden Supplies',
+    'SHCF_26-27_#9556',
+    '2026-2027',
     5000.00,
     'General garden supplies'
 ),
 (
     'Hydroponics',
+    'Collaboratory_26-27_#9446',
+    '2026-2027',
     3000.00,
     'Hydroponic supplies'
 ),
 (
     'Garden Maintenance',
+    'DonatedFunds_5120',
+    '2026-2027',
     10000.00,
     'Garden maintenance'
 );
@@ -278,9 +284,8 @@ VALUES
 -- ============================================================
 -- PURCHASE REQUEST
 -- ============================================================
-
 INSERT INTO "PurchaseRequest" (
-    school_year,
+    request_date,
     requested_by,
     requesting_for,
     item_name,
@@ -288,13 +293,13 @@ INSERT INTO "PurchaseRequest" (
     delivered_to_fns,
     review_status,
     ordered,
-    budget_name,
-    funding_source,
+    budget_id,
+    school_year,
     notes
 )
 VALUES
 (
-    '2026-2027',
+    '2026-08-15',
     'Alice',
     'Hogwarts Academy',
     'Plant Pots',
@@ -302,12 +307,18 @@ VALUES
     TRUE,
     'Ordered',
     TRUE,
-    'Garden Supplies',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Garden Supplies'
+          AND funding_source = 'SHCF_26-27_#9556'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Pots for garden'
 ),
 (
-    '2026-2027',
+    '2026-08-16',
     'Bob',
     'Sunshine Elementary',
     'Garden Gloves',
@@ -315,12 +326,18 @@ VALUES
     TRUE,
     'Ordered',
     TRUE,
-    'Garden Supplies',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Garden Supplies'
+          AND funding_source = 'SHCF_26-27_#9556'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Gloves for students'
 ),
 (
-    '2026-2027',
+    '2026-08-17',
     'Cris',
     'Green Valley Middle School',
     'Hydroponic Nutrients',
@@ -328,12 +345,18 @@ VALUES
     TRUE,
     'Ordered',
     TRUE,
-    'Hydroponics',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Hydroponics'
+          AND funding_source = 'Collaboratory_26-27_#9446'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Hydroponic supplies'
 ),
 (
-    '2026-2027',
+    '2026-08-18',
     'Alice',
     'Oakwood High School',
     'Garden Soil',
@@ -341,12 +364,18 @@ VALUES
     FALSE,
     'Under Review',
     FALSE,
-    'Garden Maintenance',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Garden Maintenance'
+          AND funding_source = 'DonatedFunds_5120'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Soil for garden beds'
 ),
 (
-    '2026-2027',
+    '2026-08-19',
     'Bob',
     'Riverbend Academy',
     'Tomato Seeds',
@@ -354,12 +383,18 @@ VALUES
     FALSE,
     'Under Review',
     FALSE,
-    'Garden Supplies',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Garden Supplies'
+          AND funding_source = 'SHCF_26-27_#9556'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Seeds for planting'
 ),
 (
-    '2026-2027',
+    '2026-08-20',
     'Cris',
     'Hogwarts Academy',
     'Hand Trowel',
@@ -367,12 +402,18 @@ VALUES
     TRUE,
     'Ordered',
     TRUE,
-    'Garden Supplies',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Garden Supplies'
+          AND funding_source = 'SHCF_26-27_#9556'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Garden tools'
 ),
 (
-    '2026-2027',
+    '2026-08-21',
     'Alice',
     'Sunshine Elementary',
     'Watering Can',
@@ -380,12 +421,18 @@ VALUES
     TRUE,
     'Ordered',
     TRUE,
-    'Garden Maintenance',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Garden Maintenance'
+          AND funding_source = 'DonatedFunds_5120'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Watering equipment'
 ),
 (
-    '2026-2027',
+    '2026-08-22',
     'Bob',
     'Green Valley Middle School',
     'Pruning Shears',
@@ -393,27 +440,33 @@ VALUES
     FALSE,
     'Under Review',
     FALSE,
-    'Garden Maintenance',
-    NULL,
+    (
+        SELECT budget_id
+        FROM budget
+        WHERE budget_name = 'Garden Maintenance'
+          AND funding_source = 'DonatedFunds_5120'
+          AND school_year = '2026-2027'
+    ),
+    '2026-2027',
     'Garden maintenance tools'
 );
-
 
 -- ============================================================
 -- INVENTORY TRANSACTIONS
 -- ============================================================
-
 INSERT INTO "InventoryTransaction" (
     date,
+    status,
     taken_by,
     for_school,
     item_name,
-    quantity_taken,
+    quantity,
     notes
 )
 VALUES
 (
     '2026-09-01',
+    'Checked Out',
     'Alice',
     'Hogwarts Academy',
     'Plant Pots',
@@ -422,6 +475,7 @@ VALUES
 ),
 (
     '2026-09-03',
+    'Checked Out',
     'Bob',
     'Sunshine Elementary',
     'Garden Gloves',
@@ -430,6 +484,7 @@ VALUES
 ),
 (
     '2026-09-05',
+    'Checked Out',
     'Cris',
     'Green Valley Middle School',
     'Hydroponic Nutrients',
@@ -438,6 +493,7 @@ VALUES
 ),
 (
     '2026-09-08',
+    'Checked Out',
     'Alice',
     'Oakwood High School',
     'Garden Soil',
@@ -446,6 +502,7 @@ VALUES
 ),
 (
     '2026-09-10',
+    'Checked Out',
     'Bob',
     'Riverbend Academy',
     'Tomato Seeds',
@@ -454,6 +511,7 @@ VALUES
 ),
 (
     '2026-09-12',
+    'Checked Out',
     'Cris',
     'Hogwarts Academy',
     'Hand Trowel',
@@ -462,6 +520,7 @@ VALUES
 ),
 (
     '2026-09-15',
+    'Checked Out',
     'Alice',
     'Sunshine Elementary',
     'Watering Can',
@@ -470,6 +529,7 @@ VALUES
 ),
 (
     '2026-09-18',
+    'Checked Out',
     'Bob',
     'Green Valley Middle School',
     'Plant Labels',
