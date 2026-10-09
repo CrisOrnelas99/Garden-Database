@@ -104,8 +104,7 @@ CREATE TABLE "PurchaseRequest" (
     delivered_to_fns BOOLEAN NOT NULL DEFAULT FALSE,
     review_status TEXT,
     ordered BOOLEAN NOT NULL DEFAULT FALSE,
-    budget_name VARCHAR(50),
-    funding_source VARCHAR(50),
+    budget_id INT,
     school_year VARCHAR(9),
     notes TEXT,
 
@@ -120,8 +119,8 @@ CREATE TABLE "PurchaseRequest" (
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_purchase_request_budget
-        FOREIGN KEY (budget_name)
-        REFERENCES budget(budget_name)
+        FOREIGN KEY (budget_id)
+        REFERENCES budget(budget_id)
         ON UPDATE CASCADE
 );
 
@@ -233,9 +232,9 @@ EXECUTE FUNCTION initialize_remaining_budget();
 CREATE OR REPLACE FUNCTION update_remaining_budget()
 RETURNS TRIGGER AS $$
 BEGIN
-
-    IF TG_OP IN ('INSERT', 'UPDATE') AND NEW.budget_name IS NOT NULL THEN
-
+    IF TG_OP IN ('INSERT', 'UPDATE')
+       AND NEW.budget_id IS NOT NULL
+    THEN
         UPDATE budget b
         SET remaining_budget =
             b.budget_amount -
@@ -243,24 +242,20 @@ BEGIN
                 (
                     SELECT SUM(pr.total_cost)
                     FROM "PurchaseRequest" pr
-                    WHERE pr.budget_name = NEW.budget_name
+                    WHERE pr.budget_id = NEW.budget_id
                 ),
                 0
             )
-        WHERE b.budget_name = NEW.budget_name;
-
+        WHERE b.budget_id = NEW.budget_id;
     END IF;
-
 
     IF TG_OP = 'DELETE'
        OR (
             TG_OP = 'UPDATE'
-            AND OLD.budget_name IS DISTINCT FROM NEW.budget_name
+            AND OLD.budget_id IS DISTINCT FROM NEW.budget_id
           )
     THEN
-
-        IF OLD.budget_name IS NOT NULL THEN
-
+        IF OLD.budget_id IS NOT NULL THEN
             UPDATE budget b
             SET remaining_budget =
                 b.budget_amount -
@@ -268,20 +263,17 @@ BEGIN
                     (
                         SELECT SUM(pr.total_cost)
                         FROM "PurchaseRequest" pr
-                        WHERE pr.budget_name = OLD.budget_name
+                        WHERE pr.budget_id = OLD.budget_id
                     ),
                     0
                 )
-            WHERE b.budget_name = OLD.budget_name;
-
+            WHERE b.budget_id = OLD.budget_id;
         END IF;
-
     END IF;
 
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE TRIGGER trg_update_remaining_budget
 AFTER INSERT OR UPDATE OR DELETE
@@ -472,7 +464,7 @@ BEGIN
             (
                 SELECT SUM(pr.total_cost)
                 FROM "PurchaseRequest" pr
-                WHERE pr.budget_name = NEW.budget_name
+                WHERE pr.budget_id = NEW.budget_id
             ),
             0
         );
