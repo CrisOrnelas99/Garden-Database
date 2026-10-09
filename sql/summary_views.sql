@@ -109,11 +109,12 @@ CREATE OR REPLACE VIEW "BudgetPurchases" AS
 SELECT
     b.budget_name,
     pr.item_name,
-    SUM(pr.qty_requested) AS total_quantity_requested,
+    SUM(pr.qty_requested) AS total_quantity_ordered,
     SUM(pr.total_cost) AS total_spent
 FROM budget b
 JOIN "PurchaseRequest" pr
     ON b.budget_id = pr.budget_id
+WHERE pr.ordered = TRUE
 GROUP BY
     b.budget_name,
     pr.item_name
@@ -135,7 +136,7 @@ SELECT
 FROM budget b
 JOIN "PurchaseRequest" pr
     ON b.budget_id = pr.budget_id
-WHERE pr.budget_ordered = True
+WHERE pr.ordered = True
 GROUP BY
     b.funding_source
 ORDER BY
