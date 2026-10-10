@@ -148,5 +148,6 @@ erDiagram
         varchar status
     }
 ```
-    
+
+**Developer notes: We use component names as foreign key for user readability for hosted databases. If a future web UI is implemented, change back foreign key to ID for proper use.    
 > Authentication and user tracking are planned for a future stage of the project and are not currently part of the inventory schema.
