@@ -120,6 +120,7 @@ erDiagram
     IRRIGATION_SETUP {
         int irrigation_id PK
         varchar garden_name FK
+        varcgar irrigation_name
         varchar irrigation_type
         varchar status
     }
@@ -127,6 +128,7 @@ erDiagram
     COMPOSTING_UNITS {
         int composting_unit_id PK
         varchar garden_name FK
+        composting_name
         varchar composting_type
         varchar status
     }
