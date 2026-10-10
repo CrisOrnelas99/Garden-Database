@@ -15,8 +15,8 @@ The current database is built in PostgreSQL using Supabase and covers
 sql/
 ├── inventory_schema.sql
 ├── garden_schema.sql
-└── demo_data.sql
-├── summary_view.sql
+├── demo_data.sql
+└── summary_view.sql
 ```
 
 The inventory and garden schemas are currently implemented.
@@ -188,6 +188,7 @@ Information:
 
 - Irrigation ID
 - Garden name
+- Irrigation name
 - Irrigation type
 - Status
 - Notes
@@ -202,6 +203,7 @@ Information:
 
 - Composting unit ID
 - Garden name
+- Composting name
 - Composting type
 - Status
 - Notes
