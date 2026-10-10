@@ -45,7 +45,7 @@ CREATE TABLE budget (
     notes TEXT,
 
 CONSTRAINT uq_budget_allocation
-    UNIQUE (budget_name, funding_source, school_year)
+    UNIQUE (budget_name, funding_source)
 );
 
 
