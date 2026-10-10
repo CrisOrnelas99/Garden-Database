@@ -9,21 +9,12 @@
 * Work on powerpoint, etc
 
 ## Cris
-* maybe for this project can get away with removing IDs from object tables(not including events/records). Update data population as needed. (don't believe functions affected)
   
 * add garden/planting/crop-rotation to github/ supabase for demo
 * schedule meeting for Garden/planting/crop-rotation/ (midpoint meeting?)
 
 * add roles and permissions to tables/columns/views if needed
 * schedule final meeting
-
-## Nicolas
-
-
-## Luke
-
-
-## Suhaib
 
 
 
