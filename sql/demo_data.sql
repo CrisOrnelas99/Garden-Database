@@ -52,7 +52,6 @@ VALUES
 INSERT INTO budget (
     budget_name,
     funding_source,
-    school_year,
     budget_amount,
     notes
 )
@@ -309,7 +308,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Garden Supplies'
           AND funding_source = 'SHCF_26-27_#9556'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Pots for garden'
@@ -328,7 +326,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Garden Supplies'
           AND funding_source = 'SHCF_26-27_#9556'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Gloves for students'
@@ -347,7 +344,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Hydroponics'
           AND funding_source = 'Collaboratory_26-27_#9446'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Hydroponic supplies'
@@ -366,7 +362,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Garden Maintenance'
           AND funding_source = 'DonatedFunds_5120'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Soil for garden beds'
@@ -385,7 +380,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Garden Supplies'
           AND funding_source = 'SHCF_26-27_#9556'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Seeds for planting'
@@ -404,7 +398,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Garden Supplies'
           AND funding_source = 'SHCF_26-27_#9556'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Garden tools'
@@ -423,7 +416,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Garden Maintenance'
           AND funding_source = 'DonatedFunds_5120'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Watering equipment'
@@ -442,7 +434,6 @@ VALUES
         FROM budget
         WHERE budget_name = 'Garden Maintenance'
           AND funding_source = 'DonatedFunds_5120'
-          AND school_year = '2026-2027'
     ),
     '2026-2027',
     'Garden maintenance tools'
