@@ -56,6 +56,7 @@ CREATE TABLE garden_beds (
 CREATE TABLE irrigation_setup (
     irrigation_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
+    irrigation_name VARCHAR(100),
     irrigation_type VARCHAR(100),
     status VARCHAR(50),
     notes TEXT,
@@ -75,6 +76,7 @@ CREATE TABLE irrigation_setup (
 CREATE TABLE composting_units (
     composting_unit_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
+    composting_unit_name VARCHAR(100),
     composting_type VARCHAR(100),
     status VARCHAR(50),
     notes TEXT,
