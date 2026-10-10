@@ -128,7 +128,7 @@ erDiagram
     COMPOSTING_UNITS {
         int composting_unit_id PK
         varchar garden_name FK
-        composting_name
+        varchar composting_name
         varchar composting_type
         varchar status
     }
