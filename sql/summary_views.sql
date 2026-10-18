@@ -196,3 +196,79 @@ JOIN plant p
     ON cr.plant_name = p.plant_name
 WHERE cr.planned_planting_date >= CURRENT_DATE
   AND cr.status = 'Planned';
+
+----Garden Bed Summary----
+
+CREATE OR REPLACE VIEW garden_bed_summary AS
+SELECT
+	g.garden_id,
+	g.garden_name,
+	g.location_name,
+	g.garden_type,
+	g.garden_status,
+	COUNT(gb.bed_id) AS total_beds
+FROM garden as g
+LEFT JOIN garden_beds as gb
+	ON g.garden_name = gb.garden_name
+GROUP BY
+	g.garden_id,
+	g.garden_name,
+	g.location_name,
+	g.garden_type,
+	gb.bed_id,
+	g.garden_status;
+
+----Active Garden Beds----
+
+CREATE OR REPLACE VIEW active_garden_beds AS
+SELECT
+	bed_id,
+	garden_name,
+	bed_name,
+	bed_type,
+	bed_size,
+	soil_health
+FROM garden_beds
+WHERE active = TRUE;
+
+----Crop Rotation Details----
+
+CREATE OR REPLACE VIEW crop_rotation_details AS
+SELECT
+	cr.rotation_id,
+	cr.garden_name,
+	cr.bed_name,
+	cr.plant_name,
+	p.plant_type,
+	p.growing_months,
+	p.days_to_harvest,
+	cr.season,
+	cr.planned_planting_date,
+	cr.status
+FROM "CropRotation" AS cr
+JOIN plant as P
+	ON cr.plant_name = p.plant_name;
+
+----Garden Equipment Status----
+CREATE OR REPLACE VIEW garden_equipment_status AS
+SELECT
+	g.garden_name,
+	'Irrigation' AS equipment_category,
+	i.irrigation_name AS equipment_name,
+	i.irrigation_type AS equipment_type
+	i.status
+FROM garden as g
+JOIN irrigation_setup AS i
+	ON g.garden_name = i.garden_name
+
+UNION ALL
+
+SELECT
+	g.garden_name,
+	'Composting' AS equipment_category,
+	c.composting_unit_name AS equipment_name,
+	c.composting_type AS equipment_type,
+	c.status
+FROM garden AS g
+JOIN composting_units AS c
+	ON g.garden_name = c.garden_name;
