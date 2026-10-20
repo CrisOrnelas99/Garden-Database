@@ -170,33 +170,6 @@ GROUP BY school_year
 ORDER BY school_year;
 
 
--- ============================================================
--- UpcomingRotations
--- View upcoming planned crops for each school garden
--- ============================================================
-CREATE OR REPLACE VIEW "UpcomingRotations" AS
-SELECT
-    l.location_name AS school_name,
-    g.garden_name,
-    cr.bed_name,
-    cr.plant_name,
-    p.plant_type,
-    p.growing_months,
-    p.days_to_harvest,
-    cr.season,
-    cr.planned_planting_date,
-    cr.status,
-    cr.notes
-FROM "CropRotation" cr
-JOIN garden g
-    ON cr.garden_name = g.garden_name
-JOIN location l
-    ON g.location_name = l.location_name
-JOIN plant p
-    ON cr.plant_name = p.plant_name
-WHERE cr.planned_planting_date >= CURRENT_DATE
-  AND cr.status = 'Planned';
-
 ----Garden Bed Summary----
 
 CREATE OR REPLACE VIEW garden_bed_summary AS
