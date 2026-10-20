@@ -255,7 +255,7 @@ SELECT
 	g.garden_name,
 	'Irrigation' AS equipment_category,
 	i.irrigation_name AS equipment_name,
-	i.irrigation_type AS equipment_type
+	i.irrigation_type AS equipment_type,
 	i.status
 FROM garden as g
 JOIN irrigation_setup AS i
