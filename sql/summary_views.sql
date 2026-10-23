@@ -5,69 +5,74 @@
 
 -- ============================================================
 -- RestockList
--- View items that need to be reordered
+-- Items at or below their reorder point, with ordering details
 -- ============================================================
-CREATE OR REPLACE VIEW "RestockList" AS
+DROP VIEW IF EXISTS "RestockList";
+CREATE VIEW "RestockList" AS
 SELECT
-    inventory_id,
-    item_name,
-    "instock_Total",
-    reorder_point,
-    storage_location
-FROM "InventoryList"
-WHERE "instock_Total" <= reorder_point;
+    il.inventory_id,
+    il.item_name,
+    il.instock_total,
+    il.reorder_point,
+    il.counted,
+    il.storage_location
+FROM inventory_list il
+WHERE il.instock_total <= il.reorder_point;
 
 
 -- ============================================================
 -- PendingRequests
 -- Purchase requests that have not been ordered or delivered
 -- ============================================================
-CREATE OR REPLACE VIEW "PendingRequests" AS
+DROP VIEW IF EXISTS "PendingRequests";
+CREATE VIEW "PendingRequests" AS
 SELECT
-    pr.request_id,
+    pr.request_date,
     CASE
         WHEN pr.ordered = FALSE THEN 'Unordered'
         WHEN pr.delivered_to_fns = FALSE THEN 'Undelivered'
     END AS request_status,
+    pr.item_name,
     pr.requested_by,
     pr.requesting_for,
-    pr.item_name,
-    pr.qty_requested,
+    pr.quantity_requested,
     pr.total_cost,
     pr.review_status,
-    b.budget_name,
-    b.funding_source,
-    pr.school_year,
     pr.notes
-FROM "PurchaseRequest" pr
-LEFT JOIN budget b
-    ON pr.budget_id = b.budget_id
+FROM purchase_request pr
 WHERE pr.ordered = FALSE
    OR pr.delivered_to_fns = FALSE;
 
 
 -- ============================================================
--- SchoolInventory
--- Inventory and purchase activity for each location
+-- SchoolSupply
+-- Net inventory out, outstanding requests, and spending by school
 -- ============================================================
-CREATE OR REPLACE VIEW "SchoolInventory" AS
+DROP VIEW IF EXISTS "SchoolInventory";
+DROP VIEW IF EXISTS "SchoolSupplyActivity";
+DROP VIEW IF EXISTS "SchoolSupply";
+CREATE VIEW "SchoolSupply" AS
 SELECT
     l.location_name AS school_name,
 
     COALESCE(
         (
-            SELECT SUM(it.quantity)
-            FROM "InventoryTransaction" it
+            SELECT SUM(
+                CASE
+                    WHEN it.status = 'Checked Out' THEN it.quantity
+                    WHEN it.status = 'Checked In' THEN -it.quantity
+                END
+            )
+            FROM inventory_transaction it
             WHERE it.for_school = l.location_name
-              AND it.status = 'Checked Out'
         ),
         0
-    ) AS items_checked_out,
+    ) AS items_currently_checked_out,
 
     COALESCE(
         (
-            SELECT SUM(pr.qty_requested)
-            FROM "PurchaseRequest" pr
+            SELECT SUM(pr.quantity_requested)
+            FROM purchase_request pr
             WHERE pr.requesting_for = l.location_name
               AND (
                   pr.ordered = FALSE
@@ -80,44 +85,36 @@ SELECT
     COALESCE(
         (
             SELECT SUM(pr.total_cost)
-            FROM "PurchaseRequest" pr
+            FROM purchase_request pr
             WHERE pr.requesting_for = l.location_name
               AND pr.ordered = TRUE
         ),
         0
-    ) AS total_spent,
-
-    COALESCE(
-        (
-            SELECT SUM(pr.total_cost)
-            FROM "PurchaseRequest" pr
-            WHERE pr.requesting_for = l.location_name
-              AND pr.ordered = FALSE
-        ),
-        0
-    ) AS unordered_cost
-
+    ) AS total_spent
 FROM location l
 ORDER BY l.location_name;
 
 
 -- ============================================================
 -- BudgetPurchases
--- Purchases grouped by budget name and item
+-- Ordered purchases grouped by budget name and item
 -- ============================================================
-CREATE OR REPLACE VIEW "BudgetPurchases" AS
+DROP VIEW IF EXISTS "BudgetPurchases";
+CREATE VIEW "BudgetPurchases" AS
 SELECT
     b.budget_name,
     pr.item_name,
-    SUM(pr.qty_requested) AS total_quantity_ordered,
-    SUM(pr.total_cost) AS total_spent
+    SUM(pr.quantity_requested) AS total_quantity_ordered,
+    SUM(pr.total_cost) AS total_spent,
+    b.remaining_budget
 FROM budget b
-JOIN "PurchaseRequest" pr
-    ON b.budget_id = pr.budget_id
+JOIN purchase_request pr
+    ON b.budget_name = pr.budget_name
 WHERE pr.ordered = TRUE
 GROUP BY
     b.budget_name,
-    pr.item_name
+    pr.item_name,
+    b.remaining_budget
 ORDER BY
     b.budget_name,
     pr.item_name;
@@ -125,123 +122,157 @@ ORDER BY
 
 -- ============================================================
 -- FundingSourceSpending
--- Spending totals by funding source
+-- Ordered quantities and spending by funding source and item
 -- ============================================================
-CREATE OR REPLACE VIEW "FundingSourceSpending" AS
+DROP VIEW IF EXISTS "FundingSourceSpending";
+CREATE VIEW "FundingSourceSpending" AS
 SELECT
-    COALESCE(b.funding_source, 'Unassigned') AS funding_source,
-    SUM(pr.total_cost) AS total_spent,
-    SUM(pr.qty_requested) AS total_quantity_ordered,
-    COUNT(*) AS request_count
-FROM budget b
-JOIN "PurchaseRequest" pr
-    ON b.budget_id = pr.budget_id
+    COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned') AS funding_source,
+    pr.item_name,
+    SUM(pr.quantity_requested) AS total_quantity_ordered,
+    SUM(pr.total_cost) AS total_spent
+FROM purchase_request pr
 WHERE pr.ordered = TRUE
-GROUP BY COALESCE(b.funding_source, 'Unassigned')
-ORDER BY funding_source;
+GROUP BY
+    COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned'),
+    pr.item_name
+ORDER BY
+    funding_source,
+    pr.item_name;
 
 
 -- ============================================================
--- YearlyPurchaseSummary
+-- YearlyPurchase
 -- view purchase request spending by school year
 -- ============================================================
-CREATE OR REPLACE VIEW "YearlyPurchaseSummary" AS
+DROP VIEW IF EXISTS "YearlyPurchaseSummary";
+DROP VIEW IF EXISTS "YearlyPurchase";
+CREATE VIEW "YearlyPurchase" AS
 SELECT
     school_year,
-
-    SUM(total_cost) AS total_requested,
-
     SUM(
         CASE
             WHEN ordered = TRUE THEN total_cost
             ELSE 0
         END
     ) AS total_spent,
-
     SUM(
         CASE
             WHEN ordered = FALSE THEN total_cost
             ELSE 0
         END
-    ) AS unordered_spending
-
-FROM "PurchaseRequest"
+    ) AS pending_spending
+FROM purchase_request
 GROUP BY school_year
 ORDER BY school_year;
 
 
-----Garden Bed Summary----
-
-CREATE OR REPLACE VIEW garden_bed_summary AS
+-- ============================================================
+-- BedPlanting
+-- In-ground and harvested plantings with bed details
+-- ============================================================
+DROP VIEW IF EXISTS "BedSummary";
+DROP VIEW IF EXISTS "BedPlantingSummary";
+DROP VIEW IF EXISTS "BedPlanting";
+CREATE VIEW "BedPlanting" AS
 SELECT
-	g.garden_id,
-	g.garden_name,
-	g.location_name,
-	g.garden_type,
-	g.garden_status,
-	COUNT(gb.bed_id) AS total_beds
-FROM garden as g
-LEFT JOIN garden_beds as gb
-	ON g.garden_name = gb.garden_name
-GROUP BY
-	g.garden_id,
-	g.garden_name,
-	g.location_name,
-	g.garden_type,
-	gb.bed_id,
-	g.garden_status;
+    b.garden_name,
+    b.bed_name,
+    cr.plant_name,
+    cr.quantity,
+    b.condition AS bed_condition,
+    b.is_full,
+    cr.season,
+    cr.status AS rotation_status,
+    cr.sow_date,
+    CASE
+        WHEN cr.sow_date IS NULL OR p.days_to_harvest IS NULL THEN NULL
+        ELSE cr.sow_date + p.days_to_harvest
+    END AS expected_harvest_date,
+    cr.soil_health,
+    cr.notes AS rotation_notes
+FROM garden_bed b
+LEFT JOIN crop_rotation cr
+    ON cr.garden_name = b.garden_name
+   AND cr.bed_name = b.bed_name
+LEFT JOIN plant p
+    ON p.plant_name = cr.plant_name
+WHERE cr.status IN ('In-ground', 'Harvested');
 
-----Active Garden Beds----
 
-CREATE OR REPLACE VIEW active_garden_beds AS
+-- ============================================================
+-- CropCalendar
+-- Scheduled, growing, and completed crop rotations
+-- ============================================================
+DROP VIEW IF EXISTS "CropCalendar";
+CREATE VIEW "CropCalendar" AS
 SELECT
-	bed_id,
-	garden_name,
-	bed_name,
-	bed_type,
-	bed_size,
-	soil_health
-FROM garden_beds
-WHERE active = TRUE;
+    cr.garden_name,
+    cr.bed_name,
+    cr.status AS rotation_status,
+    cr.season,
+    cr.plant_name,
+    cr.quantity,
+    cr.sow_date,
+    CASE
+        WHEN cr.sow_date IS NULL OR p.days_to_harvest IS NULL THEN NULL
+        ELSE cr.sow_date + p.days_to_harvest
+    END AS expected_harvest_date,
+    cr.soil_health,
+    cr.notes
+FROM crop_rotation cr
+JOIN plant p
+    ON p.plant_name = cr.plant_name;
 
-----Crop Rotation Details----
 
-CREATE OR REPLACE VIEW crop_rotation_details AS
+-- ============================================================
+-- GardenAssets
+-- One row per garden bed, irrigation system, or compost unit
+-- ============================================================
+DROP VIEW IF EXISTS "GardenSummary";
+DROP VIEW IF EXISTS "GardenAssets";
+CREATE VIEW "GardenAssets" AS
 SELECT
-	cr.rotation_id,
-	cr.garden_name,
-	cr.bed_name,
-	cr.plant_name,
-	p.plant_type,
-	p.growing_months,
-	p.days_to_harvest,
-	cr.season,
-	cr.planned_planting_date,
-	cr.status
-FROM "CropRotation" AS cr
-JOIN plant as P
-	ON cr.plant_name = p.plant_name;
+    g.garden_name,
+    items.item_type,
+    items.item_name,
+    items.lifecycle_status,
+    items.condition,
+    items.notes
+FROM garden g
+LEFT JOIN LATERAL (
+    SELECT
+        'Garden Bed'::TEXT AS item_type,
+        b.bed_name AS item_name,
+        b.lifecycle_status,
+        b.condition,
+        b.notes
+    FROM garden_bed b
+    WHERE b.garden_name = g.garden_name
 
-----Garden Equipment Status----
-CREATE OR REPLACE VIEW garden_equipment_status AS
-SELECT
-	g.garden_name,
-	'Irrigation' AS equipment_category,
-	i.irrigation_name AS equipment_name,
-	i.irrigation_type AS equipment_type,
-	i.status
-FROM garden as g
-JOIN irrigation_setup AS i
-	ON g.garden_name = i.garden_name
+    UNION ALL
 
-UNION ALL
+    SELECT
+        'Irrigation System'::TEXT AS item_type,
+        i.irrigation_name AS item_name,
+        i.lifecycle_status,
+        i.condition,
+        i.notes
+    FROM irrigation_setup i
+    WHERE i.garden_name = g.garden_name
 
-SELECT
-	g.garden_name,
-	'Composting' AS equipment_category,
-	c.composting_unit_name AS equipment_name,
-	c.composting_type AS equipment_type,
-	c.status
-FROM garden AS g
-JOIN composting_units AS c
-	ON g.garden_name = c.garden_name;
+    UNION ALL
+
+    SELECT
+        'Compost Unit'::TEXT AS item_type,
+        c.unit_name AS item_name,
+        c.lifecycle_status,
+        c.condition,
+        c.notes
+    FROM compost_unit c
+    WHERE c.garden_name = g.garden_name
+) items ON TRUE
+ORDER BY
+    g.garden_name,
+    items.item_type NULLS FIRST,
+    items.item_name;

@@ -2,6 +2,28 @@
 -- Garden Schema
 -- ============================================================
 
+-- ============================================================
+-- CUSTOM
+-- Reusable status types
+-- ============================================================
+CREATE TYPE condition AS ENUM (
+    'Good',
+    'Require Maintenance',
+    'In Maintenance'
+);
+
+CREATE TYPE lifecycle_status AS ENUM (
+    'Active',
+    'Planned',
+    'Inactive'
+);
+
+CREATE TYPE rotation_status AS ENUM (
+    'Planned',
+    'In-ground',
+    'Removed',
+    'Harvested'
+);
 
 -- ============================================================
 -- garden
@@ -11,10 +33,9 @@ CREATE TABLE garden (
     garden_id SERIAL PRIMARY KEY,
     location_name VARCHAR(200) NOT NULL,
     garden_name VARCHAR(200) NOT NULL UNIQUE,
-    garden_type VARCHAR(100),
-    footprint_sq_ft DECIMAL(10,2),
-    garden_status VARCHAR(50),
-    garden_manager VARCHAR(100),
+    lifecycle_status lifecycle_status,
+    condition condition,
+    bed_count nonnegative_count NOT NULL DEFAULT 0,
     notes TEXT,
 
     CONSTRAINT fk_garden_location
@@ -28,14 +49,15 @@ CREATE TABLE garden (
 -- garden_beds
 -- Individual garden beds belonging to a garden
 -- ============================================================
-CREATE TABLE garden_beds (
+CREATE TABLE garden_bed (
     bed_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
     bed_name VARCHAR(100) NOT NULL,
     bed_type VARCHAR(50),
-    bed_size VARCHAR(100),
-    active BOOLEAN NOT NULL DEFAULT TRUE,
-    soil_health VARCHAR(50) DEFAULT 'Good',
+    bed_size_sq_ft DECIMAL(10,2),
+    lifecycle_status lifecycle_status,
+    condition condition,
+    is_full BOOLEAN NOT NULL DEFAULT FALSE,
     notes TEXT,
 
     CONSTRAINT fk_garden
@@ -47,8 +69,6 @@ CREATE TABLE garden_beds (
     CONSTRAINT uq_garden_bed
     UNIQUE (garden_name, bed_name)
 );
-
-
 -- ============================================================
 -- irrigation_setup
 -- Irrigation systems used by each garden
@@ -58,7 +78,8 @@ CREATE TABLE irrigation_setup (
     garden_name VARCHAR(200) NOT NULL,
     irrigation_name VARCHAR(100),
     irrigation_type VARCHAR(100),
-    status VARCHAR(50),
+    lifecycle_status lifecycle_status,
+    condition condition,
     notes TEXT,
 
     CONSTRAINT fk_irrigation_garden
@@ -70,15 +91,16 @@ CREATE TABLE irrigation_setup (
 
 
 -- ============================================================
--- composting_units
+-- compost_unit
 -- Composting units used by each garden
 -- ============================================================
-CREATE TABLE composting_units (
-    composting_unit_id SERIAL PRIMARY KEY,
+CREATE TABLE compost_unit (
+    compost_unit_id SERIAL PRIMARY KEY,
     garden_name VARCHAR(200) NOT NULL,
-    composting_unit_name VARCHAR(100),
-    composting_type VARCHAR(100),
-    status VARCHAR(50),
+    unit_name VARCHAR(100),
+    compost_type VARCHAR(100),
+    lifecycle_status lifecycle_status,
+    condition condition,
     notes TEXT,
 
     CONSTRAINT fk_composting_garden
@@ -97,8 +119,8 @@ CREATE TABLE plant (
     plant_id SERIAL PRIMARY KEY,
     plant_name VARCHAR(100) NOT NULL UNIQUE,
     plant_type VARCHAR(50),
-    growing_months VARCHAR(100),
-    days_to_harvest count,
+    growing_period VARCHAR(100),
+    days_to_harvest nonnegative_count,
     notes TEXT,
 
     CONSTRAINT chk_days_to_harvest
@@ -110,14 +132,16 @@ CREATE TABLE plant (
 -- CropRotation
 -- Planned crops for individual garden beds
 -- ============================================================
-CREATE TABLE "CropRotation" (
+CREATE TABLE crop_rotation (
     rotation_id SERIAL PRIMARY KEY,
+    status rotation_status DEFAULT 'Planned',
     garden_name VARCHAR(200) NOT NULL,
     bed_name VARCHAR(100) NOT NULL,
     plant_name VARCHAR(100) NOT NULL,
+    quantity nonnegative_count CHECK (quantity > 0),
     season VARCHAR(20),
-    planned_planting_date DATE,
-    status VARCHAR(50) DEFAULT 'Planned',
+    sow_date DATE,
+    soil_health VARCHAR(50),
     notes TEXT,
 
     CONSTRAINT fk_rotation_garden
@@ -128,7 +152,7 @@ CREATE TABLE "CropRotation" (
 
     CONSTRAINT fk_rotation_garden_bed
         FOREIGN KEY (garden_name, bed_name)
-        REFERENCES garden_beds(garden_name, bed_name)
+        REFERENCES garden_bed(garden_name, bed_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
@@ -137,4 +161,55 @@ CREATE TABLE "CropRotation" (
         REFERENCES plant(plant_name)
         ON UPDATE CASCADE
 );
+
+
+-- ============================================================
+-- FUNCTIONS AND TRIGGERS
+-- ============================================================
+
+
+-- ============================================================
+-- TRIGGER 1
+-- Keep garden.bed_count in sync with the garden_bed rows
+-- ============================================================
+CREATE OR REPLACE FUNCTION update_garden_bed_count()
+RETURNS TRIGGER AS $$
+DECLARE
+    parent_rows_updated INT;
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE garden
+        SET bed_count = bed_count + 1
+        WHERE garden_name = NEW.garden_name;
+        RETURN NULL;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE garden
+        SET bed_count = bed_count - 1
+        WHERE garden_name = OLD.garden_name;
+        RETURN NULL;
+    ELSIF OLD.garden_name IS DISTINCT FROM NEW.garden_name THEN
+        UPDATE garden
+        SET bed_count = bed_count - 1
+        WHERE garden_name = OLD.garden_name;
+
+        GET DIAGNOSTICS parent_rows_updated = ROW_COUNT;
+
+        -- A missing old parent means its name was changed and cascaded;
+        -- that parent's bed_count already moved with the garden row.
+        IF parent_rows_updated > 0 THEN
+            UPDATE garden
+            SET bed_count = bed_count + 1
+            WHERE garden_name = NEW.garden_name;
+        END IF;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_garden_bed_count
+AFTER INSERT OR UPDATE OF garden_name OR DELETE
+ON garden_bed
+FOR EACH ROW
+EXECUTE FUNCTION update_garden_bed_count();
 

@@ -30,10 +30,11 @@ The current inventory schema focuses on the inventory portion of the project(doe
 ```mermaid
 erDiagram
 
-    BUDGET ||--o{ PURCHASE_REQUEST : funds
+    BUDGET o|--o{ PURCHASE_REQUEST : funds
 
-    LOCATION ||--o{ PURCHASE_REQUEST : requests_for
-    LOCATION ||--o{ INVENTORY_TRANSACTION : distributed_to
+    LOCATION o|--o{ PURCHASE_REQUEST : requests_for
+    LOCATION o|--o{ INVENTORY_TRANSACTION : distributed_to
+    LOCATION ||--o{ GARDEN : has
 
     ITEM ||--o{ PURCHASE_REQUEST : requested_item
     ITEM ||--o| INVENTORY_LIST : tracked_in
@@ -42,11 +43,9 @@ erDiagram
 
     BUDGET {
         int budget_id PK
-        varchar budget_name
+        varchar budget_name UK
         decimal budget_amount
         decimal remaining_budget
-        varchar funding_source
-        varchar school_year
     }
 
     LOCATION {
@@ -56,15 +55,15 @@ erDiagram
 
     ITEM {
         int item_id PK
-        varchar item_name
+        varchar item_name UK
         decimal unit_cost
     }
 
     INVENTORY_LIST {
         int inventory_id PK
-        varchar item_name FK
+        varchar item_name FK, UK
         int cumulative_asset
-        int instock_Total
+        int instock_total
         int reorder_point
     }
 
@@ -72,15 +71,16 @@ erDiagram
         int request_id PK
         varchar requesting_for FK
         varchar item_name FK
-        INT budget_id FK
-        int qty_requested
+        varchar budget_name FK
+        varchar funding_source
+        int quantity_requested
         decimal total_cost
         boolean ordered
     }
 
     INVENTORY_TRANSACTION {
         int transaction_id PK
-        date date
+        date transaction_date
         varchar status
         varchar for_school FK
         varchar item_name FK
@@ -92,62 +92,69 @@ The current garden schema focuses on the garden portion of the project(does not 
 
 ```mermaid
 erDiagram
-    GARDEN ||--o{ GARDEN_BEDS : has
+    LOCATION ||--o{ GARDEN : has
+    GARDEN ||--o{ GARDEN_BED : has
     GARDEN ||--o{ IRRIGATION_SETUP : uses
-    GARDEN ||--o{ COMPOSTING_UNITS : uses
+    GARDEN ||--o{ COMPOST_UNIT : uses
     GARDEN ||--o{ CROP_ROTATION : plans
-    GARDEN_BEDS ||--o{ CROP_ROTATION : schedules
+    GARDEN_BED ||--o{ CROP_ROTATION : schedules
     PLANT ||--o{ CROP_ROTATION : includes
 
+    LOCATION {
+        int location_id PK
+        varchar location_name UK
+    }
 
     GARDEN {
         int garden_id PK
         varchar location_name FK
         varchar garden_name UK
-        decimal footprint_sq_ft
-        varchar garden_status
+        varchar lifecycle_status
+        varchar condition
     }
 
-    GARDEN_BEDS {
+    GARDEN_BED {
         int bed_id PK
         varchar garden_name FK
-        varchar bed_name UK
-        varchar bed_size
-        boolean active
-        varchar soil_health
+        varchar bed_name FK
+        decimal bed_size_sq_ft
+        varchar lifecycle_status
+        varchar condition
     }
 
     IRRIGATION_SETUP {
         int irrigation_id PK
         varchar garden_name FK
-        varcgar irrigation_name
+        varchar irrigation_name
         varchar irrigation_type
-        varchar status
+        varchar lifecycle_status
+        varchar condition
     }
 
-    COMPOSTING_UNITS {
-        int composting_unit_id PK
+    COMPOST_UNIT {
+        int compost_unit_id PK
         varchar garden_name FK
-        varchar composting_name
-        varchar composting_type
-        varchar status
+        varchar unit_name
+        varchar compost_type
+        varchar lifecycle_status
+        varchar condition
     }
 
     PLANT {
         int plant_id PK
         varchar plant_name UK
         varchar plant_type
-        count days_to_harvest
+        int days_to_harvest
     }
 
     CROP_ROTATION {
         int rotation_id PK
-        varchar rotation_name UK
-        varchar garden_name FK
-        varchar bed_name FK
-        varchar plant_name FK
-        date planned_planting_date
         varchar status
+        varchar garden_name FK
+        varchar bed_name
+        varchar plant_name FK
+        int quantity
+        date sow_date
     }
 ```
 
