@@ -17,25 +17,82 @@ CREATE TYPE inventory_transaction_status AS ENUM (
     'Checked Out'
 );
 
+CREATE TYPE condition AS ENUM (
+    'Good',
+    'Require Maintenance',
+    'In Maintenance'
+);
+
+CREATE TYPE lifecycle_status AS ENUM (
+    'Active',
+    'Planned',
+    'Inactive'
+);
+
 
 -- ============================================================
--- location
+-- "l-location"
+-- School/office details and optional garden fields.
 -- ============================================================
-CREATE TABLE location (
+CREATE TABLE "l-location" (
     
     location_id SERIAL PRIMARY KEY,
     location_name VARCHAR(200) NOT NULL UNIQUE,
     contact VARCHAR(100),
     email VARCHAR(200),
-    notes TEXT
+    lifecycle_status lifecycle_status,
+    condition condition,
+    bed_count nonnegative_count,
+    notes TEXT,
+
+    CONSTRAINT chk_location_optional_garden_fields
+        CHECK (
+            bed_count IS NOT NULL
+            OR (
+                lifecycle_status IS NULL
+                AND condition IS NULL
+            )
+        )
 );
 
 
 -- ============================================================
--- budget
+-- "l-group-locations"
+-- Named location group shared by purchase requests and transactions.
+-- ============================================================
+CREATE TABLE "l-group-locations" (
+    location_group_id SERIAL PRIMARY KEY,
+    location_group_name VARCHAR(200) NOT NULL UNIQUE
+);
+
+-- Map each location group to one or more locations.
+CREATE TABLE "l-group-assignment" (
+    group_assignment_id SERIAL PRIMARY KEY,
+    location_group_name VARCHAR(200) NOT NULL,
+    location_name VARCHAR(200) NOT NULL,
+
+    CONSTRAINT fk_group_assignment_group
+        FOREIGN KEY (location_group_name)
+        REFERENCES "l-group-locations"(location_group_name)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_group_assignment
+        FOREIGN KEY (location_name)
+        REFERENCES "l-location"(location_name)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT uq_group_assignment
+        UNIQUE (location_group_name, location_name)
+);
+
+
+-- ============================================================
+-- "i-budget"
 -- One shared amount and remaining balance per budget name.
 -- ============================================================
-CREATE TABLE budget (
+CREATE TABLE "i-budget" (
     
     budget_id SERIAL PRIMARY KEY,
     budget_name VARCHAR(100) NOT NULL UNIQUE,
@@ -46,10 +103,10 @@ CREATE TABLE budget (
 
 
 -- ============================================================
--- item
+-- "i-item"
 -- Item catalog / master item information
 -- ============================================================
-CREATE TABLE item (
+CREATE TABLE "i-item" (
     
     item_id SERIAL PRIMARY KEY,
     item_name VARCHAR(200) NOT NULL UNIQUE,
@@ -62,10 +119,10 @@ CREATE TABLE item (
 
 
 -- ============================================================
--- InventoryList
+-- "i-inventory_list"
 -- Actual items currently tracked in inventory
 -- ============================================================
-CREATE TABLE inventory_list (
+CREATE TABLE "i-inventory_list" (
     
     inventory_id SERIAL PRIMARY KEY,
     item_name VARCHAR(200) NOT NULL UNIQUE,
@@ -79,21 +136,22 @@ CREATE TABLE inventory_list (
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_inventory_item
         FOREIGN KEY (item_name)
-        REFERENCES item(item_name)
+        REFERENCES "i-item"(item_name)
         ON UPDATE RESTRICT
 );
 
 
 -- ============================================================
--- PurchaseRequest
+-- "i-purchase_request"
 -- Purchase requests and their assigned budget
 -- ============================================================
-CREATE TABLE purchase_request (
+CREATE TABLE "i-purchase_request" (
     
     request_id SERIAL PRIMARY KEY,
     request_date DATE,
     requested_by VARCHAR(50) NOT NULL,
-    requesting_for VARCHAR(200),
+    requesting_school VARCHAR(200),
+    requesting_school_group VARCHAR(200),
     item_name VARCHAR(200) NOT NULL,
     quantity_requested nonnegative_count NOT NULL
         CHECK (quantity_requested > 0),
@@ -106,20 +164,30 @@ CREATE TABLE purchase_request (
     school_year VARCHAR(9),
     notes TEXT,
 
-    CONSTRAINT fk_purchase_request_requesting_for
-        FOREIGN KEY (requesting_for)
-        REFERENCES location(location_name)
-        ON UPDATE CASCADE,
+    CONSTRAINT fk_purchase_request_school
+        FOREIGN KEY (requesting_school)
+        REFERENCES "l-location"(location_name)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_purchase_request_school_group
+        FOREIGN KEY (requesting_school_group)
+        REFERENCES "l-group-locations"(location_group_name)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_purchase_request_at_most_one_location_assignment
+        CHECK (requesting_school IS NULL OR requesting_school_group IS NULL),
 
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_purchase_request_item
         FOREIGN KEY (item_name)
-        REFERENCES item(item_name)
+        REFERENCES "i-item"(item_name)
         ON UPDATE RESTRICT,
 
     CONSTRAINT fk_purchase_request_budget
         FOREIGN KEY (budget_name)
-        REFERENCES budget(budget_name)
+        REFERENCES "i-budget"(budget_name)
         ON UPDATE CASCADE,
 
     CONSTRAINT chk_purchase_request_delivered_must_be_ordered
@@ -128,35 +196,41 @@ CREATE TABLE purchase_request (
 
 
 -- ============================================================
--- InventoryTransaction
+-- "i-inventory_transaction"
 -- Records inventory being taken from InventoryList
 -- ============================================================
-CREATE TABLE inventory_transaction (
+CREATE TABLE "i-inventory_transaction" (
     
     transaction_id SERIAL PRIMARY KEY,
-    purchase_request_id INT UNIQUE,
     transaction_date DATE DEFAULT CURRENT_DATE,
     status inventory_transaction_status NOT NULL,
     taken_by VARCHAR(50) NOT NULL,
     for_school VARCHAR(200),
+    for_school_group VARCHAR(200),
     item_name VARCHAR(200) NOT NULL,
     quantity nonnegative_count NOT NULL
         CHECK (quantity > 0),
     notes TEXT,
     CONSTRAINT fk_inventory_transaction_school
         FOREIGN KEY (for_school)
-        REFERENCES location(location_name)
-        ON UPDATE CASCADE,
+        REFERENCES "l-location"(location_name)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_inventory_transaction_school_group
+        FOREIGN KEY (for_school_group)
+        REFERENCES "l-group-locations"(location_group_name)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_inventory_transaction_at_most_one_location_assignment
+        CHECK (for_school IS NULL OR for_school_group IS NULL),
 
     CONSTRAINT fk_inventory_transaction_item
         FOREIGN KEY (item_name)
-        REFERENCES inventory_list(item_name)
-        ON UPDATE RESTRICT,
+        REFERENCES "i-inventory_list"(item_name)
+        ON UPDATE RESTRICT
 
-    CONSTRAINT fk_inventory_transaction_purchase_request
-        FOREIGN KEY (purchase_request_id)
-        REFERENCES purchase_request(request_id)
-        ON DELETE RESTRICT
 );
 
 
@@ -168,7 +242,7 @@ CREATE TABLE inventory_transaction (
 -- ============================================================
 -- TRIGGER 1
 -- PurchaseRequest.total_cost =
--- quantity_requested * item.unit_cost
+-- quantity_requested * "i-item".unit_cost
 -- ============================================================
 CREATE OR REPLACE FUNCTION calculate_purchase_request_total()
 RETURNS TRIGGER AS $$
@@ -178,18 +252,18 @@ BEGIN
 
     SELECT unit_cost
     INTO item_unit_cost
-    FROM item
+    FROM "i-item"
     WHERE item_name = NEW.item_name;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION
-            'Item "%" was not found in item',
+            'Item "%" was not found in "i-item"',
             NEW.item_name;
     END IF;
 
     IF item_unit_cost IS NULL THEN
         RAISE EXCEPTION
-            'Item "%" does not have a unit_cost in item',
+            'Item "%" does not have a unit_cost in "i-item"',
             NEW.item_name;
     END IF;
 
@@ -202,11 +276,11 @@ $$ LANGUAGE plpgsql;
 
 
 DROP TRIGGER IF EXISTS trg_calculate_purchase_request_total
-ON purchase_request;
+ON "i-purchase_request";
 
 CREATE TRIGGER trg_calculate_purchase_request_total
 BEFORE INSERT OR UPDATE OF item_name, quantity_requested, total_cost
-ON purchase_request
+ON "i-purchase_request"
 FOR EACH ROW
 EXECUTE FUNCTION calculate_purchase_request_total();
 
@@ -229,7 +303,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_initialize_remaining_budget
 BEFORE INSERT
-ON budget
+ON "i-budget"
 FOR EACH ROW
 EXECUTE FUNCTION initialize_remaining_budget();
 
@@ -245,13 +319,13 @@ CREATE OR REPLACE FUNCTION recalculate_shared_budget_remaining(
 )
 RETURNS VOID AS $$
 BEGIN
-    UPDATE budget b
+    UPDATE "i-budget" b
     SET remaining_budget =
         b.budget_amount
         - COALESCE(
             (
                 SELECT SUM(pr.total_cost)
-                FROM purchase_request pr
+                FROM "i-purchase_request" pr
                 WHERE pr.budget_name = p_budget_name
                   AND pr.ordered = TRUE
             ),
@@ -286,150 +360,82 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_remaining_budget
 AFTER INSERT OR UPDATE OR DELETE
-ON purchase_request
+ON "i-purchase_request"
 FOR EACH ROW
 EXECUTE FUNCTION update_remaining_budget();
 
 
 -- ============================================================
 -- TRIGGER 4
--- Inventory transactions update stock unless linked to a delivered purchase
+-- Every inventory transaction updates stock independently.
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_inventory_after_transaction()
 RETURNS TRIGGER AS $$
 DECLARE
     available_stock INT;
     inventory_change INT;
-    request_item_name VARCHAR(200);
-    request_quantity INT;
-    request_delivered BOOLEAN;
 BEGIN
-
     IF TG_OP = 'INSERT' THEN
+        inventory_change := CASE
+            WHEN NEW.status = 'Checked Out' THEN -NEW.quantity
+            ELSE NEW.quantity
+        END;
 
-        -- A linked check-in documents a purchase receipt already counted by
-        -- purchase_request.delivered_to_fns, so it must not change stock again.
-        IF NEW.purchase_request_id IS NOT NULL THEN
-            SELECT item_name, quantity_requested, delivered_to_fns
-            INTO request_item_name, request_quantity, request_delivered
-            FROM purchase_request
-            WHERE request_id = NEW.purchase_request_id;
-
-            IF NOT FOUND THEN
-                RAISE EXCEPTION
-                    'Purchase request % does not exist',
-                    NEW.purchase_request_id;
-            END IF;
-
-            IF NOT request_delivered THEN
-                RAISE EXCEPTION
-                    'Purchase request % must be marked delivered before linking a receipt',
-                    NEW.purchase_request_id;
-            END IF;
-
-            IF NEW.status <> 'Checked In'
-               OR NEW.item_name IS DISTINCT FROM request_item_name
-               OR NEW.quantity IS DISTINCT FROM request_quantity THEN
-                RAISE EXCEPTION
-                    'A purchase receipt transaction must be Checked In and match the delivered request item and quantity';
-            END IF;
-
-            RETURN NEW;
-        END IF;
-
-        IF NEW.status = 'Checked Out' THEN
-            inventory_change := -NEW.quantity;
-        ELSE
-            inventory_change := NEW.quantity;
-        END IF;
-
-        SELECT instock_total
-        INTO available_stock
-        FROM inventory_list
-        WHERE item_name = NEW.item_name;
+        SELECT instock_total INTO available_stock
+        FROM "i-inventory_list"
+        WHERE item_name = NEW.item_name
+        FOR UPDATE;
 
         IF NOT FOUND THEN
-            RAISE EXCEPTION
-                'Item "%" is not present in InventoryList',
-                NEW.item_name;
+            RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
         END IF;
-
         IF available_stock + inventory_change < 0 THEN
             RAISE EXCEPTION
                 'Not enough "%" in stock. Available: %, requested: %',
-                NEW.item_name,
-                available_stock,
-                NEW.quantity;
+                NEW.item_name, available_stock, NEW.quantity;
         END IF;
 
-        UPDATE inventory_list
+        UPDATE "i-inventory_list"
         SET instock_total = instock_total + inventory_change
         WHERE item_name = NEW.item_name;
-
         RETURN NEW;
-
 
     ELSIF TG_OP = 'UPDATE' THEN
-
-        IF OLD.purchase_request_id IS NOT NULL THEN
-            IF NEW.purchase_request_id IS DISTINCT FROM OLD.purchase_request_id THEN
-                RAISE EXCEPTION
-                    'A linked purchase receipt cannot be unlinked or reassigned; delete it and create the desired transaction';
-            END IF;
-
-            SELECT item_name, quantity_requested, delivered_to_fns
-            INTO request_item_name, request_quantity, request_delivered
-            FROM purchase_request
-            WHERE request_id = NEW.purchase_request_id;
-
-            IF NOT FOUND THEN
-                RAISE EXCEPTION
-                    'Linked purchase request % no longer exists',
-                    NEW.purchase_request_id;
-            END IF;
-
-            IF NOT request_delivered THEN
-                RAISE EXCEPTION
-                    'Linked purchase request % must remain delivered',
-                    NEW.purchase_request_id;
-            END IF;
-
-            IF NEW.status <> 'Checked In'
-               OR NEW.item_name IS DISTINCT FROM request_item_name
-               OR NEW.quantity IS DISTINCT FROM request_quantity THEN
-                RAISE EXCEPTION
-                    'A linked purchase receipt transaction must remain Checked In and match the delivered request item and quantity';
-            END IF;
-
+        -- Assignment, date, notes, and other descriptive edits do not change stock.
+        IF NEW.item_name IS NOT DISTINCT FROM OLD.item_name
+           AND NEW.status IS NOT DISTINCT FROM OLD.status
+           AND NEW.quantity IS NOT DISTINCT FROM OLD.quantity
+        THEN
             RETURN NEW;
-        ELSIF NEW.purchase_request_id IS NOT NULL THEN
-            RAISE EXCEPTION
-                'Link a purchase request when inserting a receipt transaction; delete and recreate an existing transaction if needed';
         END IF;
 
-        -- Reverse the old transaction
-        IF OLD.status = 'Checked Out' THEN
-            inventory_change := OLD.quantity;
-        ELSE
-            inventory_change := -OLD.quantity;
-        END IF;
+        -- Reverse the old transaction before applying its updated movement.
+        inventory_change := CASE
+            WHEN OLD.status = 'Checked Out' THEN OLD.quantity
+            ELSE -OLD.quantity
+        END;
 
-        UPDATE inventory_list
+        UPDATE "i-inventory_list"
         SET instock_total = instock_total + inventory_change
-        WHERE item_name = OLD.item_name;
+        WHERE item_name = OLD.item_name
+          AND instock_total + inventory_change >= 0;
 
-
-        -- Apply the new transaction
-        IF NEW.status = 'Checked Out' THEN
-            inventory_change := -NEW.quantity;
-        ELSE
-            inventory_change := NEW.quantity;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION
+                'Cannot reverse the previous "%" transaction because the current stock would become negative',
+                OLD.item_name;
         END IF;
+
+        inventory_change := CASE
+            WHEN NEW.status = 'Checked Out' THEN -NEW.quantity
+            ELSE NEW.quantity
+        END;
 
         SELECT instock_total
         INTO available_stock
-        FROM inventory_list
-        WHERE item_name = NEW.item_name;
+        FROM "i-inventory_list"
+        WHERE item_name = NEW.item_name
+        FOR UPDATE;
 
         IF NOT FOUND THEN
             RAISE EXCEPTION
@@ -440,34 +446,32 @@ BEGIN
         IF available_stock + inventory_change < 0 THEN
             RAISE EXCEPTION
                 'Not enough "%" in stock. Available: %, requested: %',
-                NEW.item_name,
-                available_stock,
-                NEW.quantity;
+                NEW.item_name, available_stock, NEW.quantity;
         END IF;
 
-        UPDATE inventory_list
+        UPDATE "i-inventory_list"
         SET instock_total = instock_total + inventory_change
         WHERE item_name = NEW.item_name;
 
         RETURN NEW;
 
-
     ELSIF TG_OP = 'DELETE' THEN
+        inventory_change := CASE
+            WHEN OLD.status = 'Checked Out' THEN OLD.quantity
+            ELSE -OLD.quantity
+        END;
 
-        -- The purchase request owns the stock adjustment for linked receipts.
-        IF OLD.purchase_request_id IS NOT NULL THEN
-            RETURN OLD;
-        END IF;
-
-        IF OLD.status = 'Checked Out' THEN
-            inventory_change := OLD.quantity;
-        ELSE
-            inventory_change := -OLD.quantity;
-        END IF;
-
-        UPDATE inventory_list
+        -- Deleting a check-in removes its stock addition; do not allow stock below zero.
+        UPDATE "i-inventory_list"
         SET instock_total = instock_total + inventory_change
-        WHERE item_name = OLD.item_name;
+        WHERE item_name = OLD.item_name
+          AND instock_total + inventory_change >= 0;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION
+                'Cannot delete the "%" transaction because the current stock would become negative',
+                OLD.item_name;
+        END IF;
 
         RETURN OLD;
 
@@ -478,7 +482,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_inventory_transaction
 BEFORE INSERT OR UPDATE OR DELETE
-ON inventory_transaction
+ON "i-inventory_transaction"
 FOR EACH ROW
 EXECUTE FUNCTION update_inventory_after_transaction();
 
@@ -493,42 +497,19 @@ DECLARE
     inventory_delta INT;
     available_stock INT;
 BEGIN
-    IF TG_OP = 'DELETE' THEN
-        IF EXISTS (
-            SELECT 1
-            FROM inventory_transaction it
-            WHERE it.purchase_request_id = OLD.request_id
-        ) THEN
-            RAISE EXCEPTION
-                'Delete the linked inventory receipt before deleting purchase request %',
-                OLD.request_id;
-        END IF;
-    ELSIF TG_OP = 'UPDATE' THEN
-        IF EXISTS (
-            SELECT 1
-            FROM inventory_transaction it
-            WHERE it.purchase_request_id = OLD.request_id
-        ) AND (
-            NEW.delivered_to_fns IS DISTINCT FROM TRUE
-            OR NEW.item_name IS DISTINCT FROM OLD.item_name
-            OR NEW.quantity_requested IS DISTINCT FROM OLD.quantity_requested
-        ) THEN
-            RAISE EXCEPTION
-                'A purchase request with a linked inventory receipt cannot be undelivered or have its item or quantity changed; delete the receipt record first';
-        END IF;
-    END IF;
-
     IF TG_OP = 'INSERT' THEN
         IF NEW.delivered_to_fns THEN
             inventory_delta := NEW.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM inventory_list WHERE item_name = NEW.item_name;
+            FROM "i-inventory_list"
+            WHERE item_name = NEW.item_name
+            FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in inventory_list', NEW.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
             END IF;
 
-            UPDATE inventory_list
+            UPDATE "i-inventory_list"
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = NEW.item_name;
@@ -538,17 +519,19 @@ BEGIN
         IF OLD.delivered_to_fns THEN
             inventory_delta := -OLD.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM inventory_list WHERE item_name = OLD.item_name;
+            FROM "i-inventory_list"
+            WHERE item_name = OLD.item_name
+            FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in inventory_list', OLD.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', OLD.item_name;
             END IF;
             IF available_stock < -inventory_delta THEN
                 RAISE EXCEPTION 'Cannot remove delivered quantity for "%": only % remain in stock',
                     OLD.item_name, available_stock;
             END IF;
 
-            UPDATE inventory_list
+            UPDATE "i-inventory_list"
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = OLD.item_name;
@@ -561,17 +544,19 @@ BEGIN
             inventory_delta := NEW.quantity_requested - OLD.quantity_requested;
             IF inventory_delta <> 0 THEN
                 SELECT instock_total INTO available_stock
-                FROM inventory_list WHERE item_name = NEW.item_name;
+                FROM "i-inventory_list"
+                WHERE item_name = NEW.item_name
+                FOR UPDATE;
 
                 IF NOT FOUND THEN
-                    RAISE EXCEPTION 'Item "%" is not present in inventory_list', NEW.item_name;
+                    RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
                 END IF;
                 IF inventory_delta < 0 AND available_stock < -inventory_delta THEN
                     RAISE EXCEPTION 'Cannot reduce delivered quantity for "%": only % remain in stock',
                         NEW.item_name, available_stock;
                 END IF;
 
-                UPDATE inventory_list
+                UPDATE "i-inventory_list"
                 SET cumulative_asset = cumulative_asset + inventory_delta,
                     instock_total = instock_total + inventory_delta
                 WHERE item_name = NEW.item_name;
@@ -583,17 +568,19 @@ BEGIN
         IF OLD.delivered_to_fns THEN
             inventory_delta := -OLD.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM inventory_list WHERE item_name = OLD.item_name;
+            FROM "i-inventory_list"
+            WHERE item_name = OLD.item_name
+            FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in inventory_list', OLD.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', OLD.item_name;
             END IF;
             IF available_stock < -inventory_delta THEN
                 RAISE EXCEPTION 'Cannot remove delivered quantity for "%": only % remain in stock',
                     OLD.item_name, available_stock;
             END IF;
 
-            UPDATE inventory_list
+            UPDATE "i-inventory_list"
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = OLD.item_name;
@@ -603,13 +590,15 @@ BEGIN
         IF NEW.delivered_to_fns THEN
             inventory_delta := NEW.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM inventory_list WHERE item_name = NEW.item_name;
+            FROM "i-inventory_list"
+            WHERE item_name = NEW.item_name
+            FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in inventory_list', NEW.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
             END IF;
 
-            UPDATE inventory_list
+            UPDATE "i-inventory_list"
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = NEW.item_name;
@@ -621,11 +610,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_update_inventory_when_received
-ON purchase_request;
+ON "i-purchase_request";
 
 CREATE TRIGGER trg_update_inventory_when_received
 AFTER INSERT OR UPDATE OR DELETE
-ON purchase_request
+ON "i-purchase_request"
 FOR EACH ROW
 EXECUTE FUNCTION update_inventory_when_received();
 
@@ -644,7 +633,7 @@ BEGIN
         - COALESCE(
             (
                 SELECT SUM(pr.total_cost)
-                FROM purchase_request pr
+                FROM "i-purchase_request" pr
                 WHERE pr.budget_name = NEW.budget_name
                   AND pr.ordered = TRUE
             ),
@@ -656,11 +645,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_update_remaining_budget_after_budget_change
-ON budget;
+ON "i-budget";
 
 CREATE TRIGGER trg_update_remaining_budget_after_budget_change
 BEFORE UPDATE OF budget_amount, remaining_budget
-ON budget
+ON "i-budget"
 FOR EACH ROW
 EXECUTE FUNCTION update_remaining_budget_after_budget_change();
 
@@ -672,7 +661,7 @@ EXECUTE FUNCTION update_remaining_budget_after_budget_change();
 CREATE OR REPLACE FUNCTION update_purchase_totals_after_item_cost_change()
 RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE purchase_request
+    UPDATE "i-purchase_request"
     SET total_cost = quantity_requested * NEW.unit_cost
     WHERE item_name = NEW.item_name
       AND ordered = FALSE;
@@ -683,18 +672,18 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_purchase_totals_after_item_cost_change
 AFTER UPDATE OF unit_cost
-ON item
+ON "i-item"
 FOR EACH ROW
 WHEN (OLD.unit_cost IS DISTINCT FROM NEW.unit_cost)
 EXECUTE FUNCTION update_purchase_totals_after_item_cost_change();
 
 
 -- Reconcile any existing balances with the ordered purchase requests.
-UPDATE budget b
+UPDATE "i-budget" b
 SET remaining_budget = b.budget_amount - COALESCE(
     (
         SELECT SUM(pr.total_cost)
-        FROM purchase_request pr
+        FROM "i-purchase_request" pr
         WHERE pr.budget_name = b.budget_name
           AND pr.ordered = TRUE
     ),
@@ -703,9 +692,141 @@ SET remaining_budget = b.budget_amount - COALESCE(
 WHERE b.remaining_budget IS DISTINCT FROM b.budget_amount - COALESCE(
     (
         SELECT SUM(pr.total_cost)
-        FROM purchase_request pr
+        FROM "i-purchase_request" pr
         WHERE pr.budget_name = b.budget_name
           AND pr.ordered = TRUE
     ),
     0
 );
+
+
+-- ============================================================
+-- TRIGGER 8 AND TRIGGER 9
+-- Require purchase requests and inventory transactions to reference
+-- a location group that has at least one assigned location.
+-- Deferred checks allow a group and its location rows to be created
+-- in the same transaction, including when a group name is updated.
+-- ============================================================
+CREATE OR REPLACE FUNCTION ensure_referenced_group_has_locations()
+RETURNS TRIGGER AS $$
+DECLARE
+    group_name_to_check VARCHAR(200);
+BEGIN
+    IF TG_TABLE_NAME = 'i-purchase_request' THEN
+        SELECT requesting_school_group
+        INTO group_name_to_check
+        FROM "i-purchase_request"
+        WHERE request_id = NEW.request_id;
+    ELSIF TG_TABLE_NAME = 'i-inventory_transaction' THEN
+        SELECT for_school_group
+        INTO group_name_to_check
+        FROM "i-inventory_transaction"
+        WHERE transaction_id = NEW.transaction_id;
+    ELSE
+        RAISE EXCEPTION 'Unsupported table for location group validation: %', TG_TABLE_NAME;
+    END IF;
+
+    -- The row may have been deleted or reassigned later in the same transaction.
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+
+    -- A null group name means the row uses its direct location foreign key.
+    IF group_name_to_check IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    PERFORM 1
+    FROM "l-group-locations"
+    WHERE location_group_name = group_name_to_check
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Location group "%" does not exist', group_name_to_check;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM "l-group-assignment"
+        WHERE location_group_name = group_name_to_check
+    ) THEN
+        RAISE EXCEPTION
+            'Location group "%" has no assigned locations',
+            group_name_to_check;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- TRIGGER 8: validate a purchase request's group after all transaction changes.
+CREATE CONSTRAINT TRIGGER trg_require_purchase_request_group_locations
+AFTER INSERT OR UPDATE
+ON "i-purchase_request"
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW
+EXECUTE FUNCTION ensure_referenced_group_has_locations();
+
+-- TRIGGER 9: validate an inventory transaction's group after all transaction changes.
+CREATE CONSTRAINT TRIGGER trg_require_inventory_transaction_group_locations
+AFTER INSERT OR UPDATE
+ON "i-inventory_transaction"
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW
+EXECUTE FUNCTION ensure_referenced_group_has_locations();
+
+
+-- ============================================================
+-- TRIGGER 10
+-- Keep a referenced location group from losing its final location.
+-- The deferred check permits replacing or moving members within one transaction.
+-- ============================================================
+CREATE OR REPLACE FUNCTION prevent_emptying_referenced_location_group()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- A parent group rename cascades its name to this table; the membership
+    -- remains attached to the renamed group, so there is nothing to remove.
+    PERFORM 1
+    FROM "l-group-locations"
+    WHERE location_group_name = OLD.location_group_name
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN NULL;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM "l-group-assignment"
+        WHERE location_group_name = OLD.location_group_name
+    ) THEN
+        RETURN NULL;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM "i-purchase_request"
+        WHERE requesting_school_group = OLD.location_group_name
+    ) OR EXISTS (
+        SELECT 1
+        FROM "i-inventory_transaction"
+        WHERE for_school_group = OLD.location_group_name
+    ) THEN
+        RAISE EXCEPTION
+            'Cannot remove the final location from referenced group "%"',
+            OLD.location_group_name;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- TRIGGER 10: prevent a used group from becoming unassigned.
+CREATE CONSTRAINT TRIGGER trg_prevent_emptying_referenced_location_group
+AFTER DELETE OR UPDATE
+ON "l-group-assignment"
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW
+EXECUTE FUNCTION prevent_emptying_referenced_location_group();

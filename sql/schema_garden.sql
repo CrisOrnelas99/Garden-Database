@@ -6,18 +6,6 @@
 -- CUSTOM
 -- Reusable status types
 -- ============================================================
-CREATE TYPE condition AS ENUM (
-    'Good',
-    'Require Maintenance',
-    'In Maintenance'
-);
-
-CREATE TYPE lifecycle_status AS ENUM (
-    'Active',
-    'Planned',
-    'Inactive'
-);
-
 CREATE TYPE rotation_status AS ENUM (
     'Planned',
     'In-ground',
@@ -32,32 +20,12 @@ CREATE TYPE soil_health_status AS ENUM (
 );
 
 -- ============================================================
--- garden
--- Garden information for each location
+-- "g-garden_bed"
+-- Individual garden beds belonging to a location's optional garden
 -- ============================================================
-CREATE TABLE garden (
-    garden_id SERIAL PRIMARY KEY,
-    location_name VARCHAR(200) NOT NULL,
-    garden_name VARCHAR(200) NOT NULL UNIQUE,
-    lifecycle_status lifecycle_status,
-    condition condition,
-    bed_count nonnegative_count NOT NULL DEFAULT 0,
-    notes TEXT,
-
-    CONSTRAINT fk_garden_location
-        FOREIGN KEY (location_name)
-        REFERENCES location(location_name)
-        ON UPDATE CASCADE
-);
-
-
--- ============================================================
--- garden_beds
--- Individual garden beds belonging to a garden
--- ============================================================
-CREATE TABLE garden_bed (
+CREATE TABLE "g-garden_bed" (
     bed_id SERIAL PRIMARY KEY,
-    garden_name VARCHAR(200) NOT NULL,
+    location_name VARCHAR(200) NOT NULL,
     bed_name VARCHAR(100) NOT NULL,
     bed_type VARCHAR(50),
     bed_size_sq_ft DECIMAL(10,2),
@@ -66,31 +34,33 @@ CREATE TABLE garden_bed (
     is_full BOOLEAN NOT NULL DEFAULT FALSE,
     notes TEXT,
 
-    CONSTRAINT fk_garden
-        FOREIGN KEY (garden_name)
-        REFERENCES garden(garden_name)
+    CONSTRAINT fk_g_garden_bed_location
+        FOREIGN KEY (location_name)
+        REFERENCES "l-location"(location_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    CONSTRAINT uq_garden_bed
-    UNIQUE (garden_name, bed_name)
+    CONSTRAINT uq_g_garden_bed
+    UNIQUE (location_name, bed_name)
 );
+
+
 -- ============================================================
 -- irrigation_setup
--- Irrigation systems used by each garden
+-- Irrigation systems used by each location's garden
 -- ============================================================
-CREATE TABLE irrigation_setup (
+CREATE TABLE "g-irrigation_setup" (
     irrigation_id SERIAL PRIMARY KEY,
-    garden_name VARCHAR(200) NOT NULL,
+    location_name VARCHAR(200) NOT NULL,
     irrigation_name VARCHAR(100),
     irrigation_type VARCHAR(100),
     lifecycle_status lifecycle_status,
     condition condition,
     notes TEXT,
 
-    CONSTRAINT fk_irrigation_garden
-        FOREIGN KEY (garden_name)
-        REFERENCES garden(garden_name)
+    CONSTRAINT fk_irrigation_location
+        FOREIGN KEY (location_name)
+        REFERENCES "l-location"(location_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
@@ -98,20 +68,20 @@ CREATE TABLE irrigation_setup (
 
 -- ============================================================
 -- compost_unit
--- Composting units used by each garden
+-- Composting units used by each location's garden
 -- ============================================================
-CREATE TABLE compost_unit (
+CREATE TABLE "g-compost_unit" (
     compost_unit_id SERIAL PRIMARY KEY,
-    garden_name VARCHAR(200) NOT NULL,
+    location_name VARCHAR(200) NOT NULL,
     unit_name VARCHAR(100),
     compost_type VARCHAR(100),
     lifecycle_status lifecycle_status,
     condition condition,
     notes TEXT,
 
-    CONSTRAINT fk_composting_garden
-        FOREIGN KEY (garden_name)
-        REFERENCES garden(garden_name)
+    CONSTRAINT fk_compost_location
+        FOREIGN KEY (location_name)
+        REFERENCES "l-location"(location_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
@@ -121,7 +91,7 @@ CREATE TABLE compost_unit (
 -- plant
 -- Plant catalog / master plant information
 -- ============================================================
-CREATE TABLE plant (
+CREATE TABLE "g-plant" (
     plant_id SERIAL PRIMARY KEY,
     plant_name VARCHAR(100) NOT NULL UNIQUE,
     plant_type VARCHAR(50),
@@ -138,10 +108,10 @@ CREATE TABLE plant (
 -- CropRotation
 -- Planned crops for individual garden beds
 -- ============================================================
-CREATE TABLE crop_rotation (
+CREATE TABLE "g-crop_rotation" (
     rotation_id SERIAL PRIMARY KEY,
     status rotation_status DEFAULT 'Planned',
-    garden_name VARCHAR(200) NOT NULL,
+    location_name VARCHAR(200) NOT NULL,
     bed_name VARCHAR(100) NOT NULL,
     plant_name VARCHAR(100) NOT NULL,
     quantity nonnegative_count CHECK (quantity > 0),
@@ -150,21 +120,21 @@ CREATE TABLE crop_rotation (
     soil_health soil_health_status,
     notes TEXT,
 
-    CONSTRAINT fk_rotation_garden
-        FOREIGN KEY (garden_name)
-        REFERENCES garden(garden_name)
+    CONSTRAINT fk_rotation_location
+        FOREIGN KEY (location_name)
+        REFERENCES "l-location"(location_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_rotation_garden_bed
-        FOREIGN KEY (garden_name, bed_name)
-        REFERENCES garden_bed(garden_name, bed_name)
+    CONSTRAINT fk_rotation_g_garden_bed
+        FOREIGN KEY (location_name, bed_name)
+        REFERENCES "g-garden_bed"(location_name, bed_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
     CONSTRAINT fk_rotation_plant
         FOREIGN KEY (plant_name)
-        REFERENCES plant(plant_name)
+        REFERENCES "g-plant"(plant_name)
         ON UPDATE CASCADE
 );
 
@@ -176,52 +146,71 @@ CREATE TABLE crop_rotation (
 
 -- ============================================================
 -- TRIGGER 1
--- Keep garden.bed_count derived from the garden_bed rows
+-- Keep location.bed_count derived from its "g-garden_bed" rows
 -- ============================================================
 CREATE OR REPLACE FUNCTION protect_garden_bed_count()
 RETURNS TRIGGER AS $$
 DECLARE
-    count_for_garden VARCHAR(200);
+    count_for_location VARCHAR(200);
+    location_to_check VARCHAR(200);
 BEGIN
-    IF TG_OP = 'INSERT' THEN
-        count_for_garden := NEW.garden_name;
-    ELSIF pg_trigger_depth() = 1
-          AND NEW.bed_count IS DISTINCT FROM OLD.bed_count THEN
-        -- When the garden is renamed in the same update, beds still have the
-        -- old name until the foreign-key cascade runs.
-        count_for_garden := CASE
-            WHEN NEW.garden_name IS DISTINCT FROM OLD.garden_name
-                THEN OLD.garden_name
-            ELSE NEW.garden_name
-        END;
+    IF TG_OP = 'UPDATE' THEN
+        location_to_check := OLD.location_name;
     ELSE
+        location_to_check := NEW.location_name;
+    END IF;
+
+    IF NEW.bed_count IS NULL
+       AND NEW.lifecycle_status IS NULL
+       AND NEW.condition IS NULL
+    THEN
+        IF EXISTS (
+            SELECT 1 FROM "g-garden_bed" WHERE location_name = location_to_check
+            UNION ALL
+            SELECT 1 FROM "g-irrigation_setup" WHERE location_name = location_to_check
+            UNION ALL
+            SELECT 1 FROM "g-compost_unit" WHERE location_name = location_to_check
+        ) THEN
+            RAISE EXCEPTION
+                'Cannot clear garden details for location "%" while garden assets still reference it',
+                location_to_check;
+        END IF;
+
+        NEW.bed_count := NULL;
         RETURN NEW;
+    END IF;
+
+    IF TG_OP = 'UPDATE'
+       AND NEW.location_name IS DISTINCT FROM OLD.location_name THEN
+        -- Child rows still use the old location name until their foreign keys cascade.
+        count_for_location := OLD.location_name;
+    ELSE
+        count_for_location := NEW.location_name;
     END IF;
 
     SELECT COUNT(*)::INT
     INTO NEW.bed_count
-    FROM garden_bed
-    WHERE garden_name = count_for_garden;
+    FROM "g-garden_bed"
+    WHERE location_name = count_for_location;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 
--- Reapply this protection when the garden row is inserted or bed_count changes.
 DROP TRIGGER IF EXISTS trg_protect_garden_bed_count
-ON garden;
+ON "l-location";
 
 CREATE TRIGGER trg_protect_garden_bed_count
-BEFORE INSERT OR UPDATE OF bed_count
-ON garden
+BEFORE INSERT OR UPDATE OF location_name, lifecycle_status, condition, bed_count
+ON "l-location"
 FOR EACH ROW
 EXECUTE FUNCTION protect_garden_bed_count();
 
 
 -- ============================================================
 -- TRIGGER 2
--- Keep garden.bed_count in sync with the garden_bed rows
+-- Keep location.bed_count in sync with the "g-garden_bed" rows
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_garden_bed_count()
 RETURNS TRIGGER AS $$
@@ -229,28 +218,28 @@ DECLARE
     parent_rows_updated INT;
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        UPDATE garden
+        UPDATE "l-location"
         SET bed_count = bed_count + 1
-        WHERE garden_name = NEW.garden_name;
+        WHERE location_name = NEW.location_name;
         RETURN NULL;
     ELSIF TG_OP = 'DELETE' THEN
-        UPDATE garden
+        UPDATE "l-location"
         SET bed_count = bed_count - 1
-        WHERE garden_name = OLD.garden_name;
+        WHERE location_name = OLD.location_name;
         RETURN NULL;
-    ELSIF OLD.garden_name IS DISTINCT FROM NEW.garden_name THEN
-        UPDATE garden
+    ELSIF OLD.location_name IS DISTINCT FROM NEW.location_name THEN
+        UPDATE "l-location"
         SET bed_count = bed_count - 1
-        WHERE garden_name = OLD.garden_name;
+        WHERE location_name = OLD.location_name;
 
         GET DIAGNOSTICS parent_rows_updated = ROW_COUNT;
 
-        -- A missing old parent means its name was changed and cascaded;
-        -- that parent's bed_count already moved with the garden row.
+        -- A missing old parent means its garden name was changed and cascaded;
+        -- its bed_count already reflects the existing beds.
         IF parent_rows_updated > 0 THEN
-            UPDATE garden
+            UPDATE "l-location"
             SET bed_count = bed_count + 1
-            WHERE garden_name = NEW.garden_name;
+            WHERE location_name = NEW.location_name;
         END IF;
     END IF;
 
@@ -259,8 +248,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_garden_bed_count
-AFTER INSERT OR UPDATE OF garden_name OR DELETE
-ON garden_bed
+AFTER INSERT OR UPDATE OF location_name OR DELETE
+ON "g-garden_bed"
 FOR EACH ROW
 EXECUTE FUNCTION update_garden_bed_count();
 
@@ -283,21 +272,73 @@ $$ LANGUAGE plpgsql;
 
 -- Also clear soil health if a crop rotation is inserted as Removed.
 CREATE TRIGGER trg_clear_removed_crop_soil_status
-BEFORE INSERT OR UPDATE ON crop_rotation
+BEFORE INSERT OR UPDATE ON "g-crop_rotation"
 FOR EACH ROW
 EXECUTE FUNCTION clear_removed_crop_soil_status();
 
 
--- Reconcile any existing counts with the actual garden_bed rows.
-UPDATE garden g
+-- ============================================================
+-- TRIGGER 4
+-- Require garden-enabled locations for beds, irrigation, compost, and rotations
+-- ============================================================
+CREATE OR REPLACE FUNCTION require_location_garden()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM "l-location" l
+        WHERE l.location_name = NEW.location_name
+          AND l.bed_count IS NOT NULL
+    ) THEN
+        RAISE EXCEPTION
+            'Location "%" does not have garden details',
+            NEW.location_name;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Require an existing garden-enabled location for each bed.
+CREATE TRIGGER trg_require_garden_for_bed
+BEFORE INSERT OR UPDATE OF location_name
+ON "g-garden_bed"
+FOR EACH ROW
+EXECUTE FUNCTION require_location_garden();
+
+-- Require an existing garden-enabled location for each irrigation setup.
+CREATE TRIGGER trg_require_garden_for_irrigation
+BEFORE INSERT OR UPDATE OF location_name
+ON "g-irrigation_setup"
+FOR EACH ROW
+EXECUTE FUNCTION require_location_garden();
+
+-- Require an existing garden-enabled location for each compost unit.
+CREATE TRIGGER trg_require_garden_for_compost
+BEFORE INSERT OR UPDATE OF location_name
+ON "g-compost_unit"
+FOR EACH ROW
+EXECUTE FUNCTION require_location_garden();
+
+-- Require an existing garden-enabled location for each crop rotation.
+CREATE TRIGGER trg_require_garden_for_rotation
+BEFORE INSERT OR UPDATE OF location_name
+ON "g-crop_rotation"
+FOR EACH ROW
+EXECUTE FUNCTION require_location_garden();
+
+
+-- Reconcile any existing counts with the actual "g-garden_bed" rows.
+UPDATE "l-location" l
 SET bed_count = (
     SELECT COUNT(*)::INT
-    FROM garden_bed b
-    WHERE b.garden_name = g.garden_name
+    FROM "g-garden_bed" b
+    WHERE b.location_name = l.location_name
 )
-WHERE g.bed_count IS DISTINCT FROM (
-    SELECT COUNT(*)::INT
-    FROM garden_bed b
-    WHERE b.garden_name = g.garden_name
-);
-
+WHERE l.bed_count IS NOT NULL
+  AND l.bed_count IS DISTINCT FROM (
+      SELECT COUNT(*)::INT
+      FROM "g-garden_bed" b
+      WHERE b.location_name = l.location_name
+  );

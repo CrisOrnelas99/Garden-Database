@@ -4,18 +4,19 @@
 
 -- Optional rollback
 -- TRUNCATE TABLE
---     inventory_transaction,
---     purchase_request,
---     inventory_list,
---     item,
---     budget,
---     crop_rotation,
---     garden_bed,
---     irrigation_setup,
---     compost_unit,
---     plant,
---     garden,
---     location
+--     "i-inventory_transaction",
+--     "i-purchase_request",
+--     "l-group-assignment",
+--     "l-group-locations",
+--     "i-inventory_list",
+--     "i-item",
+--     "i-budget",
+--     "g-crop_rotation",
+--     "g-garden_bed",
+--     "g-irrigation_setup",
+--     "g-compost_unit",
+--     "g-plant",
+--     "l-location"
 -- RESTART IDENTITY CASCADE;
 
 
@@ -23,37 +24,81 @@
 -- LOCATIONS
 -- ============================================================
 
-INSERT INTO location
+INSERT INTO "l-location"
     (
         location_name,
         contact,
         email,
+        lifecycle_status,
+        condition,
+        bed_count,
         notes
     )
 VALUES
-    ('Hogwarts', 'Alice Morgan', 'alice@hogwarts.edu', 'School garden for Hogwarts Herbology classes'),
-    ('Sunshine Elementary', 'Brian Lee', 'brian@sunshine.edu', 'Demo school garden'),
-    ('Green Valley Middle School', 'Carla Davis', 'carla@greenvalley.edu', 'Demo school garden'),
-    ('Oakwood High School', 'Daniel Smith', 'daniel@oakwood.edu', 'Demo school garden'),
-    ('Riverbend Academy', 'Emily Brown', 'emily@riverbend.edu', 'Demo school garden'),
-    ('HLC Office', 'Frank Wilson', 'frank@hlc.org', 'Central program office'),
-    ('Maple Grove School', 'Grace Taylor', 'grace@maplegrove.edu', 'Demo school garden'),
-    ('Pinecrest Elementary', 'Henry Moore', 'henry@pinecrest.edu', 'Demo school garden'),
-    ('Lakeside Middle School', 'Isabella Clark', 'isabella@lakeside.edu', 'Demo school garden'),
-    ('Cedar Ridge School', 'James Hall', 'james@cedarridge.edu', 'Demo school garden'),
-    ('Meadowbrook Academy', 'Karen Allen', 'karen@meadowbrook.edu', 'Demo school garden'),
-    ('Willow Creek School', 'Liam Young', 'liam@willowcreek.edu', 'Demo school garden'),
-    ('Northside Community School', 'Mia King', 'mia@northside.edu', 'Demo school garden'),
-    ('Eastview Academy', 'Noah Wright', 'noah@eastview.edu', 'Demo school garden'),
-    ('Westfield School', 'Olivia Scott', 'olivia@westfield.edu', 'Demo school garden'),
-    ('Brookside School', 'Paula Green', 'paula@brookside.edu', 'School with no garden yet');
+    ('Hogwarts', 'Alice Morgan', 'alice@hogwarts.edu', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1200 sq ft; Manager: Alice Morgan. Herbology lessons with Professor Sprout; greenhouse seedlings start here before moving outdoors.'),
+    ('Sunshine Elementary', 'Brian Lee', 'brian@sunshine.edu', 'Active', 'Good', 0, 'Type: Educational Garden; Footprint: 900 sq ft; Manager: Brian Lee. Used for elementary science activities.'),
+    ('Green Valley Middle School', 'Carla Davis', 'carla@greenvalley.edu', 'Active', 'Good', 0, 'Type: Hydroponic Garden; Footprint: 650 sq ft; Manager: Carla Davis. Indoor hydroponic growing system.'),
+    ('Oakwood High School', 'Daniel Smith', 'daniel@oakwood.edu', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1800 sq ft; Manager: Daniel Smith. Large outdoor teaching garden.'),
+    ('Riverbend Academy', 'Emily Brown', 'emily@riverbend.edu', 'Active', 'Good', 0, 'Type: Pollinator Garden; Footprint: 1100 sq ft; Manager: Emily Brown. Supports pollinators and native plants.'),
+    ('HLC Office', 'Frank Wilson', 'frank@hlc.org', NULL, NULL, NULL, 'Central program office; no garden or garden assets are currently tracked.'),
+    ('Maple Grove School', 'Grace Taylor', 'grace@maplegrove.edu', 'Active', 'Good', 0, 'Type: Vegetable Garden; Footprint: 1400 sq ft; Manager: Grace Taylor. Seasonal vegetable production.'),
+    ('Pinecrest Elementary', 'Henry Moore', 'henry@pinecrest.edu', 'Active', 'Good', 0, 'Type: Raised Bed Garden; Footprint: 800 sq ft; Manager: Henry Moore. Raised beds for younger students.'),
+    ('Lakeside Middle School', 'Isabella Clark', 'isabella@lakeside.edu', 'Active', 'Good', 0, 'Type: Food Garden; Footprint: 1600 sq ft; Manager: Isabella Clark. Produces vegetables for school activities.'),
+    ('Cedar Ridge School', 'James Hall', 'james@cedarridge.edu', 'Active', 'Require Maintenance', 0, 'Type: Herb Garden; Footprint: 700 sq ft; Manager: James Hall. Several beds need soil improvement.'),
+    ('Meadowbrook Academy', 'Karen Allen', 'karen@meadowbrook.edu', 'Active', 'Good', 0, 'Type: Sustainable Garden; Footprint: 1300 sq ft; Manager: Karen Allen. Uses composting and soil-building practices.'),
+    ('Willow Creek School', 'Liam Young', 'liam@willowcreek.edu', 'Active', 'Good', 0, 'Type: Demonstration Garden; Footprint: 1000 sq ft; Manager: Liam Young. Demonstrates irrigation methods.'),
+    ('Northside Community School', 'Mia King', 'mia@northside.edu', 'Active', 'Good', 0, 'Type: Community Garden; Footprint: 2200 sq ft; Manager: Mia King. Shared garden maintained by students and volunteers.'),
+    ('Eastview Academy', 'Noah Wright', 'noah@eastview.edu', 'Active', 'Good', 0, 'Type: Native Plant Garden; Footprint: 1500 sq ft; Manager: Noah Wright. Primarily active during spring and summer.'),
+    ('Westfield School', 'Olivia Scott', 'olivia@westfield.edu', 'Active', 'Good', 0, 'Type: Greenhouse Garden; Footprint: 950 sq ft; Manager: Olivia Scott. Protected growing space for seedlings.'),
+    ('Brookside School', 'Paula Green', 'paula@brookside.edu', NULL, NULL, NULL, 'School with no garden yet');
+
+
+-- ============================================================
+-- LOCATION GROUPS
+-- Named groups can be attached to requests and transactions.
+-- Includes groups for two schools, three schools, and every location.
+-- ============================================================
+
+INSERT INTO "l-group-locations" (location_group_name)
+VALUES
+    ('SchoolBandC'),
+    ('Triwizard Greenhouse Team'),
+    ('All Locations');
+
+INSERT INTO "l-group-assignment"
+    (
+        location_group_name,
+        location_name
+    )
+VALUES
+    ('SchoolBandC', 'Sunshine Elementary'),
+    ('SchoolBandC', 'Green Valley Middle School'),
+    ('Triwizard Greenhouse Team', 'Hogwarts'),
+    ('Triwizard Greenhouse Team', 'Sunshine Elementary'),
+    ('Triwizard Greenhouse Team', 'Green Valley Middle School'),
+    ('All Locations', 'Hogwarts'),
+    ('All Locations', 'Sunshine Elementary'),
+    ('All Locations', 'Green Valley Middle School'),
+    ('All Locations', 'Oakwood High School'),
+    ('All Locations', 'Riverbend Academy'),
+    ('All Locations', 'HLC Office'),
+    ('All Locations', 'Maple Grove School'),
+    ('All Locations', 'Pinecrest Elementary'),
+    ('All Locations', 'Lakeside Middle School'),
+    ('All Locations', 'Cedar Ridge School'),
+    ('All Locations', 'Meadowbrook Academy'),
+    ('All Locations', 'Willow Creek School'),
+    ('All Locations', 'Northside Community School'),
+    ('All Locations', 'Eastview Academy'),
+    ('All Locations', 'Westfield School'),
+    ('All Locations', 'Brookside School');
 
 
 -- ============================================================
 -- BUDGETS
 -- ============================================================
 
-INSERT INTO budget
+INSERT INTO "i-budget"
     (
         budget_name,
         budget_amount,
@@ -73,7 +118,7 @@ VALUES
 -- ITEMS
 -- ============================================================
 
-INSERT INTO item
+INSERT INTO "i-item"
     (
         item_name,
         category,
@@ -104,7 +149,7 @@ VALUES
 -- INVENTORY LIST
 -- ============================================================
 
-INSERT INTO inventory_list
+INSERT INTO "i-inventory_list"
     (
         item_name,
         cumulative_asset,
@@ -136,11 +181,11 @@ VALUES
 -- PURCHASE REQUESTS
 -- ============================================================
 
-INSERT INTO purchase_request
+INSERT INTO "i-purchase_request"
     (
         request_date,
         requested_by,
-        requesting_for,
+        requesting_school,
         item_name,
         quantity_requested,
         delivered_to_fns,
@@ -261,12 +306,81 @@ VALUES
         '2027-2028', 'First purchase for a school that is preparing to start a garden'
     );
 
+-- Single-location requests use requesting_school directly. Multi-location
+-- requests use requesting_school_group and leave requesting_school NULL.
+UPDATE "i-purchase_request"
+SET requesting_school = 'Hogwarts',
+    requesting_school_group = NULL
+WHERE request_date IN ('2026-08-15', '2026-08-20', '2026-08-30', '2027-08-15');
+
+UPDATE "i-purchase_request"
+SET requesting_school = NULL,
+    requesting_school_group = 'SchoolBandC'
+WHERE request_date IN ('2026-08-16', '2026-08-21');
+
+UPDATE "i-purchase_request"
+SET requesting_school = NULL,
+    requesting_school_group = 'Triwizard Greenhouse Team'
+WHERE request_date = '2026-08-17';
+
+UPDATE "i-purchase_request"
+SET requesting_school = 'Brookside School',
+    requesting_school_group = NULL
+WHERE request_date = '2027-08-12';
+
+-- The central partner office can order items without having a garden.
+INSERT INTO "i-purchase_request"
+    (
+        request_date,
+        requested_by,
+        requesting_school,
+        item_name,
+        quantity_requested,
+        delivered_to_fns,
+        review_status,
+        ordered,
+        budget_name,
+        funding_source,
+        school_year,
+        notes
+    )
+VALUES
+    (
+        '2026-09-02', 'Frank Wilson', 'HLC Office',
+        'Knee Pads', 2, FALSE, 'Approved', TRUE,
+        'Community Donation', NULL,
+        '2026-2027', 'Protective gear ordered for central program staff'
+    );
+
+-- A bulk request assigned to all 16 locations, including locations without gardens.
+INSERT INTO "i-purchase_request"
+    (
+        request_date,
+        requested_by,
+        requesting_school_group,
+        item_name,
+        quantity_requested,
+        delivered_to_fns,
+        review_status,
+        ordered,
+        budget_name,
+        funding_source,
+        school_year,
+        notes
+    )
+VALUES
+    (
+        '2026-09-04', 'Frank Wilson', 'All Locations',
+        'Garden Gloves', 32, FALSE, 'Approved', TRUE,
+        'Garden Supplies', 'SHCF_26-27_#9556',
+        '2026-2027', 'Bulk glove order for all program locations; quantities are not split by location'
+    );
 
 -- ============================================================
 -- INVENTORY TRANSACTIONS
 -- ============================================================
 
-INSERT INTO inventory_transaction
+INSERT INTO "i-inventory_transaction"
     (
         transaction_date,
         status,
@@ -294,6 +408,76 @@ VALUES
     ('2026-10-02', 'Checked Out', 'Mia King', 'Northside Community School', 'Knee Pads', 2, 'Volunteer safety equipment'),
     ('2026-10-04', 'Checked In', 'Alice Morgan', 'Hogwarts', 'Garden Gloves', 2, 'Clean gloves returned after Herbology class');
 
+-- Assign selected transactions to named groups. The SchoolBandC movements
+-- represent shared activity; their quantities are not split between schools.
+UPDATE "i-inventory_transaction"
+SET for_school = 'Hogwarts',
+    for_school_group = NULL
+WHERE transaction_date IN ('2026-09-01', '2026-10-04');
+
+UPDATE "i-inventory_transaction"
+SET for_school = NULL,
+    for_school_group = 'SchoolBandC'
+WHERE transaction_date IN ('2026-09-03', '2026-09-15');
+
+UPDATE "i-inventory_transaction"
+SET for_school = NULL,
+    for_school_group = 'Triwizard Greenhouse Team'
+WHERE transaction_date = '2026-09-05';
+
+INSERT INTO "i-inventory_transaction"
+    (
+        transaction_date,
+        status,
+        taken_by,
+        for_school,
+        item_name,
+        quantity,
+        notes
+    )
+VALUES
+    (
+        '2026-10-06', 'Checked Out', 'Frank Wilson', 'HLC Office',
+        'Knee Pads', 1, 'Protective gear checked out for the central program office'
+    );
+
+INSERT INTO "i-inventory_transaction"
+    (
+        transaction_date,
+        status,
+        taken_by,
+        for_school_group,
+        item_name,
+        quantity,
+        notes
+    )
+VALUES
+    (
+        '2026-10-08', 'Checked Out', 'Frank Wilson', 'All Locations',
+        'Garden Gloves', 8, 'Bulk gloves checked out for distribution across all program locations'
+    );
+
+-- Fail the demo load if any record has neither assignment path or both paths.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "i-purchase_request"
+        WHERE (requesting_school IS NOT NULL) = (requesting_school_group IS NOT NULL)
+    ) THEN
+        RAISE EXCEPTION 'Demo purchase request must have exactly one location assignment';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM "i-inventory_transaction"
+        WHERE (for_school IS NOT NULL) = (for_school_group IS NOT NULL)
+    ) THEN
+        RAISE EXCEPTION 'Demo inventory transaction must have exactly one location assignment';
+    END IF;
+END;
+$$;
+
 
 -- ============================================================
 -- GARDEN DATA POPULATION
@@ -301,44 +485,12 @@ VALUES
 
 
 -- ============================================================
--- GARDENS
--- ============================================================
-
-INSERT INTO garden
-    (
-        location_name,
-        garden_name,
-        lifecycle_status,
-        condition,
-        bed_count,
-        notes
-    )
-VALUES
-    ('Hogwarts', 'Hogwarts Herb Garden', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1200 sq ft; Manager: Alice Morgan. Herbology lessons with Professor Sprout'),
-    ('Sunshine Elementary', 'Sunshine Learning Garden', 'Active', 'Good', 0, 'Type: Educational Garden; Footprint: 900 sq ft; Manager: Brian Lee. Used for elementary science activities'),
-    ('Green Valley Middle School', 'Green Valley Hydroponics', 'Active', 'Good', 0, 'Type: Hydroponic Garden; Footprint: 650 sq ft; Manager: Carla Davis. Indoor hydroponic growing system'),
-    ('Oakwood High School', 'Oakwood Teaching Garden', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1800 sq ft; Manager: Daniel Smith. Large outdoor teaching garden'),
-    ('Riverbend Academy', 'Riverbend Pollinator Garden', 'Active', 'Good', 0, 'Type: Pollinator Garden; Footprint: 1100 sq ft; Manager: Emily Brown. Supports pollinators and native plants'),
-    ('Maple Grove School', 'Maple Grove Vegetable Garden', 'Active', 'Good', 0, 'Type: Vegetable Garden; Footprint: 1400 sq ft; Manager: Grace Taylor. Seasonal vegetable production'),
-    ('Pinecrest Elementary', 'Pinecrest Raised Beds', 'Active', 'Good', 0, 'Type: Raised Bed Garden; Footprint: 800 sq ft; Manager: Henry Moore. Raised beds for younger students'),
-    ('Lakeside Middle School', 'Lakeside Food Garden', 'Active', 'Good', 0, 'Type: Food Garden; Footprint: 1600 sq ft; Manager: Isabella Clark. Produces vegetables for school activities'),
-    ('Cedar Ridge School', 'Cedar Ridge Herb Garden', 'Active', 'Require Maintenance', 0, 'Type: Herb Garden; Footprint: 700 sq ft; Manager: James Hall. Several beds need soil improvement'),
-    ('Meadowbrook Academy', 'Meadowbrook Compost Garden', 'Active', 'Good', 0, 'Type: Sustainable Garden; Footprint: 1300 sq ft; Manager: Karen Allen. Uses composting and soil-building practices'),
-    ('Willow Creek School', 'Willow Creek Demonstration Garden', 'Active', 'Good', 0, 'Type: Demonstration Garden; Footprint: 1000 sq ft; Manager: Liam Young. Demonstrates irrigation methods'),
-    ('Northside Community School', 'Northside Community Garden', 'Active', 'Good', 0, 'Type: Community Garden; Footprint: 2200 sq ft; Manager: Mia King. Shared garden maintained by students and volunteers'),
-    ('Eastview Academy', 'Eastview Native Plant Garden', 'Active', 'Good', 0, 'Type: Native Plant Garden; Footprint: 1500 sq ft; Manager: Noah Wright. Primarily active during spring and summer'),
-    ('Westfield School', 'Westfield Greenhouse Garden', 'Active', 'Good', 0, 'Type: Greenhouse Garden; Footprint: 950 sq ft; Manager: Olivia Scott. Protected growing space for seedlings'),
-    ('Hogwarts', 'Hogwarts Greenhouse Garden', 'Active', 'Good', 0, 'Second growing space for Hogwarts; seedlings are started here before moving outdoors'),
-    ('HLC Office', 'HLC Demonstration Garden', 'Planned', NULL, 0, 'Type: Demonstration Garden; Footprint: 500 sq ft; Manager: Program Staff. Future demonstration garden at the central office');
-
-
--- ============================================================
 -- GARDEN BEDS
 -- ============================================================
 
-INSERT INTO garden_bed
+INSERT INTO "g-garden_bed"
     (
-        garden_name,
+        location_name,
         bed_name,
         bed_type,
         bed_size_sq_ft,
@@ -348,34 +500,34 @@ INSERT INTO garden_bed
         notes
     )
 VALUES
-    ('Hogwarts Herb Garden', 'Hogwarts_Bed_1', 'Raised Bed', 48, 'Active', 'Good', TRUE, 'Herbs and leafy greens for Herbology class; currently full'),
-    ('Hogwarts Herb Garden', 'Hogwarts_Bed_2', 'Raised Bed', 48, 'Active', 'Good', FALSE, 'Prepared bed with no planting assigned yet'),
-    ('Hogwarts Greenhouse Garden', 'Greenhouse_Bed_1', 'Greenhouse Bench', 36, 'Active', 'Good', TRUE, 'Seedling bench for the Hogwarts greenhouse'),
-    ('Sunshine Learning Garden', 'Sunshine_Bed_1', 'Raised Bed', 40, 'Active', 'Good', FALSE, 'Used by elementary classes'),
-    ('Sunshine Learning Garden', 'Sunshine_Bed_2', 'Raised Bed', 32, 'Planned', 'Good', FALSE, 'Second bed planned for the next school year'),
-    ('Green Valley Hydroponics', 'GreenValley_Channel_1', 'Hydroponic Channel', 48, 'Active', 'Good', FALSE, 'Indoor hydroponic growing system'),
-    ('Oakwood Teaching Garden', 'Oakwood_Bed_1', 'In-Ground Bed', 100, 'Active', 'Good', FALSE, 'Main outdoor teaching bed'),
-    ('Riverbend Pollinator Garden', 'Riverbend_Bed_1', 'Native Plant Bed', 108, 'Active', 'Good', FALSE, 'Native flowering plants'),
-    ('Maple Grove Vegetable Garden', 'MapleGrove_Bed_1', 'Raised Bed', 64, 'Active', 'Good', FALSE, 'Vegetable production'),
-    ('Pinecrest Raised Beds', 'Pinecrest_Bed_1', 'Raised Bed', 30, 'Active', 'Require Maintenance', FALSE, 'Needs additional compost'),
-    ('Lakeside Food Garden', 'Lakeside_Bed_1', 'In-Ground Bed', 90, 'Active', 'Good', FALSE, 'Food production bed'),
-    ('Cedar Ridge Herb Garden', 'CedarRidge_Bed_1', 'Raised Bed', 36, 'Active', 'Require Maintenance', FALSE, 'Soil replacement recommended'),
-    ('Cedar Ridge Herb Garden', 'CedarRidge_Bed_2', 'Raised Bed', 36, 'Inactive', 'In Maintenance', FALSE, 'Closed while the soil is being replaced'),
-    ('Meadowbrook Compost Garden', 'Meadowbrook_Bed_1', 'Compost-Amended Bed', 56, 'Active', 'Good', FALSE, 'Amended with finished compost'),
-    ('Willow Creek Demonstration Garden', 'WillowCreek_Bed_1', 'Raised Bed', 48, 'Active', 'Good', FALSE, 'Irrigation demonstration bed'),
-    ('Northside Community Garden', 'Northside_Bed_1', 'In-Ground Bed', 120, 'Active', 'Good', FALSE, 'Community vegetable bed'),
-    ('Eastview Native Plant Garden', 'Eastview_Bed_1', 'Native Plant Bed', 90, 'Active', 'Require Maintenance', FALSE, 'Seasonal native planting area'),
-    ('Westfield Greenhouse Garden', 'Westfield_Bench_1', 'Greenhouse Bench', 36, 'Active', NULL, FALSE, 'Soil health not applicable to bench'),
-    ('Meadowbrook Compost Garden', 'Meadowbrook_Bed_2', 'Raised Bed', 56, 'Inactive', 'Require Maintenance', FALSE, 'Resting bed while the soil recovers');
+    ('Hogwarts', 'Hogwarts_Bed_1', 'Raised Bed', 48, 'Active', 'Good', TRUE, 'Herbs and leafy greens for Herbology class; currently full'),
+    ('Hogwarts', 'Hogwarts_Bed_2', 'Raised Bed', 48, 'Active', 'Good', FALSE, 'Prepared bed with no planting assigned yet'),
+    ('Hogwarts', 'Greenhouse_Bed_1', 'Greenhouse Bench', 36, 'Active', 'Good', TRUE, 'Seedling bench for the Hogwarts greenhouse'),
+    ('Sunshine Elementary', 'Sunshine_Bed_1', 'Raised Bed', 40, 'Active', 'Good', FALSE, 'Used by elementary classes'),
+    ('Sunshine Elementary', 'Sunshine_Bed_2', 'Raised Bed', 32, 'Planned', 'Good', FALSE, 'Second bed planned for the next school year'),
+    ('Green Valley Middle School', 'GreenValley_Channel_1', 'Hydroponic Channel', 48, 'Active', 'Good', FALSE, 'Indoor hydroponic growing system'),
+    ('Oakwood High School', 'Oakwood_Bed_1', 'In-Ground Bed', 100, 'Active', 'Good', FALSE, 'Main outdoor teaching bed'),
+    ('Riverbend Academy', 'Riverbend_Bed_1', 'Native Plant Bed', 108, 'Active', 'Good', FALSE, 'Native flowering plants'),
+    ('Maple Grove School', 'MapleGrove_Bed_1', 'Raised Bed', 64, 'Active', 'Good', FALSE, 'Vegetable production'),
+    ('Pinecrest Elementary', 'Pinecrest_Bed_1', 'Raised Bed', 30, 'Active', 'Require Maintenance', FALSE, 'Needs additional compost'),
+    ('Lakeside Middle School', 'Lakeside_Bed_1', 'In-Ground Bed', 90, 'Active', 'Good', FALSE, 'Food production bed'),
+    ('Cedar Ridge School', 'CedarRidge_Bed_1', 'Raised Bed', 36, 'Active', 'Require Maintenance', FALSE, 'Soil replacement recommended'),
+    ('Cedar Ridge School', 'CedarRidge_Bed_2', 'Raised Bed', 36, 'Inactive', 'In Maintenance', FALSE, 'Closed while the soil is being replaced'),
+    ('Meadowbrook Academy', 'Meadowbrook_Bed_1', 'Compost-Amended Bed', 56, 'Active', 'Good', FALSE, 'Amended with finished compost'),
+    ('Willow Creek School', 'WillowCreek_Bed_1', 'Raised Bed', 48, 'Active', 'Good', FALSE, 'Irrigation demonstration bed'),
+    ('Northside Community School', 'Northside_Bed_1', 'In-Ground Bed', 120, 'Active', 'Good', FALSE, 'Community vegetable bed'),
+    ('Eastview Academy', 'Eastview_Bed_1', 'Native Plant Bed', 90, 'Active', 'Require Maintenance', FALSE, 'Seasonal native planting area'),
+    ('Westfield School', 'Westfield_Bench_1', 'Greenhouse Bench', 36, 'Active', NULL, FALSE, 'Soil health not applicable to bench'),
+    ('Meadowbrook Academy', 'Meadowbrook_Bed_2', 'Raised Bed', 56, 'Inactive', 'Require Maintenance', FALSE, 'Resting bed while the soil recovers');
 
 
 -- ============================================================
 -- IRRIGATION SETUPS
 -- ============================================================
 
-INSERT INTO irrigation_setup
+INSERT INTO "g-irrigation_setup"
     (
-        garden_name,
+        location_name,
         irrigation_name,
         irrigation_type,
         lifecycle_status,
@@ -383,32 +535,32 @@ INSERT INTO irrigation_setup
         notes
     )
 VALUES
-    ('Hogwarts Herb Garden', 'Hogwarts Drip Line', 'Drip Irrigation', 'Active', 'Good', 'Automatic timer installed; the Herbology club keeps watch'),
-    ('Hogwarts Herb Garden', 'Hogwarts Hand Watering Zone', 'Garden Hose', 'Active', 'Good', 'Backup watering for newly sown rows'),
-    ('Sunshine Learning Garden', 'Sunshine Soaker Hose', 'Soaker Hose', 'Active', 'Good', 'Manually connected'),
-    ('Green Valley Hydroponics', 'Green Valley Nutrient System', 'Hydroponic Recirculation', 'Active', 'Good', 'Indoor hydroponic nutrient circulation'),
-    ('Green Valley Hydroponics', 'Green Valley Backup Pump', 'Hydroponic Pump', 'Planned', NULL, 'Backup pump planned for the next maintenance cycle'),
-    ('Oakwood Teaching Garden', 'Oakwood Sprinkler Zone', 'Sprinkler', 'Active', 'Require Maintenance', 'Uneven water pressure'),
-    ('Riverbend Pollinator Garden', 'Riverbend Manual Hose', 'Garden Hose', 'Active', 'Good', 'Used only during dry periods'),
-    ('Maple Grove Vegetable Garden', 'Maple Grove Drip Line', 'Drip Irrigation', 'Active', 'Good', 'Separate zones for vegetables'),
-    ('Pinecrest Raised Beds', 'Pinecrest Soaker Hose', 'Soaker Hose', 'Active', 'Require Maintenance', 'Hose has several leaks'),
-    ('Lakeside Food Garden', 'Lakeside Sprinkler', 'Sprinkler', 'Active', 'Good', 'Morning watering schedule'),
-    ('Cedar Ridge Herb Garden', 'Cedar Ridge Manual Hose', 'Garden Hose', 'Active', 'Require Maintenance', 'Connector needs replacement'),
-    ('Meadowbrook Compost Garden', 'Meadowbrook Drip System', 'Drip Irrigation', 'Active', 'Good', 'Low-water system'),
-    ('Willow Creek Demonstration Garden', 'Willow Creek Smart Irrigation', 'Smart Irrigation', 'Active', 'Good', 'Moisture sensor enabled'),
-    ('Northside Community Garden', 'Northside Drip Line', 'Drip Irrigation', 'Active', 'Good', 'Shared maintenance responsibility'),
-    ('Eastview Native Plant Garden', 'Eastview Rain Collection', 'Rainwater Collection', 'Active', 'Good', 'Used during warmer months'),
-    ('Westfield Greenhouse Garden', 'Westfield Mist System', 'Misting System', 'Active', 'Good', 'Used for seedlings'),
-    ('Willow Creek Demonstration Garden', 'Willow Creek Rain Barrel Line', 'Rainwater Collection', 'Planned', NULL, 'Expansion planned for the next growing season');
+    ('Hogwarts', 'Hogwarts Drip Line', 'Drip Irrigation', 'Active', 'Good', 'Automatic timer installed; the Herbology club keeps watch'),
+    ('Hogwarts', 'Hogwarts Hand Watering Zone', 'Garden Hose', 'Active', 'Good', 'Backup watering for newly sown rows'),
+    ('Sunshine Elementary', 'Sunshine Soaker Hose', 'Soaker Hose', 'Active', 'Good', 'Manually connected'),
+    ('Green Valley Middle School', 'Green Valley Nutrient System', 'Hydroponic Recirculation', 'Active', 'Good', 'Indoor hydroponic nutrient circulation'),
+    ('Green Valley Middle School', 'Green Valley Backup Pump', 'Hydroponic Pump', 'Planned', NULL, 'Backup pump planned for the next maintenance cycle'),
+    ('Oakwood High School', 'Oakwood Sprinkler Zone', 'Sprinkler', 'Active', 'Require Maintenance', 'Uneven water pressure'),
+    ('Riverbend Academy', 'Riverbend Manual Hose', 'Garden Hose', 'Active', 'Good', 'Used only during dry periods'),
+    ('Maple Grove School', 'Maple Grove Drip Line', 'Drip Irrigation', 'Active', 'Good', 'Separate zones for vegetables'),
+    ('Pinecrest Elementary', 'Pinecrest Soaker Hose', 'Soaker Hose', 'Active', 'Require Maintenance', 'Hose has several leaks'),
+    ('Lakeside Middle School', 'Lakeside Sprinkler', 'Sprinkler', 'Active', 'Good', 'Morning watering schedule'),
+    ('Cedar Ridge School', 'Cedar Ridge Manual Hose', 'Garden Hose', 'Active', 'Require Maintenance', 'Connector needs replacement'),
+    ('Meadowbrook Academy', 'Meadowbrook Drip System', 'Drip Irrigation', 'Active', 'Good', 'Low-water system'),
+    ('Willow Creek School', 'Willow Creek Smart Irrigation', 'Smart Irrigation', 'Active', 'Good', 'Moisture sensor enabled'),
+    ('Northside Community School', 'Northside Drip Line', 'Drip Irrigation', 'Active', 'Good', 'Shared maintenance responsibility'),
+    ('Eastview Academy', 'Eastview Rain Collection', 'Rainwater Collection', 'Active', 'Good', 'Used during warmer months'),
+    ('Westfield School', 'Westfield Mist System', 'Misting System', 'Active', 'Good', 'Used for seedlings'),
+    ('Willow Creek School', 'Willow Creek Rain Barrel Line', 'Rainwater Collection', 'Planned', NULL, 'Expansion planned for the next growing season');
 
 
 -- ============================================================
 -- COMPOSTING UNITS
 -- ============================================================
 
-INSERT INTO compost_unit
+INSERT INTO "g-compost_unit"
     (
-        garden_name,
+        location_name,
         unit_name,
         compost_type,
         lifecycle_status,
@@ -416,28 +568,28 @@ INSERT INTO compost_unit
         notes
     )
 VALUES
-    ('Hogwarts Herb Garden', 'Hogwarts Compost Bin', 'Three-Bin Compost System', 'Active', 'Good', 'Used for garden clippings; Professor Sprout approves'),
-    ('Green Valley Hydroponics', 'Green Valley Worm Bin', 'Worm Composting', 'Active', 'Good', 'Processes small amounts of organic waste'),
-    ('Oakwood Teaching Garden', 'Oakwood Compost Area', 'Open Compost Area', 'Active', 'Require Maintenance', 'Needs additional carbon material'),
-    ('Riverbend Pollinator Garden', 'Riverbend Leaf Bin', 'Leaf Compost Bin', 'Active', 'Good', 'Uses collected leaves'),
-    ('Maple Grove Vegetable Garden', 'Maple Grove Tumbler', 'Compost Tumbler', 'Active', 'Good', 'Rotated weekly'),
-    ('Pinecrest Raised Beds', 'Pinecrest Classroom Bin', 'Compost Bin', 'Active', 'In Maintenance', 'Bin lid is being repaired'),
-    ('Lakeside Food Garden', 'Lakeside Compost Bin', 'Compost Bin', 'Active', 'Good', 'Used for vegetable scraps'),
-    ('Cedar Ridge Herb Garden', 'Cedar Ridge Compost Bin', 'Compost Bin', 'Inactive', NULL, 'Awaiting soil program review'),
-    ('Meadowbrook Compost Garden', 'Meadowbrook Three-Bin System', 'Three-Bin Compost System', 'Active', 'Good', 'Primary soil amendment source'),
-    ('Meadowbrook Compost Garden', 'Meadowbrook Leaf Mold Bin', 'Leaf Mold Bin', 'Active', 'Good', 'Separate unit for fallen leaves'),
-    ('Willow Creek Demonstration Garden', 'Willow Creek Tumbler', 'Compost Tumbler', 'Active', 'Good', 'Demonstrates composting methods'),
-    ('Northside Community Garden', 'Northside Community Bin', 'Compost Bin', 'Active', 'Good', 'Maintained by volunteers'),
-    ('Eastview Native Plant Garden', 'Eastview Leaf Mold Bin', 'Leaf Mold', 'Active', 'Good', 'Used during fall cleanup'),
-    ('Westfield Greenhouse Garden', 'Westfield Worm Bin', 'Worm Composting', 'Active', 'Good', 'Supports greenhouse seedlings'),
-    ('Cedar Ridge Herb Garden', 'Cedar Ridge Planned Bin', 'Compost Bin', 'Planned', NULL, 'Planned after the current soil renovation is complete');
+    ('Hogwarts', 'Hogwarts Compost Bin', 'Three-Bin Compost System', 'Active', 'Good', 'Used for garden clippings; Professor Sprout approves'),
+    ('Green Valley Middle School', 'Green Valley Worm Bin', 'Worm Composting', 'Active', 'Good', 'Processes small amounts of organic waste'),
+    ('Oakwood High School', 'Oakwood Compost Area', 'Open Compost Area', 'Active', 'Require Maintenance', 'Needs additional carbon material'),
+    ('Riverbend Academy', 'Riverbend Leaf Bin', 'Leaf Compost Bin', 'Active', 'Good', 'Uses collected leaves'),
+    ('Maple Grove School', 'Maple Grove Tumbler', 'Compost Tumbler', 'Active', 'Good', 'Rotated weekly'),
+    ('Pinecrest Elementary', 'Pinecrest Classroom Bin', 'Compost Bin', 'Active', 'In Maintenance', 'Bin lid is being repaired'),
+    ('Lakeside Middle School', 'Lakeside Compost Bin', 'Compost Bin', 'Active', 'Good', 'Used for vegetable scraps'),
+    ('Cedar Ridge School', 'Cedar Ridge Compost Bin', 'Compost Bin', 'Inactive', NULL, 'Awaiting soil program review'),
+    ('Meadowbrook Academy', 'Meadowbrook Three-Bin System', 'Three-Bin Compost System', 'Active', 'Good', 'Primary soil amendment source'),
+    ('Meadowbrook Academy', 'Meadowbrook Leaf Mold Bin', 'Leaf Mold Bin', 'Active', 'Good', 'Separate unit for fallen leaves'),
+    ('Willow Creek School', 'Willow Creek Tumbler', 'Compost Tumbler', 'Active', 'Good', 'Demonstrates composting methods'),
+    ('Northside Community School', 'Northside Community Bin', 'Compost Bin', 'Active', 'Good', 'Maintained by volunteers'),
+    ('Eastview Academy', 'Eastview Leaf Mold Bin', 'Leaf Mold', 'Active', 'Good', 'Used during fall cleanup'),
+    ('Westfield School', 'Westfield Worm Bin', 'Worm Composting', 'Active', 'Good', 'Supports greenhouse seedlings'),
+    ('Cedar Ridge School', 'Cedar Ridge Planned Bin', 'Compost Bin', 'Planned', NULL, 'Planned after the current soil renovation is complete');
 
 
 -- ============================================================
 -- PLANT CATALOG
 -- ============================================================
 
-INSERT INTO plant
+INSERT INTO "g-plant"
     (
         plant_name,
         plant_type,
@@ -467,9 +619,9 @@ VALUES
 -- CROP ROTATIONS
 -- ============================================================
 
-INSERT INTO crop_rotation
+INSERT INTO "g-crop_rotation"
     (
-        garden_name,
+        location_name,
         bed_name,
         plant_name,
         quantity,
@@ -480,20 +632,20 @@ INSERT INTO crop_rotation
         notes
     )
 VALUES
-    ('Hogwarts Herb Garden', 'Hogwarts_Bed_1', 'Basil', 12, 'Summer', NULL, 'Planned', NULL, 'Plant after final frost; reserved for Gryffindor Herbology'),
-    ('Hogwarts Herb Garden', 'Hogwarts_Bed_1', 'Lettuce', 8, 'Spring', '2026-03-10', 'Harvested', 'Good', 'Earlier crop in the same bed'),
-    ('Hogwarts Greenhouse Garden', 'Greenhouse_Bed_1', 'Tomato', 6, 'Fall', '2026-09-01', 'In-ground', NULL, 'Started indoors before transplanting'),
-    ('Sunshine Learning Garden', 'Sunshine_Bed_1', 'Lettuce', 6, 'Spring', NULL, 'Planned', NULL, 'First classroom crop'),
-    ('Green Valley Hydroponics', 'GreenValley_Channel_1', 'Spinach', 10, 'Fall', '2026-09-15', 'In-ground', 'Good', 'Hydroponic growing cycle'),
-    ('Oakwood Teaching Garden', 'Oakwood_Bed_1', 'Tomato', 8, 'Summer', NULL, 'Planned', NULL, 'Needs trellis support'),
-    ('Riverbend Pollinator Garden', 'Riverbend_Bed_1', 'Marigold', 10, 'Summer', NULL, 'Planned', NULL, 'Pollinator border planting'),
-    ('Maple Grove Vegetable Garden', 'MapleGrove_Bed_1', 'Carrot', 20, 'Spring', NULL, 'Planned', NULL, 'Direct sowing'),
-    ('Pinecrest Raised Beds', 'Pinecrest_Bed_1', 'Radish', 12, 'Spring', NULL, 'Planned', NULL, 'Short rotation crop'),
-    ('Lakeside Food Garden', 'Lakeside_Bed_1', 'Cucumber', 4, 'Summer', NULL, 'Planned', NULL, 'Trellis required'),
-    ('Cedar Ridge Herb Garden', 'CedarRidge_Bed_1', 'Cilantro', 10, 'Fall', NULL, 'Planned', NULL, 'Waiting for soil improvement'),
-    ('Cedar Ridge Herb Garden', 'CedarRidge_Bed_1', 'Basil', 6, 'Summer', '2026-05-15', 'Removed', 'Needs Replacement', 'Removed when the soil problem was identified'),
-    ('Meadowbrook Compost Garden', 'Meadowbrook_Bed_1', 'Kale', 8, 'Fall', NULL, 'Planned', NULL, 'Use finished compost'),
-    ('Willow Creek Demonstration Garden', 'WillowCreek_Bed_1', 'Green Bean', 12, 'Fall', '2026-09-10', 'In-ground', 'Good', 'Irrigation demonstration'),
-    ('Northside Community Garden', 'Northside_Bed_1', 'Zucchini', 3, 'Summer', NULL, 'Planned', NULL, 'Community planting day'),
-    ('Eastview Native Plant Garden', 'Eastview_Bed_1', 'Sunflower', 6, 'Summer', '2026-06-01', 'Harvested', 'Fair', 'Previous seasonal planting'),
-    ('Westfield Greenhouse Garden', 'Westfield_Bench_1', 'Pepper', 6, 'Fall', '2026-08-10', 'In-ground', NULL, 'Started indoors');
+    ('Hogwarts', 'Hogwarts_Bed_1', 'Basil', 12, 'Summer', NULL, 'Planned', NULL, 'Plant after final frost; reserved for Gryffindor Herbology'),
+    ('Hogwarts', 'Hogwarts_Bed_1', 'Lettuce', 8, 'Spring', '2026-03-10', 'Harvested', 'Good', 'Earlier crop in the same bed'),
+    ('Hogwarts', 'Greenhouse_Bed_1', 'Tomato', 6, 'Fall', '2026-09-01', 'In-ground', NULL, 'Started indoors before transplanting'),
+    ('Sunshine Elementary', 'Sunshine_Bed_1', 'Lettuce', 6, 'Spring', NULL, 'Planned', NULL, 'First classroom crop'),
+    ('Green Valley Middle School', 'GreenValley_Channel_1', 'Spinach', 10, 'Fall', '2026-09-15', 'In-ground', 'Good', 'Hydroponic growing cycle'),
+    ('Oakwood High School', 'Oakwood_Bed_1', 'Tomato', 8, 'Summer', NULL, 'Planned', NULL, 'Needs trellis support'),
+    ('Riverbend Academy', 'Riverbend_Bed_1', 'Marigold', 10, 'Summer', NULL, 'Planned', NULL, 'Pollinator border planting'),
+    ('Maple Grove School', 'MapleGrove_Bed_1', 'Carrot', 20, 'Spring', NULL, 'Planned', NULL, 'Direct sowing'),
+    ('Pinecrest Elementary', 'Pinecrest_Bed_1', 'Radish', 12, 'Spring', NULL, 'Planned', NULL, 'Short rotation crop'),
+    ('Lakeside Middle School', 'Lakeside_Bed_1', 'Cucumber', 4, 'Summer', NULL, 'Planned', NULL, 'Trellis required'),
+    ('Cedar Ridge School', 'CedarRidge_Bed_1', 'Cilantro', 10, 'Fall', NULL, 'Planned', NULL, 'Waiting for soil improvement'),
+    ('Cedar Ridge School', 'CedarRidge_Bed_1', 'Basil', 6, 'Summer', '2026-05-15', 'Removed', 'Needs Replacement', 'Removed when the soil problem was identified'),
+    ('Meadowbrook Academy', 'Meadowbrook_Bed_1', 'Kale', 8, 'Fall', NULL, 'Planned', NULL, 'Use finished compost'),
+    ('Willow Creek School', 'WillowCreek_Bed_1', 'Green Bean', 12, 'Fall', '2026-09-10', 'In-ground', 'Good', 'Irrigation demonstration'),
+    ('Northside Community School', 'Northside_Bed_1', 'Zucchini', 3, 'Summer', NULL, 'Planned', NULL, 'Community planting day'),
+    ('Eastview Academy', 'Eastview_Bed_1', 'Sunflower', 6, 'Summer', '2026-06-01', 'Harvested', 'Fair', 'Previous seasonal planting'),
+    ('Westfield School', 'Westfield_Bench_1', 'Pepper', 6, 'Fall', '2026-08-10', 'In-ground', NULL, 'Started indoors');

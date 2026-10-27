@@ -16,13 +16,14 @@ SELECT
     il.reorder_point,
     il.counted,
     il.storage_location
-FROM inventory_list il
+FROM "i-inventory_list" il
 WHERE il.instock_total <= il.reorder_point;
 
 
 -- ============================================================
 -- PendingRequests
 -- Purchase requests that have not been ordered or delivered
+-- requesting_school_group stores the group name; assigned_locations expands it.
 -- ============================================================
 DROP VIEW IF EXISTS "PendingRequests";
 CREATE VIEW "PendingRequests" AS
@@ -34,66 +35,116 @@ SELECT
     END AS request_status,
     pr.item_name,
     pr.requested_by,
-    pr.requesting_for,
+    CASE
+        WHEN pr.requesting_school_group IS NOT NULL THEN (
+            SELECT STRING_AGG(lal.location_name, ', ' ORDER BY lal.location_name)
+            FROM "l-group-assignment" lal
+            WHERE lal.location_group_name = pr.requesting_school_group
+        )
+        ELSE pr.requesting_school
+    END AS assigned_locations,
     pr.quantity_requested,
     pr.total_cost,
     pr.review_status,
     pr.notes
-FROM purchase_request pr
+FROM "i-purchase_request" pr
 WHERE pr.ordered = FALSE
    OR pr.delivered_to_fns = FALSE;
 
 
 -- ============================================================
 -- SchoolSupply
--- Net inventory out, outstanding requests, and spending by school
+-- Activity is grouped either by one school or by one named location group.
 -- ============================================================
 DROP VIEW IF EXISTS "SchoolInventory";
 DROP VIEW IF EXISTS "SchoolSupplyActivity";
 DROP VIEW IF EXISTS "SchoolSupply";
 CREATE VIEW "SchoolSupply" AS
+WITH assignments AS (
+    SELECT
+        'School'::TEXT AS assignment_type,
+        l.location_name,
+        NULL::VARCHAR(200) AS location_group_name
+    FROM "l-location" l
+
+    UNION ALL
+
+    SELECT
+        'Group'::TEXT AS assignment_type,
+        NULL::VARCHAR(200) AS location_name,
+        g.location_group_name
+    FROM "l-group-locations" g
+),
+transaction_totals AS (
+    SELECT
+        it.for_school AS location_name,
+        NULL::VARCHAR(200) AS location_group_name,
+        SUM(
+            CASE
+                WHEN status = 'Checked Out' THEN quantity
+                WHEN status = 'Checked In' THEN -quantity
+            END
+        ) AS items_currently_checked_out
+    FROM "i-inventory_transaction" it
+    WHERE it.for_school IS NOT NULL
+    GROUP BY it.for_school
+
+    UNION ALL
+
+    SELECT
+        NULL::VARCHAR(200) AS location_name,
+        it.for_school_group AS location_group_name,
+        SUM(
+            CASE
+                WHEN status = 'Checked Out' THEN quantity
+                WHEN status = 'Checked In' THEN -quantity
+            END
+        ) AS items_currently_checked_out
+    FROM "i-inventory_transaction" it
+    WHERE it.for_school_group IS NOT NULL
+    GROUP BY it.for_school_group
+),
+request_totals AS (
+    SELECT
+        pr.requesting_school AS location_name,
+        NULL::VARCHAR(200) AS location_group_name,
+        SUM(pr.quantity_requested) FILTER (
+            WHERE NOT pr.ordered OR NOT pr.delivered_to_fns
+        ) AS items_still_requested,
+        SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
+    FROM "i-purchase_request" pr
+    WHERE pr.requesting_school IS NOT NULL
+    GROUP BY pr.requesting_school
+
+    UNION ALL
+
+    SELECT
+        NULL::VARCHAR(200) AS location_name,
+        pr.requesting_school_group AS location_group_name,
+        SUM(pr.quantity_requested) FILTER (
+            WHERE NOT pr.ordered OR NOT pr.delivered_to_fns
+        ) AS items_still_requested,
+        SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
+    FROM "i-purchase_request" pr
+    WHERE pr.requesting_school_group IS NOT NULL
+    GROUP BY pr.requesting_school_group
+)
 SELECT
-    l.location_name AS school_name,
-
-    COALESCE(
-        (
-            SELECT SUM(
-                CASE
-                    WHEN it.status = 'Checked Out' THEN it.quantity
-                    WHEN it.status = 'Checked In' THEN -it.quantity
-                END
-            )
-            FROM inventory_transaction it
-            WHERE it.for_school = l.location_name
-              AND it.purchase_request_id IS NULL
-        ),
-        0
-    ) AS items_currently_checked_out,
-
-    COALESCE(
-        (
-            SELECT SUM(pr.quantity_requested)
-            FROM purchase_request pr
-            WHERE pr.requesting_for = l.location_name
-              AND (
-                  pr.ordered = FALSE
-                  OR pr.delivered_to_fns = FALSE
-              )
-        ),
-        0
-    ) AS items_still_requested,
-
-    COALESCE(
-        (
-            SELECT SUM(pr.total_cost)
-            FROM purchase_request pr
-            WHERE pr.requesting_for = l.location_name
-              AND pr.ordered = TRUE
-        ),
-        0
-    ) AS total_spent
-FROM location l
-ORDER BY l.location_name;
+    a.assignment_type,
+    COALESCE(a.location_name, a.location_group_name) AS location_name,
+    COALESCE(tt.items_currently_checked_out, 0) AS items_currently_checked_out,
+    COALESCE(rt.items_still_requested, 0) AS items_still_requested,
+    COALESCE(rt.total_spent, 0) AS total_spent
+FROM assignments a
+LEFT JOIN transaction_totals tt
+    ON tt.location_name IS NOT DISTINCT FROM a.location_name
+   AND tt.location_group_name IS NOT DISTINCT FROM a.location_group_name
+LEFT JOIN request_totals rt
+    ON rt.location_name IS NOT DISTINCT FROM a.location_name
+   AND rt.location_group_name IS NOT DISTINCT FROM a.location_group_name
+ORDER BY
+    a.assignment_type,
+    COALESCE(a.location_name, a.location_group_name);
 
 
 -- ============================================================
@@ -102,19 +153,34 @@ ORDER BY l.location_name;
 -- ============================================================
 DROP VIEW IF EXISTS "BudgetPurchases";
 CREATE VIEW "BudgetPurchases" AS
+WITH budget_spending AS (
+    SELECT
+        budget_name,
+        SUM(total_cost) AS total_budget_spent
+    FROM "i-purchase_request"
+    WHERE ordered = TRUE
+      AND budget_name IS NOT NULL
+    GROUP BY budget_name
+)
 SELECT
     b.budget_name,
     pr.item_name,
     SUM(pr.quantity_requested) AS total_quantity_ordered,
     SUM(pr.total_cost) AS total_spent,
+    b.budget_amount AS total_budget,
+    bs.total_budget_spent,
     b.remaining_budget
-FROM budget b
-JOIN purchase_request pr
+FROM "i-budget" b
+JOIN "i-purchase_request" pr
     ON b.budget_name = pr.budget_name
+JOIN budget_spending bs
+    ON bs.budget_name = b.budget_name
 WHERE pr.ordered = TRUE
 GROUP BY
     b.budget_name,
     pr.item_name,
+    b.budget_amount,
+    bs.total_budget_spent,
     b.remaining_budget
 ORDER BY
     b.budget_name,
@@ -127,19 +193,28 @@ ORDER BY
 -- ============================================================
 DROP VIEW IF EXISTS "FundingSourceSpending";
 CREATE VIEW "FundingSourceSpending" AS
+WITH source_item_spending AS (
+    SELECT
+        COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned') AS funding_source,
+        pr.item_name,
+        SUM(pr.quantity_requested) AS total_quantity_ordered,
+        SUM(pr.total_cost) AS total_spent
+    FROM "i-purchase_request" pr
+    WHERE pr.ordered = TRUE
+    GROUP BY
+        COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned'),
+        pr.item_name
+)
 SELECT
-    COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned') AS funding_source,
-    pr.item_name,
-    SUM(pr.quantity_requested) AS total_quantity_ordered,
-    SUM(pr.total_cost) AS total_spent
-FROM purchase_request pr
-WHERE pr.ordered = TRUE
-GROUP BY
-    COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned'),
-    pr.item_name
+    funding_source,
+    item_name,
+    total_quantity_ordered,
+    total_spent,
+    SUM(total_spent) OVER (PARTITION BY funding_source) AS total_funding_source_spent
+FROM source_item_spending
 ORDER BY
     funding_source,
-    pr.item_name;
+    item_name;
 
 
 -- ============================================================
@@ -163,7 +238,7 @@ SELECT
             ELSE 0
         END
     ) AS pending_spending
-FROM purchase_request
+FROM "i-purchase_request"
 GROUP BY school_year
 ORDER BY school_year;
 
@@ -177,7 +252,7 @@ DROP VIEW IF EXISTS "BedPlantingSummary";
 DROP VIEW IF EXISTS "BedPlanting";
 CREATE VIEW "BedPlanting" AS
 SELECT
-    b.garden_name,
+    b.location_name,
     b.bed_name,
     cr.plant_name,
     cr.quantity,
@@ -192,11 +267,11 @@ SELECT
     END AS expected_harvest_date,
     cr.soil_health,
     cr.notes AS rotation_notes
-FROM garden_bed b
-LEFT JOIN crop_rotation cr
-    ON cr.garden_name = b.garden_name
+FROM "g-garden_bed" b
+LEFT JOIN "g-crop_rotation" cr
+    ON cr.location_name = b.location_name
    AND cr.bed_name = b.bed_name
-LEFT JOIN plant p
+LEFT JOIN "g-plant" p
     ON p.plant_name = cr.plant_name
 WHERE cr.status IN ('In-ground', 'Harvested');
 
@@ -208,7 +283,7 @@ WHERE cr.status IN ('In-ground', 'Harvested');
 DROP VIEW IF EXISTS "CropCalendar";
 CREATE VIEW "CropCalendar" AS
 SELECT
-    cr.garden_name,
+    cr.location_name,
     cr.bed_name,
     cr.status AS rotation_status,
     cr.season,
@@ -221,8 +296,8 @@ SELECT
     END AS expected_harvest_date,
     cr.soil_health,
     cr.notes
-FROM crop_rotation cr
-JOIN plant p
+FROM "g-crop_rotation" cr
+JOIN "g-plant" p
     ON p.plant_name = cr.plant_name;
 
 
@@ -234,22 +309,22 @@ DROP VIEW IF EXISTS "GardenSummary";
 DROP VIEW IF EXISTS "GardenAssets";
 CREATE VIEW "GardenAssets" AS
 SELECT
-    g.garden_name,
+    l.location_name,
     items.item_type,
     items.item_name,
     items.lifecycle_status,
     items.condition,
     items.notes
-FROM garden g
-LEFT JOIN LATERAL (
+FROM "l-location" l
+CROSS JOIN LATERAL (
     SELECT
         'Garden Bed'::TEXT AS item_type,
         b.bed_name AS item_name,
         b.lifecycle_status,
         b.condition,
         b.notes
-    FROM garden_bed b
-    WHERE b.garden_name = g.garden_name
+    FROM "g-garden_bed" b
+    WHERE b.location_name = l.location_name
 
     UNION ALL
 
@@ -259,8 +334,8 @@ LEFT JOIN LATERAL (
         i.lifecycle_status,
         i.condition,
         i.notes
-    FROM irrigation_setup i
-    WHERE i.garden_name = g.garden_name
+    FROM "g-irrigation_setup" i
+    WHERE i.location_name = l.location_name
 
     UNION ALL
 
@@ -270,10 +345,11 @@ LEFT JOIN LATERAL (
         c.lifecycle_status,
         c.condition,
         c.notes
-    FROM compost_unit c
-    WHERE c.garden_name = g.garden_name
-) items ON TRUE
+    FROM "g-compost_unit" c
+    WHERE c.location_name = l.location_name
+) items
+WHERE l.bed_count IS NOT NULL
 ORDER BY
-    g.garden_name,
+    l.location_name,
     items.item_type NULLS FIRST,
     items.item_name;
