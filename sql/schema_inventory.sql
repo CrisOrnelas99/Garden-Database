@@ -57,34 +57,40 @@ CREATE TABLE "l-location" (
 
 
 -- ============================================================
--- "l-group-locations"
--- Named location group shared by purchase requests and transactions.
+-- "l-location-group"
+-- Group rows store names; member rows point to one group and one location.
 -- ============================================================
-CREATE TABLE "l-group-locations" (
+CREATE TABLE "l-location-group" (
     location_group_id SERIAL PRIMARY KEY,
-    location_group_name VARCHAR(200) NOT NULL UNIQUE
-);
+    location_group_name VARCHAR(200) UNIQUE,
+    belongs_to_group VARCHAR(200),
+    location_name VARCHAR(200),
 
--- Map each location group to one or more locations.
-CREATE TABLE "l-group-assignment" (
-    group_assignment_id SERIAL PRIMARY KEY,
-    location_group_name VARCHAR(200) NOT NULL,
-    location_name VARCHAR(200) NOT NULL,
+    CONSTRAINT chk_location_group_row_type
+        CHECK (
+            (location_group_name IS NOT NULL
+                AND belongs_to_group IS NULL
+                AND location_name IS NULL)
+            OR
+            (location_group_name IS NULL
+                AND belongs_to_group IS NOT NULL
+                AND location_name IS NOT NULL)
+        ),
 
-    CONSTRAINT fk_group_assignment_group
-        FOREIGN KEY (location_group_name)
-        REFERENCES "l-group-locations"(location_group_name)
+    CONSTRAINT fk_location_group_belongs_to_group
+        FOREIGN KEY (belongs_to_group)
+        REFERENCES "l-location-group"(location_group_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_group_assignment
+    CONSTRAINT fk_location_group_member_location
         FOREIGN KEY (location_name)
         REFERENCES "l-location"(location_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
-    CONSTRAINT uq_group_assignment
-        UNIQUE (location_group_name, location_name)
+    CONSTRAINT uq_location_group_member
+        UNIQUE (belongs_to_group, location_name)
 );
 
 
@@ -172,7 +178,7 @@ CREATE TABLE "i-purchase_request" (
 
     CONSTRAINT fk_purchase_request_school_group
         FOREIGN KEY (requesting_school_group)
-        REFERENCES "l-group-locations"(location_group_name)
+        REFERENCES "l-location-group"(location_group_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -219,7 +225,7 @@ CREATE TABLE "i-inventory_transaction" (
 
     CONSTRAINT fk_inventory_transaction_school_group
         FOREIGN KEY (for_school_group)
-        REFERENCES "l-group-locations"(location_group_name)
+        REFERENCES "l-location-group"(location_group_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -737,7 +743,7 @@ BEGIN
     END IF;
 
     PERFORM 1
-    FROM "l-group-locations"
+    FROM "l-location-group"
     WHERE location_group_name = group_name_to_check
     FOR UPDATE;
 
@@ -747,8 +753,8 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1
-        FROM "l-group-assignment"
-        WHERE location_group_name = group_name_to_check
+        FROM "l-location-group"
+        WHERE belongs_to_group = group_name_to_check
     ) THEN
         RAISE EXCEPTION
             'Location group "%" has no assigned locations',
@@ -784,12 +790,21 @@ EXECUTE FUNCTION ensure_referenced_group_has_locations();
 -- ============================================================
 CREATE OR REPLACE FUNCTION prevent_emptying_referenced_location_group()
 RETURNS TRIGGER AS $$
+DECLARE
+    group_name_to_check VARCHAR(200);
 BEGIN
-    -- A parent group rename cascades its name to this table; the membership
-    -- remains attached to the renamed group, so there is nothing to remove.
+    -- Only member rows can remove a location from a group.
+    IF OLD.belongs_to_group IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    group_name_to_check := OLD.belongs_to_group;
+
+    -- A parent group rename cascades its name to member rows. If the old name
+    -- no longer exists, this deferred event does not remove a membership.
     PERFORM 1
-    FROM "l-group-locations"
-    WHERE location_group_name = OLD.location_group_name
+    FROM "l-location-group"
+    WHERE location_group_name = group_name_to_check
     FOR UPDATE;
 
     IF NOT FOUND THEN
@@ -798,8 +813,8 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
-        FROM "l-group-assignment"
-        WHERE location_group_name = OLD.location_group_name
+        FROM "l-location-group"
+        WHERE belongs_to_group = group_name_to_check
     ) THEN
         RETURN NULL;
     END IF;
@@ -807,15 +822,15 @@ BEGIN
     IF EXISTS (
         SELECT 1
         FROM "i-purchase_request"
-        WHERE requesting_school_group = OLD.location_group_name
+        WHERE requesting_school_group = group_name_to_check
     ) OR EXISTS (
         SELECT 1
         FROM "i-inventory_transaction"
-        WHERE for_school_group = OLD.location_group_name
+        WHERE for_school_group = group_name_to_check
     ) THEN
         RAISE EXCEPTION
             'Cannot remove the final location from referenced group "%"',
-            OLD.location_group_name;
+            group_name_to_check;
     END IF;
 
     RETURN NULL;
@@ -826,7 +841,7 @@ $$ LANGUAGE plpgsql;
 -- TRIGGER 10: prevent a used group from becoming unassigned.
 CREATE CONSTRAINT TRIGGER trg_prevent_emptying_referenced_location_group
 AFTER DELETE OR UPDATE
-ON "l-group-assignment"
+ON "l-location-group"
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION prevent_emptying_referenced_location_group();

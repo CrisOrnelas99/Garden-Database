@@ -38,8 +38,9 @@ SELECT
     CASE
         WHEN pr.requesting_school_group IS NOT NULL THEN (
             SELECT STRING_AGG(lal.location_name, ', ' ORDER BY lal.location_name)
-            FROM "l-group-assignment" lal
-            WHERE lal.location_group_name = pr.requesting_school_group
+            FROM "l-location-group" lal
+            WHERE lal.belongs_to_group = pr.requesting_school_group
+              AND lal.location_name IS NOT NULL
         )
         ELSE pr.requesting_school
     END AS assigned_locations,
@@ -73,7 +74,8 @@ WITH assignments AS (
         'Group'::TEXT AS assignment_type,
         NULL::VARCHAR(200) AS location_name,
         g.location_group_name
-    FROM "l-group-locations" g
+    FROM "l-location-group" g
+    WHERE g.location_group_name IS NOT NULL
 ),
 transaction_totals AS (
     SELECT

@@ -32,15 +32,18 @@ erDiagram
 
     BUDGET o|--o{ PURCHASE_REQUEST : funds
 
-    LOCATION o|--o{ PURCHASE_REQUEST : requests_for
-    LOCATION o|--o{ INVENTORY_TRANSACTION : distributed_to
+    LOCATION o|--o{ PURCHASE_REQUEST : requesting_school
+    LOCATION o|--o{ INVENTORY_TRANSACTION : for_school
+    LOCATION_GROUP o|--o{ PURCHASE_REQUEST : requesting_school_group
+    LOCATION_GROUP o|--o{ INVENTORY_TRANSACTION : for_school_group
+    LOCATION_GROUP ||--o{ LOCATION_GROUP : belongs_to_group
+    LOCATION ||--o{ LOCATION_GROUP : member_location
     LOCATION ||--o{ GARDEN : has
 
     ITEM ||--o{ PURCHASE_REQUEST : requested_item
     ITEM ||--o| INVENTORY_LIST : tracked_in
 
     INVENTORY_LIST ||--o{ INVENTORY_TRANSACTION : records
-    PURCHASE_REQUEST o|--o| INVENTORY_TRANSACTION : receipt_record
 
     BUDGET {
         int budget_id PK
@@ -52,6 +55,13 @@ erDiagram
     LOCATION {
         int location_id PK
         varchar location_name
+    }
+
+    LOCATION_GROUP {
+        int location_group_id PK
+        varchar location_group_name UK
+        varchar belongs_to_group FK
+        varchar location_name FK
     }
 
     ITEM {
@@ -70,7 +80,8 @@ erDiagram
 
     PURCHASE_REQUEST {
         int request_id PK
-        varchar requesting_for FK
+        varchar requesting_school FK
+        varchar requesting_school_group FK
         varchar item_name FK
         varchar budget_name FK
         varchar funding_source
@@ -84,10 +95,13 @@ erDiagram
         date transaction_date
         varchar status
         varchar for_school FK
+        varchar for_school_group FK
         varchar item_name FK
         int quantity
     }
 ```
+
+`LOCATION_GROUP` stores group header rows and member-location rows in the same table. Header rows contain `location_group_name`; member rows contain `belongs_to_group` and `location_name`.
 
 The current garden schema focuses on the garden portion of the project(does not include all columns).
 

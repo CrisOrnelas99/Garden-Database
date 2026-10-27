@@ -6,8 +6,7 @@
 -- TRUNCATE TABLE
 --     "i-inventory_transaction",
 --     "i-purchase_request",
---     "l-group-assignment",
---     "l-group-locations",
+--     "l-location-group",
 --     "i-inventory_list",
 --     "i-item",
 --     "i-budget",
@@ -59,15 +58,15 @@ VALUES
 -- Includes groups for two schools, three schools, and every location.
 -- ============================================================
 
-INSERT INTO "l-group-locations" (location_group_name)
+INSERT INTO "l-location-group" (location_group_name)
 VALUES
     ('SchoolBandC'),
     ('Triwizard Greenhouse Team'),
     ('All Locations');
 
-INSERT INTO "l-group-assignment"
+INSERT INTO "l-location-group"
     (
-        location_group_name,
+        belongs_to_group,
         location_name
     )
 VALUES
