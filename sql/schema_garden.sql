@@ -25,6 +25,12 @@ CREATE TYPE rotation_status AS ENUM (
     'Harvested'
 );
 
+CREATE TYPE soil_health_status AS ENUM (
+    'Good',
+    'Fair',
+    'Needs Replacement'
+);
+
 -- ============================================================
 -- garden
 -- Garden information for each location
@@ -141,7 +147,7 @@ CREATE TABLE crop_rotation (
     quantity nonnegative_count CHECK (quantity > 0),
     season VARCHAR(20),
     sow_date DATE,
-    soil_health VARCHAR(50),
+    soil_health soil_health_status,
     notes TEXT,
 
     CONSTRAINT fk_rotation_garden
@@ -212,4 +218,30 @@ AFTER INSERT OR UPDATE OF garden_name OR DELETE
 ON garden_bed
 FOR EACH ROW
 EXECUTE FUNCTION update_garden_bed_count();
+
+
+-- ============================================================
+-- TRIGGER 2
+-- Clear crop_rotation.soil_health when a planting is removed
+-- ============================================================
+CREATE OR REPLACE FUNCTION clear_removed_crop_soil_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'Removed' THEN
+        NEW.soil_health := NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================================
+-- TRIGGER 2
+-- Clear soil health on inserted or updated removed crop rotations
+-- ============================================================
+CREATE TRIGGER trg_clear_removed_crop_soil_status
+BEFORE INSERT OR UPDATE ON crop_rotation
+FOR EACH ROW
+EXECUTE FUNCTION clear_removed_crop_soil_status();
 

@@ -491,9 +491,9 @@ VALUES
     ('Pinecrest Raised Beds', 'Pinecrest_Bed_1', 'Radish', 12, 'Spring', NULL, 'Planned', NULL, 'Short rotation crop'),
     ('Lakeside Food Garden', 'Lakeside_Bed_1', 'Cucumber', 4, 'Summer', NULL, 'Planned', NULL, 'Trellis required'),
     ('Cedar Ridge Herb Garden', 'CedarRidge_Bed_1', 'Cilantro', 10, 'Fall', NULL, 'Planned', NULL, 'Waiting for soil improvement'),
-    ('Cedar Ridge Herb Garden', 'CedarRidge_Bed_1', 'Basil', 6, 'Summer', '2026-05-15', 'Removed', 'Poor', 'Removed when the soil problem was identified'),
+    ('Cedar Ridge Herb Garden', 'CedarRidge_Bed_1', 'Basil', 6, 'Summer', '2026-05-15', 'Removed', 'Needs Replacement', 'Removed when the soil problem was identified'),
     ('Meadowbrook Compost Garden', 'Meadowbrook_Bed_1', 'Kale', 8, 'Fall', NULL, 'Planned', NULL, 'Use finished compost'),
     ('Willow Creek Demonstration Garden', 'WillowCreek_Bed_1', 'Green Bean', 12, 'Fall', '2026-09-10', 'In-ground', 'Good', 'Irrigation demonstration'),
     ('Northside Community Garden', 'Northside_Bed_1', 'Zucchini', 3, 'Summer', NULL, 'Planned', NULL, 'Community planting day'),
-    ('Eastview Native Plant Garden', 'Eastview_Bed_1', 'Sunflower', 6, 'Summer', '2026-06-01', 'Harvested', 'Needs Improvement', 'Previous seasonal planting'),
+    ('Eastview Native Plant Garden', 'Eastview_Bed_1', 'Sunflower', 6, 'Summer', '2026-06-01', 'Harvested', 'Fair', 'Previous seasonal planting'),
     ('Westfield Greenhouse Garden', 'Westfield_Bench_1', 'Pepper', 6, 'Fall', '2026-08-10', 'In-ground', NULL, 'Started indoors');
