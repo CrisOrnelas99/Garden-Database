@@ -65,6 +65,7 @@ SELECT
             )
             FROM inventory_transaction it
             WHERE it.for_school = l.location_name
+              AND it.purchase_request_id IS NULL
         ),
         0
     ) AS items_currently_checked_out,

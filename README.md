@@ -40,6 +40,7 @@ erDiagram
     ITEM ||--o| INVENTORY_LIST : tracked_in
 
     INVENTORY_LIST ||--o{ INVENTORY_TRANSACTION : records
+    PURCHASE_REQUEST o|--o| INVENTORY_TRANSACTION : receipt_record
 
     BUDGET {
         int budget_id PK

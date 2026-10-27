@@ -176,6 +176,51 @@ CREATE TABLE crop_rotation (
 
 -- ============================================================
 -- TRIGGER 1
+-- Keep garden.bed_count derived from the garden_bed rows
+-- ============================================================
+CREATE OR REPLACE FUNCTION protect_garden_bed_count()
+RETURNS TRIGGER AS $$
+DECLARE
+    count_for_garden VARCHAR(200);
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        count_for_garden := NEW.garden_name;
+    ELSIF pg_trigger_depth() = 1
+          AND NEW.bed_count IS DISTINCT FROM OLD.bed_count THEN
+        -- When the garden is renamed in the same update, beds still have the
+        -- old name until the foreign-key cascade runs.
+        count_for_garden := CASE
+            WHEN NEW.garden_name IS DISTINCT FROM OLD.garden_name
+                THEN OLD.garden_name
+            ELSE NEW.garden_name
+        END;
+    ELSE
+        RETURN NEW;
+    END IF;
+
+    SELECT COUNT(*)::INT
+    INTO NEW.bed_count
+    FROM garden_bed
+    WHERE garden_name = count_for_garden;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Reapply this protection when the garden row is inserted or bed_count changes.
+DROP TRIGGER IF EXISTS trg_protect_garden_bed_count
+ON garden;
+
+CREATE TRIGGER trg_protect_garden_bed_count
+BEFORE INSERT OR UPDATE OF bed_count
+ON garden
+FOR EACH ROW
+EXECUTE FUNCTION protect_garden_bed_count();
+
+
+-- ============================================================
+-- TRIGGER 2
 -- Keep garden.bed_count in sync with the garden_bed rows
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_garden_bed_count()
@@ -221,7 +266,7 @@ EXECUTE FUNCTION update_garden_bed_count();
 
 
 -- ============================================================
--- TRIGGER 2
+-- TRIGGER 3
 -- Clear crop_rotation.soil_health when a planting is removed
 -- ============================================================
 CREATE OR REPLACE FUNCTION clear_removed_crop_soil_status()
@@ -236,12 +281,23 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- ============================================================
--- TRIGGER 2
--- Clear soil health on inserted or updated removed crop rotations
--- ============================================================
+-- Also clear soil health if a crop rotation is inserted as Removed.
 CREATE TRIGGER trg_clear_removed_crop_soil_status
 BEFORE INSERT OR UPDATE ON crop_rotation
 FOR EACH ROW
 EXECUTE FUNCTION clear_removed_crop_soil_status();
+
+
+-- Reconcile any existing counts with the actual garden_bed rows.
+UPDATE garden g
+SET bed_count = (
+    SELECT COUNT(*)::INT
+    FROM garden_bed b
+    WHERE b.garden_name = g.garden_name
+)
+WHERE g.bed_count IS DISTINCT FROM (
+    SELECT COUNT(*)::INT
+    FROM garden_bed b
+    WHERE b.garden_name = g.garden_name
+);
 

@@ -61,7 +61,10 @@ the request.
 
 Records inventory check-ins and check-outs, including the date, person,
 receiving school, item, and quantity. The school and item refer to `location`
-and `inventory_list`, respectively.
+and `inventory_list`, respectively. An optional purchase request link can mark
+a check-in as the receipt record for an already delivered purchase; that linked
+transaction is recorded without adding the same quantity to stock a second time
+or counting it as a school check-in in the supply view.
 
 ## Garden Schema
 

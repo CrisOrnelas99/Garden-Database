@@ -76,10 +76,11 @@ CREATE TABLE inventory_list (
     storage_location VARCHAR(200),
     notes TEXT,
 
+    -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_inventory_item
         FOREIGN KEY (item_name)
         REFERENCES item(item_name)
-        ON UPDATE CASCADE
+        ON UPDATE RESTRICT
 );
 
 
@@ -110,10 +111,11 @@ CREATE TABLE purchase_request (
         REFERENCES location(location_name)
         ON UPDATE CASCADE,
 
+    -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_purchase_request_item
         FOREIGN KEY (item_name)
         REFERENCES item(item_name)
-        ON UPDATE CASCADE,
+        ON UPDATE RESTRICT,
 
     CONSTRAINT fk_purchase_request_budget
         FOREIGN KEY (budget_name)
@@ -132,6 +134,7 @@ CREATE TABLE purchase_request (
 CREATE TABLE inventory_transaction (
     
     transaction_id SERIAL PRIMARY KEY,
+    purchase_request_id INT UNIQUE,
     transaction_date DATE DEFAULT CURRENT_DATE,
     status inventory_transaction_status NOT NULL,
     taken_by VARCHAR(50) NOT NULL,
@@ -148,7 +151,12 @@ CREATE TABLE inventory_transaction (
     CONSTRAINT fk_inventory_transaction_item
         FOREIGN KEY (item_name)
         REFERENCES inventory_list(item_name)
-        ON UPDATE CASCADE
+        ON UPDATE RESTRICT,
+
+    CONSTRAINT fk_inventory_transaction_purchase_request
+        FOREIGN KEY (purchase_request_id)
+        REFERENCES purchase_request(request_id)
+        ON DELETE RESTRICT
 );
 
 
@@ -193,8 +201,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP TRIGGER IF EXISTS trg_calculate_purchase_request_total
+ON purchase_request;
+
 CREATE TRIGGER trg_calculate_purchase_request_total
-BEFORE INSERT OR UPDATE OF item_name, quantity_requested
+BEFORE INSERT OR UPDATE OF item_name, quantity_requested, total_cost
 ON purchase_request
 FOR EACH ROW
 EXECUTE FUNCTION calculate_purchase_request_total();
@@ -225,11 +236,10 @@ EXECUTE FUNCTION initialize_remaining_budget();
 
 -- ============================================================
 -- TRIGGER 3
--- Recalculate the shared remaining budget across all funding sources
--- using ordered requests only
+-- Recalculate a budget balance from its ordered purchase requests
 -- ============================================================
 
--- Recalculate every funding-source row for one shared budget name.
+-- Recalculate the remaining balance for one budget name.
 CREATE OR REPLACE FUNCTION recalculate_shared_budget_remaining(
     p_budget_name VARCHAR
 )
@@ -283,16 +293,49 @@ EXECUTE FUNCTION update_remaining_budget();
 
 -- ============================================================
 -- TRIGGER 4
--- InventoryTransaction updates InventoryList.instock_Total
+-- Inventory transactions update stock unless linked to a delivered purchase
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_inventory_after_transaction()
 RETURNS TRIGGER AS $$
 DECLARE
     available_stock INT;
     inventory_change INT;
+    request_item_name VARCHAR(200);
+    request_quantity INT;
+    request_delivered BOOLEAN;
 BEGIN
 
     IF TG_OP = 'INSERT' THEN
+
+        -- A linked check-in documents a purchase receipt already counted by
+        -- purchase_request.delivered_to_fns, so it must not change stock again.
+        IF NEW.purchase_request_id IS NOT NULL THEN
+            SELECT item_name, quantity_requested, delivered_to_fns
+            INTO request_item_name, request_quantity, request_delivered
+            FROM purchase_request
+            WHERE request_id = NEW.purchase_request_id;
+
+            IF NOT FOUND THEN
+                RAISE EXCEPTION
+                    'Purchase request % does not exist',
+                    NEW.purchase_request_id;
+            END IF;
+
+            IF NOT request_delivered THEN
+                RAISE EXCEPTION
+                    'Purchase request % must be marked delivered before linking a receipt',
+                    NEW.purchase_request_id;
+            END IF;
+
+            IF NEW.status <> 'Checked In'
+               OR NEW.item_name IS DISTINCT FROM request_item_name
+               OR NEW.quantity IS DISTINCT FROM request_quantity THEN
+                RAISE EXCEPTION
+                    'A purchase receipt transaction must be Checked In and match the delivered request item and quantity';
+            END IF;
+
+            RETURN NEW;
+        END IF;
 
         IF NEW.status = 'Checked Out' THEN
             inventory_change := -NEW.quantity;
@@ -327,6 +370,42 @@ BEGIN
 
 
     ELSIF TG_OP = 'UPDATE' THEN
+
+        IF OLD.purchase_request_id IS NOT NULL THEN
+            IF NEW.purchase_request_id IS DISTINCT FROM OLD.purchase_request_id THEN
+                RAISE EXCEPTION
+                    'A linked purchase receipt cannot be unlinked or reassigned; delete it and create the desired transaction';
+            END IF;
+
+            SELECT item_name, quantity_requested, delivered_to_fns
+            INTO request_item_name, request_quantity, request_delivered
+            FROM purchase_request
+            WHERE request_id = NEW.purchase_request_id;
+
+            IF NOT FOUND THEN
+                RAISE EXCEPTION
+                    'Linked purchase request % no longer exists',
+                    NEW.purchase_request_id;
+            END IF;
+
+            IF NOT request_delivered THEN
+                RAISE EXCEPTION
+                    'Linked purchase request % must remain delivered',
+                    NEW.purchase_request_id;
+            END IF;
+
+            IF NEW.status <> 'Checked In'
+               OR NEW.item_name IS DISTINCT FROM request_item_name
+               OR NEW.quantity IS DISTINCT FROM request_quantity THEN
+                RAISE EXCEPTION
+                    'A linked purchase receipt transaction must remain Checked In and match the delivered request item and quantity';
+            END IF;
+
+            RETURN NEW;
+        ELSIF NEW.purchase_request_id IS NOT NULL THEN
+            RAISE EXCEPTION
+                'Link a purchase request when inserting a receipt transaction; delete and recreate an existing transaction if needed';
+        END IF;
 
         -- Reverse the old transaction
         IF OLD.status = 'Checked Out' THEN
@@ -375,6 +454,11 @@ BEGIN
 
     ELSIF TG_OP = 'DELETE' THEN
 
+        -- The purchase request owns the stock adjustment for linked receipts.
+        IF OLD.purchase_request_id IS NOT NULL THEN
+            RETURN OLD;
+        END IF;
+
         IF OLD.status = 'Checked Out' THEN
             inventory_change := OLD.quantity;
         ELSE
@@ -409,6 +493,31 @@ DECLARE
     inventory_delta INT;
     available_stock INT;
 BEGIN
+    IF TG_OP = 'DELETE' THEN
+        IF EXISTS (
+            SELECT 1
+            FROM inventory_transaction it
+            WHERE it.purchase_request_id = OLD.request_id
+        ) THEN
+            RAISE EXCEPTION
+                'Delete the linked inventory receipt before deleting purchase request %',
+                OLD.request_id;
+        END IF;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF EXISTS (
+            SELECT 1
+            FROM inventory_transaction it
+            WHERE it.purchase_request_id = OLD.request_id
+        ) AND (
+            NEW.delivered_to_fns IS DISTINCT FROM TRUE
+            OR NEW.item_name IS DISTINCT FROM OLD.item_name
+            OR NEW.quantity_requested IS DISTINCT FROM OLD.quantity_requested
+        ) THEN
+            RAISE EXCEPTION
+                'A purchase request with a linked inventory receipt cannot be undelivered or have its item or quantity changed; delete the receipt record first';
+        END IF;
+    END IF;
+
     IF TG_OP = 'INSERT' THEN
         IF NEW.delivered_to_fns THEN
             inventory_delta := NEW.quantity_requested;
@@ -523,7 +632,7 @@ EXECUTE FUNCTION update_inventory_when_received();
 
 -- ============================================================
 -- TRIGGER 6
--- Recalculate remaining budget when budget amount changes
+-- Recalculate remaining budget when its amount or stored balance changes
 -- Ordered requests only
 -- ============================================================
 
@@ -546,8 +655,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_update_remaining_budget_after_budget_change
+ON budget;
+
 CREATE TRIGGER trg_update_remaining_budget_after_budget_change
-BEFORE UPDATE OF budget_amount
+BEFORE UPDATE OF budget_amount, remaining_budget
 ON budget
 FOR EACH ROW
 EXECUTE FUNCTION update_remaining_budget_after_budget_change();
@@ -555,14 +667,15 @@ EXECUTE FUNCTION update_remaining_budget_after_budget_change();
 
 -- ============================================================
 -- TRIGGER 7
--- Recalculate purchase request totals when an item's unit cost changes
+-- Recalculate unordered request totals when an item's unit cost changes
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_purchase_totals_after_item_cost_change()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE purchase_request
     SET total_cost = quantity_requested * NEW.unit_cost
-    WHERE item_name = NEW.item_name;
+    WHERE item_name = NEW.item_name
+      AND ordered = FALSE;
 
     RETURN NEW;
 END;
@@ -574,3 +687,25 @@ ON item
 FOR EACH ROW
 WHEN (OLD.unit_cost IS DISTINCT FROM NEW.unit_cost)
 EXECUTE FUNCTION update_purchase_totals_after_item_cost_change();
+
+
+-- Reconcile any existing balances with the ordered purchase requests.
+UPDATE budget b
+SET remaining_budget = b.budget_amount - COALESCE(
+    (
+        SELECT SUM(pr.total_cost)
+        FROM purchase_request pr
+        WHERE pr.budget_name = b.budget_name
+          AND pr.ordered = TRUE
+    ),
+    0
+)
+WHERE b.remaining_budget IS DISTINCT FROM b.budget_amount - COALESCE(
+    (
+        SELECT SUM(pr.total_cost)
+        FROM purchase_request pr
+        WHERE pr.budget_name = b.budget_name
+          AND pr.ordered = TRUE
+    ),
+    0
+);
