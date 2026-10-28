@@ -33,8 +33,8 @@ Stores schools and program locations. Garden fields are optional, so an office o
 - `location_name`: required, unique readable name used by related tables.
 - `contact`: contact person for the location.
 - `email`: contact email address.
-- `lifecycle_status`: lifecycle of the location's garden, when one is tracked.
-- `condition`: current condition of the location's garden, when one is tracked.
+- `garden_status`: lifecycle of the location's garden, when one is tracked.
+- `garden_condition`: current condition of the location's garden, when one is tracked.
 - `bed_count`: number of beds at the location; maintained from garden-bed records. `NULL` means garden details are not tracked.
 - `notes`: additional location or garden details.
 
@@ -187,10 +187,10 @@ In Supabase, add a group header row by filling `location_group_name` and leaving
 For example, create `SchoolBandC` and add two schools:
 
 ```sql
-INSERT INTO "l-location-group" (location_group_name)
+INSERT INTO location_group (location_group_name)
 VALUES ('SchoolBandC');
 
-INSERT INTO "l-location-group" (belongs_to_group, location_name)
+INSERT INTO location_group (belongs_to_group, location_name)
 VALUES
     ('SchoolBandC', 'Sunshine Elementary'),
     ('SchoolBandC', 'Green Valley Middle School');
@@ -199,12 +199,12 @@ VALUES
 For a purchase request, set `requesting_school` for one school or `requesting_school_group` for a group. For an inventory transaction, use `for_school` or `for_school_group` in the same way. The direct-school and group fields cannot both be filled; both may be `NULL` while a record is unassigned. When switching an existing row, clear the current field and set the new one together:
 
 ```sql
-UPDATE "i-purchase_request"
+UPDATE purchase_request
 SET requesting_school = NULL,
     requesting_school_group = 'SchoolBandC'
 WHERE request_id = 123;
 
-UPDATE "i-inventory_transaction"
+UPDATE inventory_transaction
 SET for_school = NULL,
     for_school_group = 'SchoolBandC'
 WHERE transaction_id = 123;
@@ -214,8 +214,8 @@ Developers can get a group's schools by joining its header row to its member row
 
 ```sql
 SELECT group_row.location_group_name, member_row.location_name
-FROM "l-location-group" AS group_row
-JOIN "l-location-group" AS member_row
+FROM location_group AS group_row
+JOIN location_group AS member_row
     ON member_row.belongs_to_group = group_row.location_group_name
 WHERE group_row.location_group_name IS NOT NULL;
 ```

@@ -836,9 +836,6 @@ INSERT INTO "InventoryTransaction" ("date", "status", "taken_by", "for_school", 
 INSERT INTO "InventoryTransaction" ("date", "status", "taken_by", "for_school", "item_name", "quantity", "notes") VALUES (NULL, 'Checked Out', 'Mark', 'The Alva School', 'Nutrients - Calcium Nitrate', 2, '50- pound bags');
 INSERT INTO "InventoryTransaction" ("date", "status", "taken_by", "for_school", "item_name", "quantity", "notes") VALUES (NULL, 'Checked Out', 'Mark', 'Trafalgar Middle School', 'Media - Soil/compost', 1, '1 dump trailer load of Sakata soil.');
 COMMIT;
-
-
-
 BEGIN;
 INSERT INTO garden (location_name, garden_name, notes) SELECT 'Bonita Springs High School', 'Garden at Bonita Springs High School', 'Garden-related activity in workbook: Mark 25-26 row 127; Daniela 25-26 row 13; Daniela 25-26 row 19; Daniela 25-26 row 21; Daniela 25-26 row 35. Garden name generated for import; verify actual name.' WHERE EXISTS (SELECT 1 FROM location WHERE location_name = 'Bonita Springs High School') ON CONFLICT (garden_name) DO NOTHING;
 INSERT INTO garden (location_name, garden_name, notes) SELECT 'Bonita Springs Middle School', 'Garden at Bonita Springs Middle School', 'Garden-related activity in workbook: Leisha 25-26 row 615. Garden name generated for import; verify actual name.' WHERE EXISTS (SELECT 1 FROM location WHERE location_name = 'Bonita Springs Middle School') ON CONFLICT (garden_name) DO NOTHING;

@@ -31,17 +31,17 @@ CREATE TYPE lifecycle_status AS ENUM (
 
 
 -- ============================================================
--- "l-location"
+-- location
 -- School/office details and optional garden fields.
 -- ============================================================
-CREATE TABLE "l-location" (
+CREATE TABLE location (
     
     location_id SERIAL PRIMARY KEY,
     location_name VARCHAR(200) NOT NULL UNIQUE,
     contact VARCHAR(100),
     email VARCHAR(200),
-    lifecycle_status lifecycle_status,
-    condition condition,
+    garden_status lifecycle_status,
+    garden_condition condition,
     bed_count nonnegative_count,
     notes TEXT,
 
@@ -49,18 +49,18 @@ CREATE TABLE "l-location" (
         CHECK (
             bed_count IS NOT NULL
             OR (
-                lifecycle_status IS NULL
-                AND condition IS NULL
+                garden_status IS NULL
+                AND garden_condition IS NULL
             )
         )
 );
 
 
 -- ============================================================
--- "l-location-group"
+-- location_group
 -- Group rows store names; member rows point to one group and one location.
 -- ============================================================
-CREATE TABLE "l-location-group" (
+CREATE TABLE location_group (
     location_group_id SERIAL PRIMARY KEY,
     location_group_name VARCHAR(200) UNIQUE,
     belongs_to_group VARCHAR(200),
@@ -79,13 +79,13 @@ CREATE TABLE "l-location-group" (
 
     CONSTRAINT fk_location_group_belongs_to_group
         FOREIGN KEY (belongs_to_group)
-        REFERENCES "l-location-group"(location_group_name)
+        REFERENCES location_group(location_group_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
     CONSTRAINT fk_location_group_member_location
         FOREIGN KEY (location_name)
-        REFERENCES "l-location"(location_name)
+        REFERENCES location(location_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -95,10 +95,10 @@ CREATE TABLE "l-location-group" (
 
 
 -- ============================================================
--- "i-budget"
+-- budget
 -- One shared amount and remaining balance per budget name.
 -- ============================================================
-CREATE TABLE "i-budget" (
+CREATE TABLE budget (
     
     budget_id SERIAL PRIMARY KEY,
     budget_name VARCHAR(100) NOT NULL UNIQUE,
@@ -109,10 +109,10 @@ CREATE TABLE "i-budget" (
 
 
 -- ============================================================
--- "i-item"
+-- item
 -- Item catalog / master item information
 -- ============================================================
-CREATE TABLE "i-item" (
+CREATE TABLE item (
     
     item_id SERIAL PRIMARY KEY,
     item_name VARCHAR(200) NOT NULL UNIQUE,
@@ -125,10 +125,10 @@ CREATE TABLE "i-item" (
 
 
 -- ============================================================
--- "i-inventory_list"
+-- inventory_list
 -- Actual items currently tracked in inventory
 -- ============================================================
-CREATE TABLE "i-inventory_list" (
+CREATE TABLE inventory_list (
     
     inventory_id SERIAL PRIMARY KEY,
     item_name VARCHAR(200) NOT NULL UNIQUE,
@@ -142,16 +142,16 @@ CREATE TABLE "i-inventory_list" (
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_inventory_item
         FOREIGN KEY (item_name)
-        REFERENCES "i-item"(item_name)
+        REFERENCES item(item_name)
         ON UPDATE RESTRICT
 );
 
 
 -- ============================================================
--- "i-purchase_request"
+-- purchase_request
 -- Purchase requests and their assigned budget
 -- ============================================================
-CREATE TABLE "i-purchase_request" (
+CREATE TABLE purchase_request (
     
     request_id SERIAL PRIMARY KEY,
     request_date DATE,
@@ -172,13 +172,13 @@ CREATE TABLE "i-purchase_request" (
 
     CONSTRAINT fk_purchase_request_school
         FOREIGN KEY (requesting_school)
-        REFERENCES "l-location"(location_name)
+        REFERENCES location(location_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
     CONSTRAINT fk_purchase_request_school_group
         FOREIGN KEY (requesting_school_group)
-        REFERENCES "l-location-group"(location_group_name)
+        REFERENCES location_group(location_group_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -188,12 +188,12 @@ CREATE TABLE "i-purchase_request" (
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_purchase_request_item
         FOREIGN KEY (item_name)
-        REFERENCES "i-item"(item_name)
+        REFERENCES item(item_name)
         ON UPDATE RESTRICT,
 
     CONSTRAINT fk_purchase_request_budget
         FOREIGN KEY (budget_name)
-        REFERENCES "i-budget"(budget_name)
+        REFERENCES budget(budget_name)
         ON UPDATE CASCADE,
 
     CONSTRAINT chk_purchase_request_delivered_must_be_ordered
@@ -202,10 +202,10 @@ CREATE TABLE "i-purchase_request" (
 
 
 -- ============================================================
--- "i-inventory_transaction"
+-- inventory_transaction
 -- Records inventory being taken from InventoryList
 -- ============================================================
-CREATE TABLE "i-inventory_transaction" (
+CREATE TABLE inventory_transaction (
     
     transaction_id SERIAL PRIMARY KEY,
     transaction_date DATE DEFAULT CURRENT_DATE,
@@ -219,13 +219,13 @@ CREATE TABLE "i-inventory_transaction" (
     notes TEXT,
     CONSTRAINT fk_inventory_transaction_school
         FOREIGN KEY (for_school)
-        REFERENCES "l-location"(location_name)
+        REFERENCES location(location_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
     CONSTRAINT fk_inventory_transaction_school_group
         FOREIGN KEY (for_school_group)
-        REFERENCES "l-location-group"(location_group_name)
+        REFERENCES location_group(location_group_name)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -234,7 +234,7 @@ CREATE TABLE "i-inventory_transaction" (
 
     CONSTRAINT fk_inventory_transaction_item
         FOREIGN KEY (item_name)
-        REFERENCES "i-inventory_list"(item_name)
+        REFERENCES inventory_list(item_name)
         ON UPDATE RESTRICT
 
 );
@@ -248,7 +248,7 @@ CREATE TABLE "i-inventory_transaction" (
 -- ============================================================
 -- TRIGGER 1
 -- PurchaseRequest.total_cost =
--- quantity_requested * "i-item".unit_cost
+-- quantity_requested * item.unit_cost
 -- ============================================================
 CREATE OR REPLACE FUNCTION calculate_purchase_request_total()
 RETURNS TRIGGER AS $$
@@ -258,18 +258,18 @@ BEGIN
 
     SELECT unit_cost
     INTO item_unit_cost
-    FROM "i-item"
+    FROM item
     WHERE item_name = NEW.item_name;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION
-            'Item "%" was not found in "i-item"',
+            'Item "%" was not found in item',
             NEW.item_name;
     END IF;
 
     IF item_unit_cost IS NULL THEN
         RAISE EXCEPTION
-            'Item "%" does not have a unit_cost in "i-item"',
+            'Item "%" does not have a unit_cost in item',
             NEW.item_name;
     END IF;
 
@@ -282,11 +282,11 @@ $$ LANGUAGE plpgsql;
 
 
 DROP TRIGGER IF EXISTS trg_calculate_purchase_request_total
-ON "i-purchase_request";
+ON purchase_request;
 
 CREATE TRIGGER trg_calculate_purchase_request_total
 BEFORE INSERT OR UPDATE OF item_name, quantity_requested, total_cost
-ON "i-purchase_request"
+ON purchase_request
 FOR EACH ROW
 EXECUTE FUNCTION calculate_purchase_request_total();
 
@@ -309,7 +309,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_initialize_remaining_budget
 BEFORE INSERT
-ON "i-budget"
+ON budget
 FOR EACH ROW
 EXECUTE FUNCTION initialize_remaining_budget();
 
@@ -325,13 +325,13 @@ CREATE OR REPLACE FUNCTION recalculate_shared_budget_remaining(
 )
 RETURNS VOID AS $$
 BEGIN
-    UPDATE "i-budget" b
+    UPDATE budget b
     SET remaining_budget =
         b.budget_amount
         - COALESCE(
             (
                 SELECT SUM(pr.total_cost)
-                FROM "i-purchase_request" pr
+                FROM purchase_request pr
                 WHERE pr.budget_name = p_budget_name
                   AND pr.ordered = TRUE
             ),
@@ -366,7 +366,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_remaining_budget
 AFTER INSERT OR UPDATE OR DELETE
-ON "i-purchase_request"
+ON purchase_request
 FOR EACH ROW
 EXECUTE FUNCTION update_remaining_budget();
 
@@ -388,12 +388,12 @@ BEGIN
         END;
 
         SELECT instock_total INTO available_stock
-        FROM "i-inventory_list"
+        FROM inventory_list
         WHERE item_name = NEW.item_name
         FOR UPDATE;
 
         IF NOT FOUND THEN
-            RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
+            RAISE EXCEPTION 'Item "%" is not present in inventory_list', NEW.item_name;
         END IF;
         IF available_stock + inventory_change < 0 THEN
             RAISE EXCEPTION
@@ -401,7 +401,7 @@ BEGIN
                 NEW.item_name, available_stock, NEW.quantity;
         END IF;
 
-        UPDATE "i-inventory_list"
+        UPDATE inventory_list
         SET instock_total = instock_total + inventory_change
         WHERE item_name = NEW.item_name;
         RETURN NEW;
@@ -421,7 +421,7 @@ BEGIN
             ELSE -OLD.quantity
         END;
 
-        UPDATE "i-inventory_list"
+        UPDATE inventory_list
         SET instock_total = instock_total + inventory_change
         WHERE item_name = OLD.item_name
           AND instock_total + inventory_change >= 0;
@@ -439,7 +439,7 @@ BEGIN
 
         SELECT instock_total
         INTO available_stock
-        FROM "i-inventory_list"
+        FROM inventory_list
         WHERE item_name = NEW.item_name
         FOR UPDATE;
 
@@ -455,7 +455,7 @@ BEGIN
                 NEW.item_name, available_stock, NEW.quantity;
         END IF;
 
-        UPDATE "i-inventory_list"
+        UPDATE inventory_list
         SET instock_total = instock_total + inventory_change
         WHERE item_name = NEW.item_name;
 
@@ -468,7 +468,7 @@ BEGIN
         END;
 
         -- Deleting a check-in removes its stock addition; do not allow stock below zero.
-        UPDATE "i-inventory_list"
+        UPDATE inventory_list
         SET instock_total = instock_total + inventory_change
         WHERE item_name = OLD.item_name
           AND instock_total + inventory_change >= 0;
@@ -488,7 +488,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_inventory_transaction
 BEFORE INSERT OR UPDATE OR DELETE
-ON "i-inventory_transaction"
+ON inventory_transaction
 FOR EACH ROW
 EXECUTE FUNCTION update_inventory_after_transaction();
 
@@ -507,15 +507,15 @@ BEGIN
         IF NEW.delivered_to_fns THEN
             inventory_delta := NEW.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM "i-inventory_list"
+            FROM inventory_list
             WHERE item_name = NEW.item_name
             FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in inventory_list', NEW.item_name;
             END IF;
 
-            UPDATE "i-inventory_list"
+            UPDATE inventory_list
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = NEW.item_name;
@@ -525,19 +525,19 @@ BEGIN
         IF OLD.delivered_to_fns THEN
             inventory_delta := -OLD.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM "i-inventory_list"
+            FROM inventory_list
             WHERE item_name = OLD.item_name
             FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', OLD.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in inventory_list', OLD.item_name;
             END IF;
             IF available_stock < -inventory_delta THEN
                 RAISE EXCEPTION 'Cannot remove delivered quantity for "%": only % remain in stock',
                     OLD.item_name, available_stock;
             END IF;
 
-            UPDATE "i-inventory_list"
+            UPDATE inventory_list
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = OLD.item_name;
@@ -550,19 +550,19 @@ BEGIN
             inventory_delta := NEW.quantity_requested - OLD.quantity_requested;
             IF inventory_delta <> 0 THEN
                 SELECT instock_total INTO available_stock
-                FROM "i-inventory_list"
+                FROM inventory_list
                 WHERE item_name = NEW.item_name
                 FOR UPDATE;
 
                 IF NOT FOUND THEN
-                    RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
+                    RAISE EXCEPTION 'Item "%" is not present in inventory_list', NEW.item_name;
                 END IF;
                 IF inventory_delta < 0 AND available_stock < -inventory_delta THEN
                     RAISE EXCEPTION 'Cannot reduce delivered quantity for "%": only % remain in stock',
                         NEW.item_name, available_stock;
                 END IF;
 
-                UPDATE "i-inventory_list"
+                UPDATE inventory_list
                 SET cumulative_asset = cumulative_asset + inventory_delta,
                     instock_total = instock_total + inventory_delta
                 WHERE item_name = NEW.item_name;
@@ -574,19 +574,19 @@ BEGIN
         IF OLD.delivered_to_fns THEN
             inventory_delta := -OLD.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM "i-inventory_list"
+            FROM inventory_list
             WHERE item_name = OLD.item_name
             FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', OLD.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in inventory_list', OLD.item_name;
             END IF;
             IF available_stock < -inventory_delta THEN
                 RAISE EXCEPTION 'Cannot remove delivered quantity for "%": only % remain in stock',
                     OLD.item_name, available_stock;
             END IF;
 
-            UPDATE "i-inventory_list"
+            UPDATE inventory_list
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = OLD.item_name;
@@ -596,15 +596,15 @@ BEGIN
         IF NEW.delivered_to_fns THEN
             inventory_delta := NEW.quantity_requested;
             SELECT instock_total INTO available_stock
-            FROM "i-inventory_list"
+            FROM inventory_list
             WHERE item_name = NEW.item_name
             FOR UPDATE;
 
             IF NOT FOUND THEN
-                RAISE EXCEPTION 'Item "%" is not present in "i-inventory_list"', NEW.item_name;
+                RAISE EXCEPTION 'Item "%" is not present in inventory_list', NEW.item_name;
             END IF;
 
-            UPDATE "i-inventory_list"
+            UPDATE inventory_list
             SET cumulative_asset = cumulative_asset + inventory_delta,
                 instock_total = instock_total + inventory_delta
             WHERE item_name = NEW.item_name;
@@ -616,11 +616,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_update_inventory_when_received
-ON "i-purchase_request";
+ON purchase_request;
 
 CREATE TRIGGER trg_update_inventory_when_received
 AFTER INSERT OR UPDATE OR DELETE
-ON "i-purchase_request"
+ON purchase_request
 FOR EACH ROW
 EXECUTE FUNCTION update_inventory_when_received();
 
@@ -639,7 +639,7 @@ BEGIN
         - COALESCE(
             (
                 SELECT SUM(pr.total_cost)
-                FROM "i-purchase_request" pr
+                FROM purchase_request pr
                 WHERE pr.budget_name = NEW.budget_name
                   AND pr.ordered = TRUE
             ),
@@ -651,11 +651,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_update_remaining_budget_after_budget_change
-ON "i-budget";
+ON budget;
 
 CREATE TRIGGER trg_update_remaining_budget_after_budget_change
 BEFORE UPDATE OF budget_amount, remaining_budget
-ON "i-budget"
+ON budget
 FOR EACH ROW
 EXECUTE FUNCTION update_remaining_budget_after_budget_change();
 
@@ -667,7 +667,7 @@ EXECUTE FUNCTION update_remaining_budget_after_budget_change();
 CREATE OR REPLACE FUNCTION update_purchase_totals_after_item_cost_change()
 RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE "i-purchase_request"
+    UPDATE purchase_request
     SET total_cost = quantity_requested * NEW.unit_cost
     WHERE item_name = NEW.item_name
       AND ordered = FALSE;
@@ -678,18 +678,18 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_purchase_totals_after_item_cost_change
 AFTER UPDATE OF unit_cost
-ON "i-item"
+ON item
 FOR EACH ROW
 WHEN (OLD.unit_cost IS DISTINCT FROM NEW.unit_cost)
 EXECUTE FUNCTION update_purchase_totals_after_item_cost_change();
 
 
 -- Reconcile any existing balances with the ordered purchase requests.
-UPDATE "i-budget" b
+UPDATE budget b
 SET remaining_budget = b.budget_amount - COALESCE(
     (
         SELECT SUM(pr.total_cost)
-        FROM "i-purchase_request" pr
+        FROM purchase_request pr
         WHERE pr.budget_name = b.budget_name
           AND pr.ordered = TRUE
     ),
@@ -698,7 +698,7 @@ SET remaining_budget = b.budget_amount - COALESCE(
 WHERE b.remaining_budget IS DISTINCT FROM b.budget_amount - COALESCE(
     (
         SELECT SUM(pr.total_cost)
-        FROM "i-purchase_request" pr
+        FROM purchase_request pr
         WHERE pr.budget_name = b.budget_name
           AND pr.ordered = TRUE
     ),
@@ -718,15 +718,15 @@ RETURNS TRIGGER AS $$
 DECLARE
     group_name_to_check VARCHAR(200);
 BEGIN
-    IF TG_TABLE_NAME = 'i-purchase_request' THEN
+    IF TG_TABLE_NAME = 'purchase_request' THEN
         SELECT requesting_school_group
         INTO group_name_to_check
-        FROM "i-purchase_request"
+        FROM purchase_request
         WHERE request_id = NEW.request_id;
-    ELSIF TG_TABLE_NAME = 'i-inventory_transaction' THEN
+    ELSIF TG_TABLE_NAME = 'inventory_transaction' THEN
         SELECT for_school_group
         INTO group_name_to_check
-        FROM "i-inventory_transaction"
+        FROM inventory_transaction
         WHERE transaction_id = NEW.transaction_id;
     ELSE
         RAISE EXCEPTION 'Unsupported table for location group validation: %', TG_TABLE_NAME;
@@ -743,7 +743,7 @@ BEGIN
     END IF;
 
     PERFORM 1
-    FROM "l-location-group"
+    FROM location_group
     WHERE location_group_name = group_name_to_check
     FOR UPDATE;
 
@@ -753,7 +753,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1
-        FROM "l-location-group"
+        FROM location_group
         WHERE belongs_to_group = group_name_to_check
     ) THEN
         RAISE EXCEPTION
@@ -769,7 +769,7 @@ $$ LANGUAGE plpgsql;
 -- TRIGGER 8: validate a purchase request's group after all transaction changes.
 CREATE CONSTRAINT TRIGGER trg_require_purchase_request_group_locations
 AFTER INSERT OR UPDATE
-ON "i-purchase_request"
+ON purchase_request
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION ensure_referenced_group_has_locations();
@@ -777,7 +777,7 @@ EXECUTE FUNCTION ensure_referenced_group_has_locations();
 -- TRIGGER 9: validate an inventory transaction's group after all transaction changes.
 CREATE CONSTRAINT TRIGGER trg_require_inventory_transaction_group_locations
 AFTER INSERT OR UPDATE
-ON "i-inventory_transaction"
+ON inventory_transaction
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION ensure_referenced_group_has_locations();
@@ -803,7 +803,7 @@ BEGIN
     -- A parent group rename cascades its name to member rows. If the old name
     -- no longer exists, this deferred event does not remove a membership.
     PERFORM 1
-    FROM "l-location-group"
+    FROM location_group
     WHERE location_group_name = group_name_to_check
     FOR UPDATE;
 
@@ -813,7 +813,7 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
-        FROM "l-location-group"
+        FROM location_group
         WHERE belongs_to_group = group_name_to_check
     ) THEN
         RETURN NULL;
@@ -821,11 +821,11 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
-        FROM "i-purchase_request"
+        FROM purchase_request
         WHERE requesting_school_group = group_name_to_check
     ) OR EXISTS (
         SELECT 1
-        FROM "i-inventory_transaction"
+        FROM inventory_transaction
         WHERE for_school_group = group_name_to_check
     ) THEN
         RAISE EXCEPTION
@@ -841,7 +841,7 @@ $$ LANGUAGE plpgsql;
 -- TRIGGER 10: prevent a used group from becoming unassigned.
 CREATE CONSTRAINT TRIGGER trg_prevent_emptying_referenced_location_group
 AFTER DELETE OR UPDATE
-ON "l-location-group"
+ON location_group
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION prevent_emptying_referenced_location_group();

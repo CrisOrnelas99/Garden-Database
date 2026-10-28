@@ -16,7 +16,7 @@ SELECT
     il.reorder_point,
     il.counted,
     il.storage_location
-FROM "i-inventory_list" il
+FROM inventory_list il
 WHERE il.instock_total <= il.reorder_point;
 
 
@@ -38,7 +38,7 @@ SELECT
     CASE
         WHEN pr.requesting_school_group IS NOT NULL THEN (
             SELECT STRING_AGG(lal.location_name, ', ' ORDER BY lal.location_name)
-            FROM "l-location-group" lal
+            FROM location_group lal
             WHERE lal.belongs_to_group = pr.requesting_school_group
               AND lal.location_name IS NOT NULL
         )
@@ -48,7 +48,7 @@ SELECT
     pr.total_cost,
     pr.review_status,
     pr.notes
-FROM "i-purchase_request" pr
+FROM purchase_request pr
 WHERE pr.ordered = FALSE
    OR pr.delivered_to_fns = FALSE;
 
@@ -66,7 +66,7 @@ WITH assignments AS (
         'School'::TEXT AS assignment_type,
         l.location_name,
         NULL::VARCHAR(200) AS location_group_name
-    FROM "l-location" l
+    FROM location l
 
     UNION ALL
 
@@ -74,7 +74,7 @@ WITH assignments AS (
         'Group'::TEXT AS assignment_type,
         NULL::VARCHAR(200) AS location_name,
         g.location_group_name
-    FROM "l-location-group" g
+    FROM location_group g
     WHERE g.location_group_name IS NOT NULL
 ),
 transaction_totals AS (
@@ -87,7 +87,7 @@ transaction_totals AS (
                 WHEN status = 'Checked In' THEN -quantity
             END
         ) AS items_currently_checked_out
-    FROM "i-inventory_transaction" it
+    FROM inventory_transaction it
     WHERE it.for_school IS NOT NULL
     GROUP BY it.for_school
 
@@ -102,7 +102,7 @@ transaction_totals AS (
                 WHEN status = 'Checked In' THEN -quantity
             END
         ) AS items_currently_checked_out
-    FROM "i-inventory_transaction" it
+    FROM inventory_transaction it
     WHERE it.for_school_group IS NOT NULL
     GROUP BY it.for_school_group
 ),
@@ -114,7 +114,7 @@ request_totals AS (
             WHERE NOT pr.ordered OR NOT pr.delivered_to_fns
         ) AS items_still_requested,
         SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
-    FROM "i-purchase_request" pr
+    FROM purchase_request pr
     WHERE pr.requesting_school IS NOT NULL
     GROUP BY pr.requesting_school
 
@@ -127,7 +127,7 @@ request_totals AS (
             WHERE NOT pr.ordered OR NOT pr.delivered_to_fns
         ) AS items_still_requested,
         SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
-    FROM "i-purchase_request" pr
+    FROM purchase_request pr
     WHERE pr.requesting_school_group IS NOT NULL
     GROUP BY pr.requesting_school_group
 )
@@ -159,7 +159,7 @@ WITH budget_spending AS (
     SELECT
         budget_name,
         SUM(total_cost) AS total_budget_spent
-    FROM "i-purchase_request"
+    FROM purchase_request
     WHERE ordered = TRUE
       AND budget_name IS NOT NULL
     GROUP BY budget_name
@@ -172,8 +172,8 @@ SELECT
     b.budget_amount AS total_budget,
     bs.total_budget_spent,
     b.remaining_budget
-FROM "i-budget" b
-JOIN "i-purchase_request" pr
+FROM budget b
+JOIN purchase_request pr
     ON b.budget_name = pr.budget_name
 JOIN budget_spending bs
     ON bs.budget_name = b.budget_name
@@ -201,7 +201,7 @@ WITH source_item_spending AS (
         pr.item_name,
         SUM(pr.quantity_requested) AS total_quantity_ordered,
         SUM(pr.total_cost) AS total_spent
-    FROM "i-purchase_request" pr
+    FROM purchase_request pr
     WHERE pr.ordered = TRUE
     GROUP BY
         COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned'),
@@ -240,7 +240,7 @@ SELECT
             ELSE 0
         END
     ) AS pending_spending
-FROM "i-purchase_request"
+FROM purchase_request
 GROUP BY school_year
 ORDER BY school_year;
 
@@ -269,11 +269,11 @@ SELECT
     END AS expected_harvest_date,
     cr.soil_health,
     cr.notes AS rotation_notes
-FROM "g-garden_bed" b
-LEFT JOIN "g-crop_rotation" cr
+FROM garden_bed b
+LEFT JOIN crop_rotation cr
     ON cr.location_name = b.location_name
    AND cr.bed_name = b.bed_name
-LEFT JOIN "g-plant" p
+LEFT JOIN plant p
     ON p.plant_name = cr.plant_name
 WHERE cr.status IN ('In-ground', 'Harvested');
 
@@ -298,8 +298,8 @@ SELECT
     END AS expected_harvest_date,
     cr.soil_health,
     cr.notes
-FROM "g-crop_rotation" cr
-JOIN "g-plant" p
+FROM crop_rotation cr
+JOIN plant p
     ON p.plant_name = cr.plant_name;
 
 
@@ -317,7 +317,7 @@ SELECT
     items.lifecycle_status,
     items.condition,
     items.notes
-FROM "l-location" l
+FROM location l
 CROSS JOIN LATERAL (
     SELECT
         'Garden Bed'::TEXT AS item_type,
@@ -325,7 +325,7 @@ CROSS JOIN LATERAL (
         b.lifecycle_status,
         b.condition,
         b.notes
-    FROM "g-garden_bed" b
+    FROM garden_bed b
     WHERE b.location_name = l.location_name
 
     UNION ALL
@@ -336,7 +336,7 @@ CROSS JOIN LATERAL (
         i.lifecycle_status,
         i.condition,
         i.notes
-    FROM "g-irrigation_setup" i
+    FROM irrigation_setup i
     WHERE i.location_name = l.location_name
 
     UNION ALL
@@ -347,7 +347,7 @@ CROSS JOIN LATERAL (
         c.lifecycle_status,
         c.condition,
         c.notes
-    FROM "g-compost_unit" c
+    FROM compost_unit c
     WHERE c.location_name = l.location_name
 ) items
 WHERE l.bed_count IS NOT NULL

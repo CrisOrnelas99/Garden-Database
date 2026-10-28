@@ -4,18 +4,18 @@
 
 -- Optional rollback
 -- TRUNCATE TABLE
---     "i-inventory_transaction",
---     "i-purchase_request",
---     "l-location-group",
---     "i-inventory_list",
---     "i-item",
---     "i-budget",
---     "g-crop_rotation",
---     "g-garden_bed",
---     "g-irrigation_setup",
---     "g-compost_unit",
---     "g-plant",
---     "l-location"
+--     inventory_transaction,
+--     purchase_request,
+--     location_group,
+--     inventory_list,
+--     item,
+--     budget,
+--     crop_rotation,
+--     garden_bed,
+--     irrigation_setup,
+--     compost_unit,
+--     plant,
+--     location
 -- RESTART IDENTITY CASCADE;
 
 
@@ -23,13 +23,13 @@
 -- LOCATIONS
 -- ============================================================
 
-INSERT INTO "l-location"
+INSERT INTO location
     (
         location_name,
         contact,
         email,
-        lifecycle_status,
-        condition,
+        garden_status,
+        garden_condition,
         bed_count,
         notes
     )
@@ -58,13 +58,13 @@ VALUES
 -- Includes groups for two schools, three schools, and every location.
 -- ============================================================
 
-INSERT INTO "l-location-group" (location_group_name)
+INSERT INTO location_group (location_group_name)
 VALUES
     ('SchoolBandC'),
     ('Triwizard Greenhouse Team'),
     ('All Locations');
 
-INSERT INTO "l-location-group"
+INSERT INTO location_group
     (
         belongs_to_group,
         location_name
@@ -97,7 +97,7 @@ VALUES
 -- BUDGETS
 -- ============================================================
 
-INSERT INTO "i-budget"
+INSERT INTO budget
     (
         budget_name,
         budget_amount,
@@ -117,7 +117,7 @@ VALUES
 -- ITEMS
 -- ============================================================
 
-INSERT INTO "i-item"
+INSERT INTO item
     (
         item_name,
         category,
@@ -148,7 +148,7 @@ VALUES
 -- INVENTORY LIST
 -- ============================================================
 
-INSERT INTO "i-inventory_list"
+INSERT INTO inventory_list
     (
         item_name,
         cumulative_asset,
@@ -180,7 +180,7 @@ VALUES
 -- PURCHASE REQUESTS
 -- ============================================================
 
-INSERT INTO "i-purchase_request"
+INSERT INTO purchase_request
     (
         request_date,
         requested_by,
@@ -307,28 +307,28 @@ VALUES
 
 -- Single-location requests use requesting_school directly. Multi-location
 -- requests use requesting_school_group and leave requesting_school NULL.
-UPDATE "i-purchase_request"
+UPDATE purchase_request
 SET requesting_school = 'Hogwarts',
     requesting_school_group = NULL
 WHERE request_date IN ('2026-08-15', '2026-08-20', '2026-08-30', '2027-08-15');
 
-UPDATE "i-purchase_request"
+UPDATE purchase_request
 SET requesting_school = NULL,
     requesting_school_group = 'SchoolBandC'
 WHERE request_date IN ('2026-08-16', '2026-08-21');
 
-UPDATE "i-purchase_request"
+UPDATE purchase_request
 SET requesting_school = NULL,
     requesting_school_group = 'Triwizard Greenhouse Team'
 WHERE request_date = '2026-08-17';
 
-UPDATE "i-purchase_request"
+UPDATE purchase_request
 SET requesting_school = 'Brookside School',
     requesting_school_group = NULL
 WHERE request_date = '2027-08-12';
 
 -- The central partner office can order items without having a garden.
-INSERT INTO "i-purchase_request"
+INSERT INTO purchase_request
     (
         request_date,
         requested_by,
@@ -352,7 +352,7 @@ VALUES
     );
 
 -- A bulk request assigned to all 16 locations, including locations without gardens.
-INSERT INTO "i-purchase_request"
+INSERT INTO purchase_request
     (
         request_date,
         requested_by,
@@ -379,7 +379,7 @@ VALUES
 -- INVENTORY TRANSACTIONS
 -- ============================================================
 
-INSERT INTO "i-inventory_transaction"
+INSERT INTO inventory_transaction
     (
         transaction_date,
         status,
@@ -409,22 +409,22 @@ VALUES
 
 -- Assign selected transactions to named groups. The SchoolBandC movements
 -- represent shared activity; their quantities are not split between schools.
-UPDATE "i-inventory_transaction"
+UPDATE inventory_transaction
 SET for_school = 'Hogwarts',
     for_school_group = NULL
 WHERE transaction_date IN ('2026-09-01', '2026-10-04');
 
-UPDATE "i-inventory_transaction"
+UPDATE inventory_transaction
 SET for_school = NULL,
     for_school_group = 'SchoolBandC'
 WHERE transaction_date IN ('2026-09-03', '2026-09-15');
 
-UPDATE "i-inventory_transaction"
+UPDATE inventory_transaction
 SET for_school = NULL,
     for_school_group = 'Triwizard Greenhouse Team'
 WHERE transaction_date = '2026-09-05';
 
-INSERT INTO "i-inventory_transaction"
+INSERT INTO inventory_transaction
     (
         transaction_date,
         status,
@@ -440,7 +440,7 @@ VALUES
         'Knee Pads', 1, 'Protective gear checked out for the central program office'
     );
 
-INSERT INTO "i-inventory_transaction"
+INSERT INTO inventory_transaction
     (
         transaction_date,
         status,
@@ -461,7 +461,7 @@ DO $$
 BEGIN
     IF EXISTS (
         SELECT 1
-        FROM "i-purchase_request"
+        FROM purchase_request
         WHERE (requesting_school IS NOT NULL) = (requesting_school_group IS NOT NULL)
     ) THEN
         RAISE EXCEPTION 'Demo purchase request must have exactly one location assignment';
@@ -469,7 +469,7 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
-        FROM "i-inventory_transaction"
+        FROM inventory_transaction
         WHERE (for_school IS NOT NULL) = (for_school_group IS NOT NULL)
     ) THEN
         RAISE EXCEPTION 'Demo inventory transaction must have exactly one location assignment';
@@ -487,7 +487,7 @@ $$;
 -- GARDEN BEDS
 -- ============================================================
 
-INSERT INTO "g-garden_bed"
+INSERT INTO garden_bed
     (
         location_name,
         bed_name,
@@ -524,7 +524,7 @@ VALUES
 -- IRRIGATION SETUPS
 -- ============================================================
 
-INSERT INTO "g-irrigation_setup"
+INSERT INTO irrigation_setup
     (
         location_name,
         irrigation_name,
@@ -557,7 +557,7 @@ VALUES
 -- COMPOSTING UNITS
 -- ============================================================
 
-INSERT INTO "g-compost_unit"
+INSERT INTO compost_unit
     (
         location_name,
         unit_name,
@@ -588,7 +588,7 @@ VALUES
 -- PLANT CATALOG
 -- ============================================================
 
-INSERT INTO "g-plant"
+INSERT INTO plant
     (
         plant_name,
         plant_type,
@@ -618,7 +618,7 @@ VALUES
 -- CROP ROTATIONS
 -- ============================================================
 
-INSERT INTO "g-crop_rotation"
+INSERT INTO crop_rotation
     (
         location_name,
         bed_name,
