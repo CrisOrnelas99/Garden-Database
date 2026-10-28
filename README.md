@@ -35,8 +35,8 @@ erDiagram
     LOCATION o|--o{ INVENTORY_TRANSACTION : for_school
     LOCATION_GROUP o|--o{ PURCHASE_REQUEST : requesting_school_group
     LOCATION_GROUP o|--o{ INVENTORY_TRANSACTION : for_school_group
-    LOCATION_GROUP ||--o{ LOCATION_GROUP : belongs_to_group
-    LOCATION ||--o{ LOCATION_GROUP : member_location
+    LOCATION_GROUP ||--o{ GROUP_LOCATION : has_members
+    LOCATION ||--o{ GROUP_LOCATION : belongs_to
     LOCATION ||--o{ GARDEN : has
 
     ITEM ||--o{ PURCHASE_REQUEST : requested_item
@@ -59,8 +59,11 @@ erDiagram
     LOCATION_GROUP {
         int location_group_id PK
         varchar location_group_name UK
-        varchar belongs_to_group FK
-        varchar location_name FK
+    }
+
+    GROUP_LOCATION {
+        varchar location_group_name PK, FK
+        varchar location_name PK, FK
     }
 
     ITEM {
@@ -100,7 +103,7 @@ erDiagram
     }
 ```
 
-`LOCATION_GROUP` stores group header rows and member-location rows in the same table. Header rows contain `location_group_name`; member rows contain `belongs_to_group` and `location_name`.
+`LOCATION_GROUP` stores one row per group. `GROUP_LOCATION` stores one row per member location, using readable group and location names as foreign keys.
 
 The current garden schema focuses on the garden portion of the project(does not include all columns).
 

@@ -6,6 +6,7 @@
 -- TRUNCATE TABLE
 --     inventory_transaction,
 --     purchase_request,
+--     group_location,
 --     location_group,
 --     inventory_list,
 --     item,
@@ -64,9 +65,9 @@ VALUES
     ('Triwizard Greenhouse Team'),
     ('All Locations');
 
-INSERT INTO location_group
+INSERT INTO group_location
     (
-        belongs_to_group,
+        location_group_name,
         location_name
     )
 VALUES

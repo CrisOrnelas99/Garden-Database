@@ -38,9 +38,8 @@ SELECT
     CASE
         WHEN pr.requesting_school_group IS NOT NULL THEN (
             SELECT STRING_AGG(lal.location_name, ', ' ORDER BY lal.location_name)
-            FROM location_group lal
-            WHERE lal.belongs_to_group = pr.requesting_school_group
-              AND lal.location_name IS NOT NULL
+            FROM group_location lal
+            WHERE lal.location_group_name = pr.requesting_school_group
         )
         ELSE pr.requesting_school
     END AS assigned_locations,

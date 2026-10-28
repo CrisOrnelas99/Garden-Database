@@ -673,8 +673,8 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1
-        FROM location_group
-        WHERE belongs_to_group = group_name_to_check
+        FROM group_location
+        WHERE location_group_name = group_name_to_check
     ) THEN
         RAISE EXCEPTION
             'Location group "%" has no assigned locations',
@@ -713,12 +713,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     group_name_to_check VARCHAR(200);
 BEGIN
-    -- Only member rows can remove a location from a group.
-    IF OLD.belongs_to_group IS NULL THEN
-        RETURN NULL;
-    END IF;
-
-    group_name_to_check := OLD.belongs_to_group;
+    group_name_to_check := OLD.location_group_name;
 
     -- A parent group rename cascades its name to member rows. If the old name
     -- no longer exists, this deferred event does not remove a membership.
@@ -733,8 +728,8 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
-        FROM location_group
-        WHERE belongs_to_group = group_name_to_check
+        FROM group_location
+        WHERE location_group_name = group_name_to_check
     ) THEN
         RETURN NULL;
     END IF;
@@ -761,7 +756,7 @@ $$ LANGUAGE plpgsql;
 -- TRIGGER 10: prevent a used group from becoming unassigned.
 CREATE CONSTRAINT TRIGGER trg_prevent_emptying_referenced_location_group
 AFTER DELETE OR UPDATE
-ON location_group
+ON group_location
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION prevent_emptying_referenced_location_group();

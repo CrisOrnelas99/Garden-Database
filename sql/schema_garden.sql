@@ -62,39 +62,36 @@ CREATE TABLE location (
 
 -- ============================================================
 -- location_group
--- Group rows store names; member rows point to one group and one location.
+-- One readable header row per group.
 -- ============================================================
 CREATE TABLE location_group (
     location_group_id SERIAL PRIMARY KEY,
-    location_group_name VARCHAR(200) UNIQUE,
-    belongs_to_group VARCHAR(200),
-    location_name VARCHAR(200),
+    location_group_name VARCHAR(200) NOT NULL UNIQUE
+);
 
-    CONSTRAINT chk_location_group_row_type
-        CHECK (
-            (location_group_name IS NOT NULL
-                AND belongs_to_group IS NULL
-                AND location_name IS NULL)
-            OR
-            (location_group_name IS NULL
-                AND belongs_to_group IS NOT NULL
-                AND location_name IS NOT NULL)
-        ),
 
-    CONSTRAINT fk_location_group_belongs_to_group
-        FOREIGN KEY (belongs_to_group)
+-- ============================================================
+-- group_location
+-- One row for each location assigned to a group.
+-- ============================================================
+CREATE TABLE group_location (
+    location_group_name VARCHAR(200) NOT NULL,
+    location_name VARCHAR(200) NOT NULL,
+
+    CONSTRAINT pk_group_location
+        PRIMARY KEY (location_group_name, location_name),
+
+    CONSTRAINT fk_group_location_group
+        FOREIGN KEY (location_group_name)
         REFERENCES location_group(location_group_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_location_group_member_location
+    CONSTRAINT fk_group_location_location
         FOREIGN KEY (location_name)
         REFERENCES location(location_name)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT uq_location_group_member
-        UNIQUE (belongs_to_group, location_name)
+        ON DELETE RESTRICT
 );
 
 -- ============================================================

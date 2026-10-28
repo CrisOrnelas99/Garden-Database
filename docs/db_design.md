@@ -40,12 +40,17 @@ Stores schools and program locations. Garden fields are optional, so an office o
 
 ### location-group
 
-Stores group headers and their member locations in one self-referencing table. Each row is either a group header or a group member.
+Stores one readable row for each location group.
 
-- `location_group_id`: generated primary key for the row.
-- `location_group_name`: unique group name on a header row, such as `SchoolBandC`; `NULL` on member rows.
-- `belongs_to_group`: name of the group this member row belongs to; `NULL` on header rows.
-- `location_name`: school or office on a member row; `NULL` on header rows.
+- `location_group_id`: generated primary key.
+- `location_group_name`: required, unique group name, such as `SchoolBandC`.
+
+### group_location
+
+Connects groups to their member locations. Each row represents one location in one group.
+
+- `location_group_name`: group name referencing `location_group`.
+- `location_name`: school or office name referencing `location`.
 
 ### budget
 
@@ -182,7 +187,7 @@ Tracks plantings by bed within a location's garden.
 
 ## Using location groups
 
-In Supabase, add a group header row by filling `location_group_name` and leaving `belongs_to_group` and `location_name` empty. Then add one member row per school: leave `location_group_name` empty and fill `belongs_to_group` with the group's name and `location_name` with the school's existing name. The `location_group_id` is generated automatically.
+In Supabase, add one row to `location_group` for the group name. Then add one row to `group_location` for each school or office in that group. Both tables use readable names, so the group and location can be recognized while editing.
 
 For example, create `SchoolBandC` and add two schools:
 
@@ -190,7 +195,7 @@ For example, create `SchoolBandC` and add two schools:
 INSERT INTO location_group (location_group_name)
 VALUES ('SchoolBandC');
 
-INSERT INTO location_group (belongs_to_group, location_name)
+INSERT INTO group_location (location_group_name, location_name)
 VALUES
     ('SchoolBandC', 'Sunshine Elementary'),
     ('SchoolBandC', 'Green Valley Middle School');
@@ -210,17 +215,16 @@ SET for_school = NULL,
 WHERE transaction_id = 123;
 ```
 
-Developers can get a group's schools by joining its header row to its member rows:
+Developers can get a group's schools by joining the group and membership tables:
 
 ```sql
-SELECT group_row.location_group_name, member_row.location_name
-FROM location_group AS group_row
-JOIN location_group AS member_row
-    ON member_row.belongs_to_group = group_row.location_group_name
-WHERE group_row.location_group_name IS NOT NULL;
+SELECT lg.location_group_name, gl.location_name
+FROM location_group AS lg
+JOIN group_location AS gl
+    ON gl.location_group_name = lg.location_group_name;
 ```
 
-The foreign keys require member rows to use existing school names and valid group names. A referenced group must have at least one school, and the database prevents removing its final school while requests or transactions still reference it.
+The foreign keys require group members and locations to exist. A referenced group must have at least one member; the database prevents removing its final member while requests or transactions still reference it.
 
 ## Views
 
