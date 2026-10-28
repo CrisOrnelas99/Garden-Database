@@ -20,8 +20,7 @@ Plan planting schedules, manage crop rotations to maintain soil health, and trac
 
 
 # IMPLEMENTATION
-The inventory & Supply + Budget is in the inventory schema.                        
-The Garden Sizes & Components + Growing Calendars & Crop Rotations tables are all in the garden schema
+The garden schema is loaded first and defines shared types, locations, location groups, and garden tables. The inventory schema is loaded next and defines inventory and budget tables. Then load the summary views and demo data.
 
 # Current Database Schema
 
@@ -107,31 +106,25 @@ The current garden schema focuses on the garden portion of the project(does not 
 
 ```mermaid
 erDiagram
-    LOCATION ||--o{ GARDEN : has
-    GARDEN ||--o{ GARDEN_BED : has
-    GARDEN ||--o{ IRRIGATION_SETUP : uses
-    GARDEN ||--o{ COMPOST_UNIT : uses
-    GARDEN ||--o{ CROP_ROTATION : plans
+    LOCATION ||--o{ GARDEN_BED : has
+    LOCATION ||--o{ IRRIGATION_SETUP : uses
+    LOCATION ||--o{ COMPOST_UNIT : uses
+    LOCATION ||--o{ CROP_ROTATION : plans
     GARDEN_BED ||--o{ CROP_ROTATION : schedules
     PLANT ||--o{ CROP_ROTATION : includes
 
     LOCATION {
         int location_id PK
         varchar location_name UK
-    }
-
-    GARDEN {
-        int garden_id PK
-        varchar location_name FK
-        varchar garden_name UK
-        varchar lifecycle_status
-        varchar condition
+        varchar garden_status
+        varchar garden_condition
+        int bed_count
     }
 
     GARDEN_BED {
         int bed_id PK
-        varchar garden_name FK
-        varchar bed_name FK
+        varchar location_name FK
+        varchar bed_name
         decimal bed_size_sq_ft
         varchar lifecycle_status
         varchar condition
@@ -139,7 +132,7 @@ erDiagram
 
     IRRIGATION_SETUP {
         int irrigation_id PK
-        varchar garden_name FK
+        varchar location_name FK
         varchar irrigation_name
         varchar irrigation_type
         varchar lifecycle_status
@@ -148,7 +141,7 @@ erDiagram
 
     COMPOST_UNIT {
         int compost_unit_id PK
-        varchar garden_name FK
+        varchar location_name FK
         varchar unit_name
         varchar compost_type
         varchar lifecycle_status
@@ -165,7 +158,7 @@ erDiagram
     CROP_ROTATION {
         int rotation_id PK
         varchar status
-        varchar garden_name FK
+        varchar location_name FK
         varchar bed_name
         varchar plant_name FK
         int quantity

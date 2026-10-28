@@ -8,18 +8,18 @@ The current schema uses readable names as foreign keys so relationships are easy
 
 ## Setup order
 
-1. `sql/schema_inventory.sql`
-2. `sql/schema_garden.sql`
+1. `sql/schema_garden.sql` (shared types, locations, and garden tables)
+2. `sql/schema_inventory.sql`
 3. `sql/summary_views.sql`
 4. `sql/demo_data.sql`
 
 ## Reusable types
 
-- `dollar`: nonnegative monetary amount with two decimal places.
-- `nonnegative_count`: nonnegative integer quantity.
+- `dollar`: nonnegative monetary amount with two decimal places; defined in the inventory schema.
+- `nonnegative_count`: nonnegative integer quantity; defined in the garden schema for shared use.
 - `inventory_transaction_status`: `Checked In` or `Checked Out`.
-- `condition`: `Good`, `Require Maintenance`, or `In Maintenance`.
-- `lifecycle_status`: `Active`, `Planned`, or `Inactive`.
+- `condition`: `Good`, `Require Maintenance`, or `In Maintenance`; defined in the garden schema for shared use.
+- `lifecycle_status`: `Active`, `Planned`, or `Inactive`; defined in the garden schema for shared use.
 - `rotation_status`: `Planned`, `In-ground`, `Removed`, or `Harvested`.
 - `soil_health_status`: `Good`, `Fair`, or `Needs Replacement`.
 
