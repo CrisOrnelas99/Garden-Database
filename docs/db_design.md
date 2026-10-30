@@ -38,6 +38,8 @@ Stores schools and program locations. Garden fields are optional, so an office o
 - `bed_count`: number of beds at the location; maintained from garden-bed records. `NULL` means garden details are not tracked.
 - `notes`: additional location or garden details.
 
+Locations cannot be deleted while they have garden beds, irrigation setups, or compost units. A bed cannot be deleted while crop rotations reference it, which prevents accidental loss of garden records.
+
 ### location-group
 
 Stores one readable row for each location group.
@@ -51,6 +53,8 @@ Connects groups to their member locations. Each row represents one location in o
 
 - `location_group_name`: group name referencing `location_group`.
 - `location_name`: school or office name referencing `location`.
+
+The schema creates the built-in `All HLC Gardens` group independently of demo data. It includes locations with any non-`NULL` `garden_status` (`Active`, `Planned`, or `Inactive`); offices and locations without garden details are excluded. Membership changes automatically when a location's garden status changes, and a location leaves the group only when its status becomes `NULL`. Other groups keep their manually managed membership. Group membership represents the current roster, so changing it affects how group requests are displayed; it does not preserve a snapshot of past membership.
 
 ### budget
 
@@ -94,8 +98,8 @@ Records requested items, ordering and delivery state, and optional budget and fu
 - `request_id`: generated primary key.
 - `request_date`: date the item was requested.
 - `requested_by`: required name of the requester.
-- `requesting_school`: direct location for a single-school request; `NULL` for group or unassigned requests.
-- `requesting_school_group`: group name for a group request; `NULL` for direct or unassigned requests.
+- `requesting_school`: direct location for a single-school request; `NULL` for a group request.
+- `requesting_school_group`: group name for a group request; `NULL` for a single-school request.
 - `item_name`: required catalog item being requested.
 - `quantity_requested`: required positive quantity.
 - `total_cost`: calculated from quantity and the item's unit cost.
@@ -109,14 +113,14 @@ Records requested items, ordering and delivery state, and optional budget and fu
 
 ### inventory_transaction
 
-Records inventory check-ins and check-outs.
+Records inventory check-ins and check-outs. Each row must be assigned to either one school or one location group.
 
 - `transaction_id`: generated primary key.
 - `transaction_date`: transaction date; defaults to the current date.
 - `status`: required `Checked In` or `Checked Out` status.
 - `taken_by`: required name of the person handling the transaction.
-- `for_school`: direct location for a single-school transaction; `NULL` for group or unassigned transactions.
-- `for_school_group`: group name for a group transaction; `NULL` for direct or unassigned transactions.
+- `for_school`: direct location for a single-school transaction; `NULL` for a group transaction.
+- `for_school_group`: group name for a group transaction; `NULL` for a single-school transaction.
 - `item_name`: required item tracked in inventory.
 - `quantity`: required positive transaction quantity.
 - `notes`: additional transaction details.
@@ -134,6 +138,8 @@ Stores individual beds for locations with garden details.
 - `condition`: bed condition.
 - `is_full`: whether the bed is full.
 - `notes`: additional bed details.
+
+Beds cannot be deleted while crop rotations reference them.
 
 ### irrigation_setup
 
@@ -187,7 +193,7 @@ Tracks plantings by bed within a location's garden.
 
 ## Using location groups
 
-In Supabase, add one row to `location_group` for the group name. Then add one row to `group_location` for each school or office in that group. Both tables use readable names, so the group and location can be recognized while editing.
+In Supabase, add one row to `location_group` for each custom group name. Then add one row to `group_location` for each school or office in that group. Both tables use readable names, so the group and location can be recognized while editing. Do not create or manually maintain the built-in `All HLC Gardens` group; the schema creates and maintains it automatically.
 
 For example, create `SchoolBandC` and add two schools:
 
@@ -201,17 +207,15 @@ VALUES
     ('SchoolBandC', 'Green Valley Middle School');
 ```
 
-For a purchase request, set `requesting_school` for one school or `requesting_school_group` for a group. For an inventory transaction, use `for_school` or `for_school_group` in the same way. The direct-school and group fields cannot both be filled; both may be `NULL` while a record is unassigned. When switching an existing row, clear the current field and set the new one together:
+For a purchase request, set `requesting_school` for one school or `requesting_school_group` for a group. For an inventory transaction, use `for_school` or `for_school_group` in the same way. Exactly one field must be filled. When editing a row, entering a value in one field automatically clears the other. Clearing the only assignment without entering another one is rejected with an explanatory database error.
 
 ```sql
 UPDATE purchase_request
-SET requesting_school = NULL,
-    requesting_school_group = 'SchoolBandC'
+SET requesting_school_group = 'SchoolBandC'
 WHERE request_id = 123;
 
 UPDATE inventory_transaction
-SET for_school = NULL,
-    for_school_group = 'SchoolBandC'
+SET for_school_group = 'SchoolBandC'
 WHERE transaction_id = 123;
 ```
 

@@ -51,10 +51,14 @@ CREATE TABLE location (
 
     CONSTRAINT chk_location_optional_garden_fields
         CHECK (
-            bed_count IS NOT NULL
-            OR (
-                garden_status IS NULL
+            (
+                bed_count IS NULL
+                AND garden_status IS NULL
                 AND garden_condition IS NULL
+            )
+            OR (
+                bed_count IS NOT NULL
+                AND garden_status IS NOT NULL
             )
         )
 );
@@ -91,7 +95,7 @@ CREATE TABLE group_location (
         FOREIGN KEY (location_name)
         REFERENCES location(location_name)
         ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        ON DELETE CASCADE
 );
 
 -- ============================================================
@@ -113,10 +117,13 @@ CREATE TABLE garden_bed (
         FOREIGN KEY (location_name)
         REFERENCES location(location_name)
         ON UPDATE CASCADE
-        ON DELETE CASCADE,
+        ON DELETE RESTRICT,
 
     CONSTRAINT uq_g_garden_bed
-    UNIQUE (location_name, bed_name)
+    UNIQUE (location_name, bed_name),
+
+    CONSTRAINT chk_garden_bed_size_nonnegative
+        CHECK (bed_size_sq_ft IS NULL OR bed_size_sq_ft >= 0)
 );
 
 
@@ -127,18 +134,24 @@ CREATE TABLE garden_bed (
 CREATE TABLE irrigation_setup (
     irrigation_id SERIAL PRIMARY KEY,
     location_name VARCHAR(200) NOT NULL,
-    irrigation_name VARCHAR(100),
+    irrigation_name VARCHAR(100) NOT NULL,
     irrigation_type VARCHAR(100),
     lifecycle_status lifecycle_status,
     condition condition,
     notes TEXT,
 
+    CONSTRAINT chk_irrigation_name_not_blank
+        CHECK (BTRIM(irrigation_name) <> ''),
+
     CONSTRAINT fk_irrigation_location
         FOREIGN KEY (location_name)
         REFERENCES location(location_name)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE RESTRICT
 );
+
+CREATE UNIQUE INDEX uq_irrigation_location_name_ci
+    ON irrigation_setup (location_name, LOWER(BTRIM(irrigation_name)));
 
 
 -- ============================================================
@@ -148,18 +161,24 @@ CREATE TABLE irrigation_setup (
 CREATE TABLE compost_unit (
     compost_unit_id SERIAL PRIMARY KEY,
     location_name VARCHAR(200) NOT NULL,
-    unit_name VARCHAR(100),
+    unit_name VARCHAR(100) NOT NULL,
     compost_type VARCHAR(100),
     lifecycle_status lifecycle_status,
     condition condition,
     notes TEXT,
 
+    CONSTRAINT chk_compost_unit_name_not_blank
+        CHECK (BTRIM(unit_name) <> ''),
+
     CONSTRAINT fk_compost_location
         FOREIGN KEY (location_name)
         REFERENCES location(location_name)
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE RESTRICT
 );
+
+CREATE UNIQUE INDEX uq_compost_location_unit_name_ci
+    ON compost_unit (location_name, LOWER(BTRIM(unit_name)));
 
 
 -- ============================================================
@@ -199,13 +218,13 @@ CREATE TABLE crop_rotation (
         FOREIGN KEY (location_name)
         REFERENCES location(location_name)
         ON UPDATE CASCADE
-        ON DELETE CASCADE,
+        ON DELETE RESTRICT,
 
     CONSTRAINT fk_rotation_g_garden_bed
         FOREIGN KEY (location_name, bed_name)
         REFERENCES garden_bed(location_name, bed_name)
         ON UPDATE CASCADE
-        ON DELETE CASCADE,
+        ON DELETE RESTRICT,
 
     CONSTRAINT fk_rotation_plant
         FOREIGN KEY (plant_name)
@@ -404,6 +423,47 @@ FOR EACH ROW
 EXECUTE FUNCTION require_location_garden();
 
 
+-- Prevent assigning or moving a crop rotation to a bed that is not active.
+CREATE OR REPLACE FUNCTION require_active_bed_for_rotation()
+RETURNS TRIGGER AS $$
+DECLARE
+    bed_lifecycle_status lifecycle_status;
+BEGIN
+    -- Allow FK cascades (for example, renaming a location or bed) to preserve
+    -- existing crop-rotation references without revalidating their assignment.
+    IF pg_trigger_depth() > 1 THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT lifecycle_status
+    INTO bed_lifecycle_status
+    FROM garden_bed
+    WHERE location_name = NEW.location_name
+      AND bed_name = NEW.bed_name;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION
+            'Garden bed "%" at location "%" does not exist.',
+            NEW.bed_name, NEW.location_name;
+    END IF;
+
+    IF bed_lifecycle_status IS DISTINCT FROM 'Active' THEN
+        RAISE EXCEPTION
+            'Cannot assign a crop rotation to bed "%" at location "%" because its lifecycle status is "%". Set the bed lifecycle status to Active first.',
+            NEW.bed_name, NEW.location_name, bed_lifecycle_status;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_require_active_bed_for_rotation
+BEFORE INSERT OR UPDATE OF location_name, bed_name, plant_name
+ON crop_rotation
+FOR EACH ROW
+EXECUTE FUNCTION require_active_bed_for_rotation();
+
+
 -- Reconcile any existing counts with the actual garden_bed rows.
 UPDATE location l
 SET bed_count = (
@@ -417,3 +477,154 @@ WHERE l.bed_count IS NOT NULL
       FROM garden_bed b
       WHERE b.location_name = l.location_name
   );
+
+
+-- ============================================================
+-- TRIGGERS 5 AND 6
+-- Keep All HLC Gardens membership synchronized with garden locations.
+-- ============================================================
+CREATE OR REPLACE FUNCTION sync_all_hlc_gardens_group()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_TABLE_NAME = 'location' THEN
+        IF NEW.garden_status IS NOT NULL THEN
+            INSERT INTO group_location (location_group_name, location_name)
+            SELECT 'All HLC Gardens', NEW.location_name
+            FROM location_group
+            WHERE location_group_name = 'All HLC Gardens'
+            ON CONFLICT (location_group_name, location_name) DO NOTHING;
+        END IF;
+    ELSIF TG_TABLE_NAME = 'location_group' THEN
+        IF NEW.location_group_name = 'All HLC Gardens' THEN
+            INSERT INTO group_location (location_group_name, location_name)
+            SELECT NEW.location_group_name, l.location_name
+            FROM location l
+            WHERE l.garden_status IS NOT NULL
+            ON CONFLICT (location_group_name, location_name) DO NOTHING;
+        END IF;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add new locations with tracked garden status to the built-in group.
+CREATE TRIGGER trg_add_location_to_all_hlc_gardens
+AFTER INSERT ON location
+FOR EACH ROW
+EXECUTE FUNCTION sync_all_hlc_gardens_group();
+
+-- Populate All HLC Gardens when created or renamed to its reserved name.
+CREATE TRIGGER trg_populate_all_hlc_gardens_group
+AFTER INSERT OR UPDATE OF location_group_name
+ON location_group
+FOR EACH ROW
+EXECUTE FUNCTION sync_all_hlc_gardens_group();
+
+-- ============================================================
+-- TRIGGER 7
+-- Keep All HLC Gardens membership aligned with garden lifecycle status.
+-- ============================================================
+CREATE OR REPLACE FUNCTION sync_all_hlc_gardens_location_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.garden_status IS NOT NULL THEN
+        INSERT INTO group_location (location_group_name, location_name)
+        SELECT 'All HLC Gardens', NEW.location_name
+        FROM location_group
+        WHERE location_group_name = 'All HLC Gardens'
+        ON CONFLICT (location_group_name, location_name) DO NOTHING;
+    ELSE
+        DELETE FROM group_location
+        WHERE location_group_name = 'All HLC Gardens'
+          AND location_name = NEW.location_name;
+    END IF;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_all_hlc_gardens_location_status
+AFTER UPDATE OF garden_status
+ON location
+FOR EACH ROW
+WHEN (OLD.garden_status IS DISTINCT FROM NEW.garden_status)
+EXECUTE FUNCTION sync_all_hlc_gardens_location_status();
+
+-- Protect the built-in group from accidental deletion or rename.
+CREATE OR REPLACE FUNCTION protect_all_hlc_gardens_group()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.location_group_name = 'All HLC Gardens' THEN
+        IF TG_OP = 'DELETE' THEN
+            RAISE EXCEPTION
+                'The built-in All HLC Gardens group cannot be deleted or renamed.';
+        ELSIF NEW.location_group_name IS DISTINCT FROM OLD.location_group_name THEN
+            RAISE EXCEPTION
+                'The built-in All HLC Gardens group cannot be deleted or renamed.';
+        END IF;
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- TRIGGER 8
+-- Keep the built-in group available independently of demo data.
+-- ============================================================
+CREATE TRIGGER trg_protect_all_hlc_gardens_group
+BEFORE DELETE OR UPDATE OF location_group_name
+ON location_group
+FOR EACH ROW
+EXECUTE FUNCTION protect_all_hlc_gardens_group();
+
+-- ============================================================
+-- TRIGGER 9
+-- Prevent direct edits to automatically maintained All HLC Gardens membership.
+-- Nested changes from location/status triggers and FK cascades remain allowed.
+-- ============================================================
+CREATE OR REPLACE FUNCTION protect_all_hlc_gardens_membership()
+RETURNS TRIGGER AS $$
+DECLARE
+    membership_group_name VARCHAR(200);
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        membership_group_name := NEW.location_group_name;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD.location_group_name = 'All HLC Gardens'
+           OR NEW.location_group_name = 'All HLC Gardens' THEN
+            membership_group_name := 'All HLC Gardens';
+        ELSE
+            RETURN NEW;
+        END IF;
+    ELSE
+        membership_group_name := OLD.location_group_name;
+    END IF;
+
+    IF membership_group_name = 'All HLC Gardens'
+       AND pg_trigger_depth() = 1 THEN
+        RAISE EXCEPTION
+            'Membership in All HLC Gardens is maintained automatically from garden_status and cannot be edited directly.';
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_protect_all_hlc_gardens_membership
+BEFORE INSERT OR UPDATE OR DELETE
+ON group_location
+FOR EACH ROW
+EXECUTE FUNCTION protect_all_hlc_gardens_membership();
+
+-- Create the built-in group independently of demo data.
+INSERT INTO location_group (location_group_name)
+VALUES ('All HLC Gardens')
+ON CONFLICT (location_group_name) DO NOTHING;

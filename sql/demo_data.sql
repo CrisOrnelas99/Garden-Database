@@ -50,20 +50,20 @@ VALUES
     ('Northside Community School', 'Mia King', 'mia@northside.edu', 'Active', 'Good', 0, 'Type: Community Garden; Footprint: 2200 sq ft; Manager: Mia King. Shared garden maintained by students and volunteers.'),
     ('Eastview Academy', 'Noah Wright', 'noah@eastview.edu', 'Active', 'Good', 0, 'Type: Native Plant Garden; Footprint: 1500 sq ft; Manager: Noah Wright. Primarily active during spring and summer.'),
     ('Westfield School', 'Olivia Scott', 'olivia@westfield.edu', 'Active', 'Good', 0, 'Type: Greenhouse Garden; Footprint: 950 sq ft; Manager: Olivia Scott. Protected growing space for seedlings.'),
-    ('Brookside School', 'Paula Green', 'paula@brookside.edu', NULL, NULL, NULL, 'School with no garden yet');
+    ('Brookside School', 'Paula Green', 'paula@brookside.edu', 'Planned', NULL, 0, 'School planning a garden; beds have not been installed yet.');
 
 
 -- ============================================================
 -- LOCATION GROUPS
--- Named groups can be attached to requests and transactions.
--- Includes groups for two schools, three schools, and every location.
+-- Custom named groups can be attached to requests and transactions.
+-- The built-in All HLC Gardens group is created and maintained by schema_garden.sql.
 -- ============================================================
 
 INSERT INTO location_group (location_group_name)
 VALUES
     ('SchoolBandC'),
-    ('Triwizard Greenhouse Team'),
-    ('All Locations');
+    ('Triwizard Greenhouse Team')
+ON CONFLICT (location_group_name) DO NOTHING;
 
 INSERT INTO group_location
     (
@@ -75,23 +75,8 @@ VALUES
     ('SchoolBandC', 'Green Valley Middle School'),
     ('Triwizard Greenhouse Team', 'Hogwarts'),
     ('Triwizard Greenhouse Team', 'Sunshine Elementary'),
-    ('Triwizard Greenhouse Team', 'Green Valley Middle School'),
-    ('All Locations', 'Hogwarts'),
-    ('All Locations', 'Sunshine Elementary'),
-    ('All Locations', 'Green Valley Middle School'),
-    ('All Locations', 'Oakwood High School'),
-    ('All Locations', 'Riverbend Academy'),
-    ('All Locations', 'HLC Office'),
-    ('All Locations', 'Maple Grove School'),
-    ('All Locations', 'Pinecrest Elementary'),
-    ('All Locations', 'Lakeside Middle School'),
-    ('All Locations', 'Cedar Ridge School'),
-    ('All Locations', 'Meadowbrook Academy'),
-    ('All Locations', 'Willow Creek School'),
-    ('All Locations', 'Northside Community School'),
-    ('All Locations', 'Eastview Academy'),
-    ('All Locations', 'Westfield School'),
-    ('All Locations', 'Brookside School');
+    ('Triwizard Greenhouse Team', 'Green Valley Middle School')
+ON CONFLICT (location_group_name, location_name) DO NOTHING;
 
 
 -- ============================================================
@@ -370,10 +355,10 @@ INSERT INTO purchase_request
     )
 VALUES
     (
-        '2026-09-04', 'Frank Wilson', 'All Locations',
-        'Garden Gloves', 32, FALSE, 'Approved', TRUE,
+        '2026-09-04', 'Frank Wilson', 'All HLC Gardens',
+        'Garden Gloves', 30, FALSE, 'Approved', TRUE,
         'Garden Supplies', 'SHCF_26-27_#9556',
-        '2026-2027', 'Bulk glove order for all program locations; quantities are not split by location'
+        '2026-2027', 'Bulk glove order for locations with garden details, including inactive gardens; quantities are not split by location'
     );
 
 -- ============================================================
@@ -453,8 +438,8 @@ INSERT INTO inventory_transaction
     )
 VALUES
     (
-        '2026-10-08', 'Checked Out', 'Frank Wilson', 'All Locations',
-        'Garden Gloves', 8, 'Bulk gloves checked out for distribution across all program locations'
+        '2026-10-08', 'Checked Out', 'Frank Wilson', 'All HLC Gardens',
+        'Garden Gloves', 8, 'Bulk gloves checked out for distribution across locations with garden details'
     );
 
 -- Fail the demo load if any record has neither assignment path or both paths.

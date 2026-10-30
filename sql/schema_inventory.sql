@@ -105,6 +105,9 @@ CREATE TABLE purchase_request (
     CONSTRAINT chk_purchase_request_at_most_one_location_assignment
         CHECK (requesting_school IS NULL OR requesting_school_group IS NULL),
 
+    CONSTRAINT chk_purchase_request_requires_location_assignment
+        CHECK (requesting_school IS NOT NULL OR requesting_school_group IS NOT NULL),
+
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_purchase_request_item
         FOREIGN KEY (item_name)
@@ -151,6 +154,9 @@ CREATE TABLE inventory_transaction (
 
     CONSTRAINT chk_inventory_transaction_at_most_one_location_assignment
         CHECK (for_school IS NULL OR for_school_group IS NULL),
+
+    CONSTRAINT chk_inventory_transaction_requires_location_assignment
+        CHECK (for_school IS NOT NULL OR for_school_group IS NOT NULL),
 
     CONSTRAINT fk_inventory_transaction_item
         FOREIGN KEY (item_name)
@@ -218,9 +224,8 @@ EXECUTE FUNCTION calculate_purchase_request_total();
 CREATE OR REPLACE FUNCTION initialize_remaining_budget()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.remaining_budget IS NULL THEN
-        NEW.remaining_budget := NEW.budget_amount;
-    END IF;
+    -- Treat the budget amount as authoritative; ignore any entered balance.
+    NEW.remaining_budget := NEW.budget_amount;
 
     RETURN NEW;
 END;
@@ -327,6 +332,11 @@ BEGIN
         RETURN NEW;
 
     ELSIF TG_OP = 'UPDATE' THEN
+        IF NEW.status IS DISTINCT FROM OLD.status THEN
+            RAISE EXCEPTION
+                'Do not change an inventory transaction status. Add a new row to record another check-in or check-out.';
+        END IF;
+
         -- Assignment, date, notes, and other descriptive edits do not change stock.
         IF NEW.item_name IS NOT DISTINCT FROM OLD.item_name
            AND NEW.status IS NOT DISTINCT FROM OLD.status
@@ -726,6 +736,11 @@ BEGIN
         RETURN NULL;
     END IF;
 
+    -- This built-in group may legitimately have no locations with garden details.
+    IF group_name_to_check = 'All HLC Gardens' THEN
+        RETURN NULL;
+    END IF;
+
     IF EXISTS (
         SELECT 1
         FROM group_location
@@ -760,3 +775,138 @@ ON group_location
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION prevent_emptying_referenced_location_group();
+
+
+-- ============================================================
+-- TRIGGER 11
+-- Prevent deleting inventory rows that still have stock or purchase requests.
+-- Pending requests may still be created before an inventory_list row exists;
+-- the delivery trigger requires that row before marking a request delivered.
+-- ============================================================
+CREATE OR REPLACE FUNCTION prevent_inventory_list_delete_when_in_use()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.instock_total > 0 THEN
+        RAISE EXCEPTION
+            'Cannot remove "%" from inventory_list while % items are in stock',
+            OLD.item_name, OLD.instock_total;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM purchase_request
+        WHERE item_name = OLD.item_name
+    ) THEN
+        RAISE EXCEPTION
+            'Cannot remove "%" from inventory_list while purchase requests reference it',
+            OLD.item_name;
+    END IF;
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_prevent_inventory_list_delete_when_in_use
+BEFORE DELETE
+ON inventory_list
+FOR EACH ROW
+EXECUTE FUNCTION prevent_inventory_list_delete_when_in_use();
+
+
+-- ============================================================
+-- TRIGGERS 12 AND 13
+-- Require exactly one direct location or location group assignment.
+-- Selecting one assignment path clears the other on updates.
+-- ============================================================
+CREATE OR REPLACE FUNCTION normalize_purchase_request_location_assignment()
+RETURNS TRIGGER AS $$
+DECLARE
+    school_changed BOOLEAN;
+    group_changed BOOLEAN;
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        school_changed := NEW.requesting_school IS DISTINCT FROM OLD.requesting_school;
+        group_changed := NEW.requesting_school_group IS DISTINCT FROM OLD.requesting_school_group;
+
+        IF NEW.requesting_school IS NOT NULL
+           AND NEW.requesting_school_group IS NOT NULL THEN
+            IF school_changed AND NOT group_changed THEN
+                NEW.requesting_school_group := NULL;
+            ELSIF group_changed AND NOT school_changed THEN
+                NEW.requesting_school := NULL;
+            ELSE
+                RAISE EXCEPTION
+                    'Choose either a school or a location group for a purchase request, not both.';
+            END IF;
+        END IF;
+    END IF;
+
+    IF NEW.requesting_school IS NULL
+       AND NEW.requesting_school_group IS NULL THEN
+        RAISE EXCEPTION
+            'A purchase request must have a school or a location group. Enter the new assignment before clearing the current one.';
+    END IF;
+
+    IF NEW.requesting_school IS NOT NULL
+       AND NEW.requesting_school_group IS NOT NULL THEN
+        RAISE EXCEPTION
+            'Choose either a school or a location group for a purchase request, not both.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Normalize and validate a purchase request's school/group assignment.
+CREATE TRIGGER trg_purchase_request_location_assignment
+BEFORE INSERT OR UPDATE OF requesting_school, requesting_school_group
+ON purchase_request
+FOR EACH ROW
+EXECUTE FUNCTION normalize_purchase_request_location_assignment();
+
+
+CREATE OR REPLACE FUNCTION normalize_inventory_transaction_location_assignment()
+RETURNS TRIGGER AS $$
+DECLARE
+    school_changed BOOLEAN;
+    group_changed BOOLEAN;
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        school_changed := NEW.for_school IS DISTINCT FROM OLD.for_school;
+        group_changed := NEW.for_school_group IS DISTINCT FROM OLD.for_school_group;
+
+        IF NEW.for_school IS NOT NULL
+           AND NEW.for_school_group IS NOT NULL THEN
+            IF school_changed AND NOT group_changed THEN
+                NEW.for_school_group := NULL;
+            ELSIF group_changed AND NOT school_changed THEN
+                NEW.for_school := NULL;
+            ELSE
+                RAISE EXCEPTION
+                    'Choose either a school or a location group for an inventory transaction, not both.';
+            END IF;
+        END IF;
+    END IF;
+
+    IF NEW.for_school IS NULL
+       AND NEW.for_school_group IS NULL THEN
+        RAISE EXCEPTION
+            'An inventory transaction must have a school or a location group. Enter the new assignment before clearing the current one.';
+    END IF;
+
+    IF NEW.for_school IS NOT NULL
+       AND NEW.for_school_group IS NOT NULL THEN
+        RAISE EXCEPTION
+            'Choose either a school or a location group for an inventory transaction, not both.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Normalize and validate an inventory transaction's school/group assignment.
+CREATE TRIGGER trg_inventory_transaction_location_assignment
+BEFORE INSERT OR UPDATE OF for_school, for_school_group
+ON inventory_transaction
+FOR EACH ROW
+EXECUTE FUNCTION normalize_inventory_transaction_location_assignment();
