@@ -48,7 +48,6 @@ export const supabase = createClient(
 
 The Project URL identifies the Supabase project. A publishable key is intended for public client code, but it is not an access policy: RLS and database permissions determine what users can read or change. Never put a Supabase secret key or legacy `service_role` key in frontend code; those privileged keys bypass RLS.
 
-**RLS status for this repository:** the current schema files do not enable RLS or define policies. A classmate is handling that work. Do not expose the app to users until those policies and grants are configured and reviewed.
 
 Official references: [Supabase React quickstart](https://supabase.com/docs/guides/getting-started/quickstarts/reactjs), [API keys](https://supabase.com/docs/guides/getting-started/api-keys), and [database security](https://supabase.com/docs/guides/database/secure-data).
 
