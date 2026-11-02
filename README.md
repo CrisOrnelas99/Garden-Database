@@ -90,6 +90,7 @@ erDiagram
         varchar budget_name FK
         varchar funding_source
         int quantity_requested
+        decimal unit_cost_at_request
         decimal total_cost
         boolean ordered
     }
@@ -107,7 +108,7 @@ erDiagram
 
 `LOCATION_GROUP` stores one row per group. `GROUP_LOCATION` stores one row per member location, using readable group and location names as foreign keys.
 
-The schema creates the built-in `All HLC Gardens` group and maintains membership for locations with a non-`NULL` garden status; demo data is not required. Purchase requests and inventory transactions require exactly one direct location or location group; entering one assignment clears the other. Location and bed records with dependent garden records cannot be deleted.
+The schema creates the built-in `All HLC Gardens` group and maintains membership for locations where `is_hlc` is `TRUE`, independently of garden status; demo data is not required. Purchase requests and inventory transactions may use one direct location, one location group, or neither for personal use; entering one assignment clears the other. Location and bed records with dependent garden records cannot be deleted.
 
 The current garden schema focuses on the garden portion of the project(does not include all columns).
 

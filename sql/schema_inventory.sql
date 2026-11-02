@@ -79,6 +79,7 @@ CREATE TABLE purchase_request (
     requesting_school VARCHAR(200),
     requesting_school_group VARCHAR(200),
     item_name VARCHAR(200) NOT NULL,
+    unit_cost_at_request dollar NOT NULL,
     quantity_requested nonnegative_count NOT NULL
         CHECK (quantity_requested > 0),
     total_cost dollar NOT NULL DEFAULT 0,
@@ -104,9 +105,6 @@ CREATE TABLE purchase_request (
 
     CONSTRAINT chk_purchase_request_at_most_one_location_assignment
         CHECK (requesting_school IS NULL OR requesting_school_group IS NULL),
-
-    CONSTRAINT chk_purchase_request_requires_location_assignment
-        CHECK (requesting_school IS NOT NULL OR requesting_school_group IS NOT NULL),
 
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_purchase_request_item
@@ -155,9 +153,6 @@ CREATE TABLE inventory_transaction (
     CONSTRAINT chk_inventory_transaction_at_most_one_location_assignment
         CHECK (for_school IS NULL OR for_school_group IS NULL),
 
-    CONSTRAINT chk_inventory_transaction_requires_location_assignment
-        CHECK (for_school IS NOT NULL OR for_school_group IS NOT NULL),
-
     CONSTRAINT fk_inventory_transaction_item
         FOREIGN KEY (item_name)
         REFERENCES inventory_list(item_name)
@@ -174,33 +169,39 @@ CREATE TABLE inventory_transaction (
 -- ============================================================
 -- TRIGGER 1
 -- PurchaseRequest.total_cost =
--- quantity_requested * item.unit_cost
+-- quantity_requested * unit_cost_at_request
 -- ============================================================
 CREATE OR REPLACE FUNCTION calculate_purchase_request_total()
 RETURNS TRIGGER AS $$
 DECLARE
     item_unit_cost NUMERIC;
 BEGIN
+    IF NEW.unit_cost_at_request IS NULL
+       OR (TG_OP = 'UPDATE'
+           AND NEW.item_name IS DISTINCT FROM OLD.item_name
+           AND NEW.unit_cost_at_request IS NOT DISTINCT FROM OLD.unit_cost_at_request) THEN
+        SELECT unit_cost
+        INTO item_unit_cost
+        FROM item
+        WHERE item_name = NEW.item_name;
 
-    SELECT unit_cost
-    INTO item_unit_cost
-    FROM item
-    WHERE item_name = NEW.item_name;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION
+                'Item "%" was not found in item',
+                NEW.item_name;
+        END IF;
 
-    IF NOT FOUND THEN
-        RAISE EXCEPTION
-            'Item "%" was not found in item',
-            NEW.item_name;
-    END IF;
+        IF item_unit_cost IS NULL THEN
+            RAISE EXCEPTION
+                'Item "%" does not have a unit_cost in item',
+                NEW.item_name;
+        END IF;
 
-    IF item_unit_cost IS NULL THEN
-        RAISE EXCEPTION
-            'Item "%" does not have a unit_cost in item',
-            NEW.item_name;
+        NEW.unit_cost_at_request := item_unit_cost;
     END IF;
 
     NEW.total_cost :=
-        NEW.quantity_requested * item_unit_cost;
+        NEW.quantity_requested * NEW.unit_cost_at_request;
 
     RETURN NEW;
 END;
@@ -211,7 +212,7 @@ DROP TRIGGER IF EXISTS trg_calculate_purchase_request_total
 ON purchase_request;
 
 CREATE TRIGGER trg_calculate_purchase_request_total
-BEFORE INSERT OR UPDATE OF item_name, quantity_requested, total_cost
+BEFORE INSERT OR UPDATE OF item_name, unit_cost_at_request, quantity_requested, total_cost
 ON purchase_request
 FOR EACH ROW
 EXECUTE FUNCTION calculate_purchase_request_total();
@@ -590,30 +591,6 @@ FOR EACH ROW
 EXECUTE FUNCTION update_remaining_budget_after_budget_change();
 
 
--- ============================================================
--- TRIGGER 7
--- Recalculate unordered request totals when an item's unit cost changes
--- ============================================================
-CREATE OR REPLACE FUNCTION update_purchase_totals_after_item_cost_change()
-RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE purchase_request
-    SET total_cost = quantity_requested * NEW.unit_cost
-    WHERE item_name = NEW.item_name
-      AND ordered = FALSE;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_purchase_totals_after_item_cost_change
-AFTER UPDATE OF unit_cost
-ON item
-FOR EACH ROW
-WHEN (OLD.unit_cost IS DISTINCT FROM NEW.unit_cost)
-EXECUTE FUNCTION update_purchase_totals_after_item_cost_change();
-
-
 -- Reconcile any existing balances with the ordered purchase requests.
 UPDATE budget b
 SET remaining_budget = b.budget_amount - COALESCE(
@@ -815,7 +792,7 @@ EXECUTE FUNCTION prevent_inventory_list_delete_when_in_use();
 
 -- ============================================================
 -- TRIGGERS 12 AND 13
--- Require exactly one direct location or location group assignment.
+-- Allow personal rows with no location; otherwise allow one assignment only.
 -- Selecting one assignment path clears the other on updates.
 -- ============================================================
 CREATE OR REPLACE FUNCTION normalize_purchase_request_location_assignment()
@@ -839,12 +816,6 @@ BEGIN
                     'Choose either a school or a location group for a purchase request, not both.';
             END IF;
         END IF;
-    END IF;
-
-    IF NEW.requesting_school IS NULL
-       AND NEW.requesting_school_group IS NULL THEN
-        RAISE EXCEPTION
-            'A purchase request must have a school or a location group. Enter the new assignment before clearing the current one.';
     END IF;
 
     IF NEW.requesting_school IS NOT NULL
@@ -886,12 +857,6 @@ BEGIN
                     'Choose either a school or a location group for an inventory transaction, not both.';
             END IF;
         END IF;
-    END IF;
-
-    IF NEW.for_school IS NULL
-       AND NEW.for_school_group IS NULL THEN
-        RAISE EXCEPTION
-            'An inventory transaction must have a school or a location group. Enter the new assignment before clearing the current one.';
     END IF;
 
     IF NEW.for_school IS NOT NULL

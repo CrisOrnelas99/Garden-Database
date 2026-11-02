@@ -27,6 +27,7 @@
 INSERT INTO location
     (
         location_name,
+        is_hlc,
         contact,
         email,
         garden_status,
@@ -35,22 +36,22 @@ INSERT INTO location
         notes
     )
 VALUES
-    ('Hogwarts', 'Alice Morgan', 'alice@hogwarts.edu', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1200 sq ft; Manager: Alice Morgan. Herbology lessons with Professor Sprout; greenhouse seedlings start here before moving outdoors.'),
-    ('Sunshine Elementary', 'Brian Lee', 'brian@sunshine.edu', 'Active', 'Good', 0, 'Type: Educational Garden; Footprint: 900 sq ft; Manager: Brian Lee. Used for elementary science activities.'),
-    ('Green Valley Middle School', 'Carla Davis', 'carla@greenvalley.edu', 'Active', 'Good', 0, 'Type: Hydroponic Garden; Footprint: 650 sq ft; Manager: Carla Davis. Indoor hydroponic growing system.'),
-    ('Oakwood High School', 'Daniel Smith', 'daniel@oakwood.edu', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1800 sq ft; Manager: Daniel Smith. Large outdoor teaching garden.'),
-    ('Riverbend Academy', 'Emily Brown', 'emily@riverbend.edu', 'Active', 'Good', 0, 'Type: Pollinator Garden; Footprint: 1100 sq ft; Manager: Emily Brown. Supports pollinators and native plants.'),
-    ('HLC Office', 'Frank Wilson', 'frank@hlc.org', NULL, NULL, NULL, 'Central program office; no garden or garden assets are currently tracked.'),
-    ('Maple Grove School', 'Grace Taylor', 'grace@maplegrove.edu', 'Active', 'Good', 0, 'Type: Vegetable Garden; Footprint: 1400 sq ft; Manager: Grace Taylor. Seasonal vegetable production.'),
-    ('Pinecrest Elementary', 'Henry Moore', 'henry@pinecrest.edu', 'Active', 'Good', 0, 'Type: Raised Bed Garden; Footprint: 800 sq ft; Manager: Henry Moore. Raised beds for younger students.'),
-    ('Lakeside Middle School', 'Isabella Clark', 'isabella@lakeside.edu', 'Active', 'Good', 0, 'Type: Food Garden; Footprint: 1600 sq ft; Manager: Isabella Clark. Produces vegetables for school activities.'),
-    ('Cedar Ridge School', 'James Hall', 'james@cedarridge.edu', 'Active', 'Require Maintenance', 0, 'Type: Herb Garden; Footprint: 700 sq ft; Manager: James Hall. Several beds need soil improvement.'),
-    ('Meadowbrook Academy', 'Karen Allen', 'karen@meadowbrook.edu', 'Active', 'Good', 0, 'Type: Sustainable Garden; Footprint: 1300 sq ft; Manager: Karen Allen. Uses composting and soil-building practices.'),
-    ('Willow Creek School', 'Liam Young', 'liam@willowcreek.edu', 'Active', 'Good', 0, 'Type: Demonstration Garden; Footprint: 1000 sq ft; Manager: Liam Young. Demonstrates irrigation methods.'),
-    ('Northside Community School', 'Mia King', 'mia@northside.edu', 'Active', 'Good', 0, 'Type: Community Garden; Footprint: 2200 sq ft; Manager: Mia King. Shared garden maintained by students and volunteers.'),
-    ('Eastview Academy', 'Noah Wright', 'noah@eastview.edu', 'Active', 'Good', 0, 'Type: Native Plant Garden; Footprint: 1500 sq ft; Manager: Noah Wright. Primarily active during spring and summer.'),
-    ('Westfield School', 'Olivia Scott', 'olivia@westfield.edu', 'Active', 'Good', 0, 'Type: Greenhouse Garden; Footprint: 950 sq ft; Manager: Olivia Scott. Protected growing space for seedlings.'),
-    ('Brookside School', 'Paula Green', 'paula@brookside.edu', 'Planned', NULL, 0, 'School planning a garden; beds have not been installed yet.');
+    ('Hogwarts', TRUE, 'Alice Morgan', 'alice@hogwarts.edu', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1200 sq ft; Manager: Alice Morgan. Herbology lessons with Professor Sprout; greenhouse seedlings start here before moving outdoors.'),
+    ('Sunshine Elementary', TRUE, 'Brian Lee', 'brian@sunshine.edu', 'Active', 'Good', 0, 'Type: Educational Garden; Footprint: 900 sq ft; Manager: Brian Lee. Used for elementary science activities.'),
+    ('Green Valley Middle School', TRUE, 'Carla Davis', 'carla@greenvalley.edu', 'Active', 'Good', 0, 'Type: Hydroponic Garden; Footprint: 650 sq ft; Manager: Carla Davis. Indoor hydroponic growing system.'),
+    ('Oakwood High School', TRUE, 'Daniel Smith', 'daniel@oakwood.edu', 'Active', 'Good', 0, 'Type: Teaching Garden; Footprint: 1800 sq ft; Manager: Daniel Smith. Large outdoor teaching garden.'),
+    ('Riverbend Academy', TRUE, 'Emily Brown', 'emily@riverbend.edu', 'Active', 'Good', 0, 'Type: Pollinator Garden; Footprint: 1100 sq ft; Manager: Emily Brown. Supports pollinators and native plants.'),
+    ('HLC Office', FALSE, 'Frank Wilson', 'frank@hlc.org', NULL, NULL, NULL, 'Central program office; no garden or garden assets are currently tracked.'),
+    ('Maple Grove School', TRUE, 'Grace Taylor', 'grace@maplegrove.edu', 'Active', 'Good', 0, 'Type: Vegetable Garden; Footprint: 1400 sq ft; Manager: Grace Taylor. Seasonal vegetable production.'),
+    ('Pinecrest Elementary', TRUE, 'Henry Moore', 'henry@pinecrest.edu', 'Active', 'Good', 0, 'Type: Raised Bed Garden; Footprint: 800 sq ft; Manager: Henry Moore. Raised beds for younger students.'),
+    ('Lakeside Middle School', TRUE, 'Isabella Clark', 'isabella@lakeside.edu', 'Active', 'Good', 0, 'Type: Food Garden; Footprint: 1600 sq ft; Manager: Isabella Clark. Produces vegetables for school activities.'),
+    ('Cedar Ridge School', TRUE, 'James Hall', 'james@cedarridge.edu', 'Active', 'Require Maintenance', 0, 'Type: Herb Garden; Footprint: 700 sq ft; Manager: James Hall. Several beds need soil improvement.'),
+    ('Meadowbrook Academy', TRUE, 'Karen Allen', 'karen@meadowbrook.edu', 'Active', 'Good', 0, 'Type: Sustainable Garden; Footprint: 1300 sq ft; Manager: Karen Allen. Uses composting and soil-building practices.'),
+    ('Willow Creek School', TRUE, 'Liam Young', 'liam@willowcreek.edu', 'Active', 'Good', 0, 'Type: Demonstration Garden; Footprint: 1000 sq ft; Manager: Liam Young. Demonstrates irrigation methods.'),
+    ('Northside Community School', TRUE, 'Mia King', 'mia@northside.edu', 'Active', 'Good', 0, 'Type: Community Garden; Footprint: 2200 sq ft; Manager: Mia King. Shared garden maintained by students and volunteers.'),
+    ('Eastview Academy', TRUE, 'Noah Wright', 'noah@eastview.edu', 'Active', 'Good', 0, 'Type: Native Plant Garden; Footprint: 1500 sq ft; Manager: Noah Wright. Primarily active during spring and summer.'),
+    ('Westfield School', TRUE, 'Olivia Scott', 'olivia@westfield.edu', 'Active', 'Good', 0, 'Type: Greenhouse Garden; Footprint: 950 sq ft; Manager: Olivia Scott. Protected growing space for seedlings.'),
+    ('Brookside School', TRUE, 'Paula Green', 'paula@brookside.edu', 'Planned', NULL, 0, 'School planning a garden; beds have not been installed yet.');
 
 
 -- ============================================================

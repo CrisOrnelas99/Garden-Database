@@ -44,6 +44,7 @@ CREATE TABLE location (
     location_name VARCHAR(200) NOT NULL UNIQUE,
     contact VARCHAR(100),
     email VARCHAR(200),
+    is_hlc BOOLEAN NOT NULL DEFAULT FALSE,
     garden_status lifecycle_status,
     garden_condition condition,
     bed_count nonnegative_count,
@@ -481,13 +482,13 @@ WHERE l.bed_count IS NOT NULL
 
 -- ============================================================
 -- TRIGGERS 5 AND 6
--- Keep All HLC Gardens membership synchronized with garden locations.
+-- Keep All HLC Gardens membership synchronized with HLC locations.
 -- ============================================================
 CREATE OR REPLACE FUNCTION sync_all_hlc_gardens_group()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_TABLE_NAME = 'location' THEN
-        IF NEW.garden_status IS NOT NULL THEN
+        IF NEW.is_hlc THEN
             INSERT INTO group_location (location_group_name, location_name)
             SELECT 'All HLC Gardens', NEW.location_name
             FROM location_group
@@ -499,7 +500,7 @@ BEGIN
             INSERT INTO group_location (location_group_name, location_name)
             SELECT NEW.location_group_name, l.location_name
             FROM location l
-            WHERE l.garden_status IS NOT NULL
+            WHERE l.is_hlc
             ON CONFLICT (location_group_name, location_name) DO NOTHING;
         END IF;
     END IF;
@@ -508,7 +509,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add new locations with tracked garden status to the built-in group.
+-- Add new HLC locations to the built-in group.
 CREATE TRIGGER trg_add_location_to_all_hlc_gardens
 AFTER INSERT ON location
 FOR EACH ROW
@@ -523,12 +524,12 @@ EXECUTE FUNCTION sync_all_hlc_gardens_group();
 
 -- ============================================================
 -- TRIGGER 7
--- Keep All HLC Gardens membership aligned with garden lifecycle status.
+-- Keep All HLC Gardens membership aligned with is_hlc.
 -- ============================================================
 CREATE OR REPLACE FUNCTION sync_all_hlc_gardens_location_status()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.garden_status IS NOT NULL THEN
+    IF NEW.is_hlc THEN
         INSERT INTO group_location (location_group_name, location_name)
         SELECT 'All HLC Gardens', NEW.location_name
         FROM location_group
@@ -545,10 +546,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_sync_all_hlc_gardens_location_status
-AFTER UPDATE OF garden_status
+AFTER UPDATE OF is_hlc
 ON location
 FOR EACH ROW
-WHEN (OLD.garden_status IS DISTINCT FROM NEW.garden_status)
+WHEN (OLD.is_hlc IS DISTINCT FROM NEW.is_hlc)
 EXECUTE FUNCTION sync_all_hlc_gardens_location_status();
 
 -- Protect the built-in group from accidental deletion or rename.
@@ -608,7 +609,7 @@ BEGIN
     IF membership_group_name = 'All HLC Gardens'
        AND pg_trigger_depth() = 1 THEN
         RAISE EXCEPTION
-            'Membership in All HLC Gardens is maintained automatically from garden_status and cannot be edited directly.';
+            'Membership in All HLC Gardens is maintained automatically from is_hlc and cannot be edited directly.';
     END IF;
 
     IF TG_OP = 'DELETE' THEN

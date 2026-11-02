@@ -31,6 +31,7 @@ Stores schools and program locations. Garden fields are optional, so an office o
 
 - `location_id`: generated primary key.
 - `location_name`: required, unique readable name used by related tables.
+- `is_hlc`: whether this location belongs to the Healthy Living Collaboration; controls automatic membership in `All HLC Gardens`.
 - `contact`: contact person for the location.
 - `email`: contact email address.
 - `garden_status`: lifecycle of the location's garden, when one is tracked.
@@ -54,7 +55,7 @@ Connects groups to their member locations. Each row represents one location in o
 - `location_group_name`: group name referencing `location_group`.
 - `location_name`: school or office name referencing `location`.
 
-The schema creates the built-in `All HLC Gardens` group independently of demo data. It includes locations with any non-`NULL` `garden_status` (`Active`, `Planned`, or `Inactive`); offices and locations without garden details are excluded. Membership changes automatically when a location's garden status changes, and a location leaves the group only when its status becomes `NULL`. Other groups keep their manually managed membership. Group membership represents the current roster, so changing it affects how group requests are displayed; it does not preserve a snapshot of past membership.
+The schema creates the built-in `All HLC Gardens` group independently of demo data. It includes locations where `is_hlc` is `TRUE`, regardless of `garden_status`; setting `is_hlc` to `FALSE` removes a location from the group. Other groups keep their manually managed membership. Group membership represents the current roster, so changing it affects how group requests are displayed; it does not preserve a snapshot of past membership.
 
 ### budget
 
@@ -98,11 +99,12 @@ Records requested items, ordering and delivery state, and optional budget and fu
 - `request_id`: generated primary key.
 - `request_date`: date the item was requested.
 - `requested_by`: required name of the requester.
-- `requesting_school`: direct location for a single-school request; `NULL` for a group request.
-- `requesting_school_group`: group name for a group request; `NULL` for a single-school request.
+- `requesting_school`: direct location for a single-school request; `NULL` for a group or personal request.
+- `requesting_school_group`: group name for a group request; `NULL` for a single-school or personal request.
 - `item_name`: required catalog item being requested.
+- `unit_cost_at_request`: unit price recorded for this request; defaults to the catalog price when omitted and remains fixed if the catalog price changes.
 - `quantity_requested`: required positive quantity.
-- `total_cost`: calculated from quantity and the item's unit cost.
+- `total_cost`: calculated from quantity and the request's unit-price snapshot.
 - `delivered_to_fns`: whether the requested item has been delivered to FNS.
 - `review_status`: free-text review or order status.
 - `ordered`: whether the request has been ordered.
@@ -113,14 +115,14 @@ Records requested items, ordering and delivery state, and optional budget and fu
 
 ### inventory_transaction
 
-Records inventory check-ins and check-outs. Each row must be assigned to either one school or one location group.
+Records inventory check-ins and check-outs. A row may be assigned to one school, one location group, or neither for personal use.
 
 - `transaction_id`: generated primary key.
 - `transaction_date`: transaction date; defaults to the current date.
 - `status`: required `Checked In` or `Checked Out` status.
 - `taken_by`: required name of the person handling the transaction.
-- `for_school`: direct location for a single-school transaction; `NULL` for a group transaction.
-- `for_school_group`: group name for a group transaction; `NULL` for a single-school transaction.
+- `for_school`: direct location for a single-school transaction; `NULL` for a group or personal transaction.
+- `for_school_group`: group name for a group transaction; `NULL` for a single-school or personal transaction.
 - `item_name`: required item tracked in inventory.
 - `quantity`: required positive transaction quantity.
 - `notes`: additional transaction details.
@@ -207,7 +209,7 @@ VALUES
     ('SchoolBandC', 'Green Valley Middle School');
 ```
 
-For a purchase request, set `requesting_school` for one school or `requesting_school_group` for a group. For an inventory transaction, use `for_school` or `for_school_group` in the same way. Exactly one field must be filled. When editing a row, entering a value in one field automatically clears the other. Clearing the only assignment without entering another one is rejected with an explanatory database error.
+For a purchase request, set `requesting_school` for one school or `requesting_school_group` for a group. For an inventory transaction, use `for_school` or `for_school_group` in the same way. Fill at most one assignment field; leave both `NULL` for personal use. When editing a row, entering a value in one field automatically clears the other. The requester or person handling the transaction remains recorded in `requested_by` or `taken_by`.
 
 ```sql
 UPDATE purchase_request
