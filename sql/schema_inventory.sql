@@ -200,6 +200,22 @@ BEGIN
         NEW.unit_cost_at_request := item_unit_cost;
     END IF;
 
+    -- Historical source totals can include shipping or discounts. Retain an
+    -- explicitly supplied total on insert; calculate only when no total was
+    -- supplied (the table default is zero), or when unit/quantity changes later.
+    IF NEW.quantity_requested IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    IF TG_OP = 'INSERT' AND NEW.total_cost <> 0 THEN
+        RETURN NEW;
+    END IF;
+
+    IF TG_OP = 'UPDATE'
+       AND NEW.total_cost IS DISTINCT FROM OLD.total_cost THEN
+        RETURN NEW;
+    END IF;
+
     NEW.total_cost :=
         NEW.quantity_requested * NEW.unit_cost_at_request;
 
