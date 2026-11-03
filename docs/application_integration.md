@@ -28,6 +28,12 @@ Keep database connection strings and passwords on the backend. Do not connect a 
 6. Configure Row Level Security (RLS), policies, and grants before allowing a frontend to read or write project data.
 7. Build forms and lists around the tables and views, then deploy the frontend to a web host.
 
+## Database roles and row access
+
+After the schemas and views exist, apply `sql/schema_roles.sql` as an administrator. It configures three database roles: `database_admin` owns and can manage the schema and objects; `data_manager` can manage data and database roles but cannot create or alter schema objects; `garden_staff` can manage operational rows while budget tables and budget-related reports stay unavailable. Garden staff can see item and purchase request costs. The `SchoolSupply` view omits its spending column. The automatically maintained `All HLC Gardens` group and its membership can be viewed but not edited directly.
+
+The script also creates `private.user_role_assignment` and the `custom_access_token_hook` function. For partner API access, enable the hook in **Authentication → Hooks → Custom Access Token**. Invite users through **Authentication → Users → Add user → Send invitation**. Then assign each user's Auth UUID to `garden_staff` or `data_manager` in `private.user_role_assignment`; the hook places that PostgreSQL role in the signed JWT. Users without an assignment retain the `authenticated` role and receive no table grants. `database_admin` is deliberately not assignable through Auth; keep that role and the Supabase project owner account private. Supabase project access roles are separate: do not give partners Dashboard project access if they must not run SQL or change schema.
+
 For a Vite/React app, the public connection settings can be stored in a local `.env` file:
 
 ```env

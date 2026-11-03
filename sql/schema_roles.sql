@@ -18,6 +18,10 @@ ALTER ROLE database_admin NOLOGIN CREATEROLE;
 ALTER ROLE data_manager NOLOGIN CREATEROLE;
 ALTER ROLE garden_staff NOLOGIN NOCREATEROLE;
 
+-- Supabase Data API role switching: allow the API authenticator to assume the
+-- two non-admin roles. database_admin is deliberately not exposed to Auth.
+GRANT garden_staff, data_manager TO authenticator;
+
 -- Allow postgres to assume database_admin for ownership transfer
 GRANT database_admin TO postgres WITH SET TRUE;
 
@@ -133,6 +137,12 @@ END $$;
 GRANT USAGE ON SCHEMA public TO database_admin, data_manager, garden_staff;
 GRANT CREATE ON SCHEMA public TO database_admin;
 
+-- Fail closed for ordinary Supabase API roles. Access is granted below only
+-- through the database roles selected by the signed Auth token.
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+REVOKE CREATE ON SCHEMA public FROM anon, authenticated;
+
 -- Full data access for database_admin and data_manager
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public
 TO database_admin, data_manager;
@@ -168,7 +178,8 @@ BEGIN
     END LOOP;
 END $$;
 
--- Allow garden_staff to view nonfinancial purchase request columns
+-- Purchase costs remain visible to garden_staff. budget_name is withheld with
+-- the budget table and budget-specific reporting.
 GRANT SELECT (
     request_id,
     request_date,
@@ -177,6 +188,8 @@ GRANT SELECT (
     requesting_school_group,
     item_name,
     quantity_requested,
+    unit_cost_at_request,
+    total_cost,
     delivered_to_fns,
     review_status,
     ordered,
@@ -184,7 +197,7 @@ GRANT SELECT (
     notes
 ) ON public.purchase_request TO garden_staff;
 
--- Allow garden_staff to insert and update nonfinancial purchase request columns
+-- Allow edits to purchase request fields, including costs, but not budget_name.
 GRANT INSERT (
     request_date,
     requested_by,
@@ -192,6 +205,8 @@ GRANT INSERT (
     requesting_school_group,
     item_name,
     quantity_requested,
+    unit_cost_at_request,
+    total_cost,
     delivered_to_fns,
     review_status,
     ordered,
@@ -206,6 +221,8 @@ GRANT UPDATE (
     requesting_school_group,
     item_name,
     quantity_requested,
+    unit_cost_at_request,
+    total_cost,
     delivered_to_fns,
     review_status,
     ordered,
@@ -215,13 +232,15 @@ GRANT UPDATE (
 
 GRANT DELETE ON public.purchase_request TO garden_staff;
 
--- Hide item.unit_cost while preserving access to the item catalog
+-- Item catalog costs remain visible to garden_staff; budget-specific data is
+-- restricted separately.
 GRANT SELECT (
     item_id,
     item_name,
     category,
     vendor_name,
     link,
+    unit_cost,
     notes
 ) ON public.item TO garden_staff;
 
@@ -230,6 +249,7 @@ GRANT INSERT (
     category,
     vendor_name,
     link,
+    unit_cost,
     notes
 ) ON public.item TO garden_staff;
 
@@ -238,6 +258,7 @@ GRANT UPDATE (
     category,
     vendor_name,
     link,
+    unit_cost,
     notes
 ) ON public.item TO garden_staff;
 
@@ -277,7 +298,7 @@ GRANT SELECT (
     items_still_requested
 ) ON public."SchoolSupply" TO garden_staff;
 
--- Hide total_cost in PendingRequests
+-- Pending request cost is visible; the budget-specific views remain restricted.
 GRANT SELECT (
     request_date,
     request_status,
@@ -285,6 +306,7 @@ GRANT SELECT (
     requested_by,
     assigned_locations,
     quantity_requested,
+    total_cost,
     review_status,
     notes
 ) ON public."PendingRequests" TO garden_staff;
@@ -312,11 +334,129 @@ SECURITY DEFINER;
 ALTER FUNCTION public.recalculate_shared_budget_remaining(character varying)
 SET search_path = public, pg_temp;
 
+-- Generated All HLC Gardens membership must still be maintained when RLS
+-- blocks partners from directly editing its protected membership rows.
+ALTER FUNCTION public.sync_all_hlc_gardens_group() SECURITY DEFINER;
+ALTER FUNCTION public.sync_all_hlc_gardens_group() SET search_path = public, pg_temp;
+ALTER FUNCTION public.sync_all_hlc_gardens_location_status() SECURITY DEFINER;
+ALTER FUNCTION public.sync_all_hlc_gardens_location_status() SET search_path = public, pg_temp;
+
 ALTER FUNCTION public.update_remaining_budget_after_budget_change()
 SECURITY DEFINER;
 
 ALTER FUNCTION public.update_remaining_budget_after_budget_change()
 SET search_path = public, pg_temp;
+
+-- Row Level Security for the data roles. Every authenticated database session
+-- must assume one of these roles; RLS policies do not grant table privileges.
+-- garden_staff can access operational rows but not budget rows. data_manager
+-- can access all rows, including budgets. database_admin owns the objects and
+-- remains the schema administrator.
+DO $$
+DECLARE obj RECORD;
+BEGIN
+    FOR obj IN
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public'
+    LOOP
+        EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', obj.tablename);
+        EXECUTE format('DROP POLICY IF EXISTS data_roles_all_rows ON public.%I', obj.tablename);
+        EXECUTE format('DROP POLICY IF EXISTS data_manager_budget_rows ON public.%I', obj.tablename);
+
+        IF obj.tablename = 'budget' THEN
+            EXECUTE format(
+                'CREATE POLICY data_manager_budget_rows ON public.%I FOR ALL TO data_manager USING (true) WITH CHECK (true)',
+                obj.tablename
+            );
+        ELSE
+            EXECUTE format(
+                'CREATE POLICY data_roles_all_rows ON public.%I FOR ALL TO data_manager, garden_staff USING (true) WITH CHECK (true)',
+                obj.tablename
+            );
+        END IF;
+    END LOOP;
+END $$;
+
+-- The built-in group and its membership are trigger-maintained from location.is_hlc.
+DROP POLICY IF EXISTS data_roles_all_rows ON public.location_group;
+CREATE POLICY data_roles_read_groups ON public.location_group
+    FOR SELECT TO data_manager, garden_staff USING (true);
+CREATE POLICY data_roles_write_custom_groups ON public.location_group
+    FOR INSERT TO data_manager, garden_staff
+    WITH CHECK (location_group_name <> 'All HLC Gardens');
+CREATE POLICY data_roles_update_custom_groups ON public.location_group
+    FOR UPDATE TO data_manager, garden_staff
+    USING (location_group_name <> 'All HLC Gardens')
+    WITH CHECK (location_group_name <> 'All HLC Gardens');
+CREATE POLICY data_roles_delete_custom_groups ON public.location_group
+    FOR DELETE TO data_manager, garden_staff
+    USING (location_group_name <> 'All HLC Gardens');
+
+DROP POLICY IF EXISTS data_roles_all_rows ON public.group_location;
+CREATE POLICY data_roles_read_group_locations ON public.group_location
+    FOR SELECT TO data_manager, garden_staff USING (true);
+CREATE POLICY data_roles_write_custom_group_locations ON public.group_location
+    FOR INSERT TO data_manager, garden_staff
+    WITH CHECK (location_group_name <> 'All HLC Gardens');
+CREATE POLICY data_roles_update_custom_group_locations ON public.group_location
+    FOR UPDATE TO data_manager, garden_staff
+    USING (location_group_name <> 'All HLC Gardens')
+    WITH CHECK (location_group_name <> 'All HLC Gardens');
+CREATE POLICY data_roles_delete_custom_group_locations ON public.group_location
+    FOR DELETE TO data_manager, garden_staff
+    USING (location_group_name <> 'All HLC Gardens');
+
+-- Supabase Auth role assignment and token hook. Assign only garden_staff or
+-- data_manager to invited Auth users; database_admin remains out of the API.
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
+GRANT USAGE ON SCHEMA private TO supabase_auth_admin;
+
+CREATE TABLE IF NOT EXISTS private.user_role_assignment (
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    database_role TEXT NOT NULL
+        CHECK (database_role IN ('garden_staff', 'data_manager'))
+);
+ALTER TABLE private.user_role_assignment ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON private.user_role_assignment FROM PUBLIC, anon, authenticated,
+    garden_staff, data_manager;
+GRANT SELECT ON private.user_role_assignment TO supabase_auth_admin;
+DROP POLICY IF EXISTS auth_hook_read_user_role ON private.user_role_assignment;
+CREATE POLICY auth_hook_read_user_role ON private.user_role_assignment
+    FOR SELECT TO supabase_auth_admin USING (true);
+
+CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event JSONB)
+RETURNS JSONB
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    claims JSONB;
+    assigned_role TEXT;
+BEGIN
+    SELECT ura.database_role
+    INTO assigned_role
+    FROM private.user_role_assignment AS ura
+    WHERE ura.user_id = (event ->> 'user_id')::UUID;
+
+    claims := event -> 'claims';
+    IF assigned_role IN ('garden_staff', 'data_manager') THEN
+        claims := jsonb_set(claims, '{role}', to_jsonb(assigned_role), true);
+    ELSE
+        claims := jsonb_set(claims, '{role}', '"authenticated"'::JSONB, true);
+    END IF;
+
+    RETURN jsonb_set(event, '{claims}', claims, true);
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.custom_access_token_hook(JSONB)
+    FROM PUBLIC, anon, authenticated, garden_staff, data_manager;
+GRANT EXECUTE ON FUNCTION public.custom_access_token_hook(JSONB)
+    TO supabase_auth_admin;
 
 -- Default permissions for future objects created as database_admin
 ALTER DEFAULT PRIVILEGES FOR ROLE database_admin IN SCHEMA public
