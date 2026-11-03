@@ -55,7 +55,9 @@ Connects groups to their member locations. Each row represents one location in o
 - `location_group_name`: group name referencing `location_group`.
 - `location_name`: school or office name referencing `location`.
 
-The schema creates the built-in `All HLC Gardens` group independently of demo data. It includes locations where `is_hlc` is `TRUE`, regardless of `garden_status`; setting `is_hlc` to `FALSE` removes a location from the group. Other groups keep their manually managed membership. Group membership represents the current roster, so changing it affects how group requests are displayed; it does not preserve a snapshot of past membership.
+The schema creates the built-in `All HLC Gardens` group independently of demo data so staff have one reliable group for work applying across every HLC location. Triggers maintain it from `location.is_hlc`: a location inserted with `is_hlc = TRUE` is added automatically, changing the flag to `FALSE` removes it, and creating the group fills it with already-existing HLC locations. The flag is independent of `garden_status`, so an HLC location remains in the group even when its garden is not active or tracked.
+
+`All HLC Gardens` is a live roster, not a snapshot of who belonged to the group when an old request or transaction was created. Requests and transactions assigned to it therefore display the current membership in reports. Do not add or remove its `group_location` rows manually; the schema protects and maintains them. Custom groups, including `18 HLC Gardens` and `19 HLC Gardens`, remain separate and are managed manually.
 
 ### budget
 
@@ -195,7 +197,7 @@ Tracks plantings by bed within a location's garden.
 
 ## Using location groups
 
-In Supabase, add one row to `location_group` for each custom group name. Then add one row to `group_location` for each school or office in that group. Both tables use readable names, so the group and location can be recognized while editing. Do not create or manually maintain the built-in `All HLC Gardens` group; the schema creates and maintains it automatically.
+In Supabase, add one row to `location_group` for each custom group name. Then add one row to `group_location` for each school or office in that group. Both tables use readable names, so the group and location can be recognized while editing. Do not create or manually maintain the built-in `All HLC Gardens` group or its membership; the schema creates it and maintains its membership automatically from `location.is_hlc`. To include a new HLC location, set `is_hlc = TRUE` when inserting it. The schema triggers must be installed in the database for this behavior to run.
 
 For example, create `SchoolBandC` and add two schools:
 

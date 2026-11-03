@@ -482,7 +482,10 @@ WHERE l.bed_count IS NOT NULL
 
 -- ============================================================
 -- TRIGGERS 5 AND 6
--- Keep All HLC Gardens membership synchronized with HLC locations.
+-- Keep the built-in All HLC Gardens roster synchronized with the
+-- is_hlc flag. This saves staff from manually maintaining one group
+-- every time an HLC location is added, reclassified, or removed.
+-- Membership is independent of whether a location has an active garden.
 -- ============================================================
 CREATE OR REPLACE FUNCTION sync_all_hlc_gardens_group()
 RETURNS TRIGGER AS $$
@@ -625,7 +628,11 @@ ON group_location
 FOR EACH ROW
 EXECUTE FUNCTION protect_all_hlc_gardens_membership();
 
--- Create the built-in group independently of demo data.
+-- Create the built-in group independently of demo data. The group trigger
+-- immediately fills it with all existing locations whose is_hlc is TRUE;
+-- the location triggers keep its roster current afterward. Unlike custom
+-- groups such as "18 HLC Gardens" and "19 HLC Gardens", its membership is
+-- automatic and must not be edited directly.
 INSERT INTO location_group (location_group_name)
 VALUES ('All HLC Gardens')
 ON CONFLICT (location_group_name) DO NOTHING;
