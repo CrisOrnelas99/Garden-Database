@@ -2,11 +2,20 @@
 -- Create roles if they do not already exist
 DO $$
 BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'data_manager')
+       AND NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'database_manager') THEN
+        EXECUTE 'ALTER ROLE data_manager RENAME TO database_manager';
+    ELSIF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'data_manager')
+       AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'database_manager') THEN
+        RAISE EXCEPTION
+            'Both data_manager and database_manager exist. Resolve the duplicate role before applying schema_roles.sql.';
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'database_admin') THEN
         CREATE ROLE database_admin NOLOGIN;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'data_manager') THEN
-        CREATE ROLE data_manager NOLOGIN;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'database_manager') THEN
+        CREATE ROLE database_manager NOLOGIN;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'garden_staff') THEN
         CREATE ROLE garden_staff NOLOGIN;
@@ -14,16 +23,16 @@ BEGIN
 END $$;
 
 -- Configure role attributes
-ALTER ROLE database_admin NOLOGIN CREATEROLE;
-ALTER ROLE data_manager NOLOGIN CREATEROLE;
-ALTER ROLE garden_staff NOLOGIN NOCREATEROLE;
+ALTER ROLE database_admin NOLOGIN CREATEROLE NOBYPASSRLS;
+ALTER ROLE database_manager NOLOGIN CREATEROLE NOBYPASSRLS;
+ALTER ROLE garden_staff NOLOGIN NOCREATEROLE NOBYPASSRLS;
 
 -- Supabase Data API role switching: allow the API authenticator to assume the
 -- two non-admin roles. database_admin is deliberately not exposed to Auth.
-GRANT garden_staff, data_manager TO authenticator;
+GRANT garden_staff, database_manager TO authenticator;
 
 -- Allow postgres to assume database_admin for ownership transfer
-GRANT database_admin TO postgres WITH SET TRUE;
+GRANT database_admin TO postgres;
 
 -- Give database_admin ownership of the public schema
 ALTER SCHEMA public OWNER TO database_admin;
@@ -134,7 +143,7 @@ BEGIN
 END $$;
 
 -- Schema permissions
-GRANT USAGE ON SCHEMA public TO database_admin, data_manager, garden_staff;
+GRANT USAGE ON SCHEMA public TO database_admin, database_manager, garden_staff;
 GRANT CREATE ON SCHEMA public TO database_admin;
 
 -- Fail closed for ordinary Supabase API roles. Access is granted below only
@@ -143,12 +152,12 @@ REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
 REVOKE CREATE ON SCHEMA public FROM anon, authenticated;
 
--- Full data access for database_admin and data_manager
+-- Full data access for database_admin and database_manager
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public
-TO database_admin, data_manager;
+TO database_admin, database_manager;
 
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public
-TO database_admin, data_manager;
+TO database_admin, database_manager;
 
 -- Remove previous garden_staff grants before applying restrictions
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public
@@ -349,7 +358,7 @@ SET search_path = public, pg_temp;
 
 -- Row Level Security for the data roles. Every authenticated database session
 -- must assume one of these roles; RLS policies do not grant table privileges.
--- garden_staff can access operational rows but not budget rows. data_manager
+-- garden_staff can access operational rows but not budget rows. database_manager
 -- can access all rows, including budgets. database_admin owns the objects and
 -- remains the schema administrator.
 DO $$
@@ -363,15 +372,16 @@ BEGIN
         EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', obj.tablename);
         EXECUTE format('DROP POLICY IF EXISTS data_roles_all_rows ON public.%I', obj.tablename);
         EXECUTE format('DROP POLICY IF EXISTS data_manager_budget_rows ON public.%I', obj.tablename);
+        EXECUTE format('DROP POLICY IF EXISTS database_manager_budget_rows ON public.%I', obj.tablename);
 
         IF obj.tablename = 'budget' THEN
             EXECUTE format(
-                'CREATE POLICY data_manager_budget_rows ON public.%I FOR ALL TO data_manager USING (true) WITH CHECK (true)',
+                'CREATE POLICY database_manager_budget_rows ON public.%I FOR ALL TO database_manager USING (true) WITH CHECK (true)',
                 obj.tablename
             );
         ELSE
             EXECUTE format(
-                'CREATE POLICY data_roles_all_rows ON public.%I FOR ALL TO data_manager, garden_staff USING (true) WITH CHECK (true)',
+                'CREATE POLICY data_roles_all_rows ON public.%I FOR ALL TO database_manager, garden_staff USING (true) WITH CHECK (true)',
                 obj.tablename
             );
         END IF;
@@ -380,35 +390,43 @@ END $$;
 
 -- The built-in group and its membership are trigger-maintained from location.is_hlc.
 DROP POLICY IF EXISTS data_roles_all_rows ON public.location_group;
+DROP POLICY IF EXISTS data_roles_read_groups ON public.location_group;
+DROP POLICY IF EXISTS data_roles_write_custom_groups ON public.location_group;
+DROP POLICY IF EXISTS data_roles_update_custom_groups ON public.location_group;
+DROP POLICY IF EXISTS data_roles_delete_custom_groups ON public.location_group;
 CREATE POLICY data_roles_read_groups ON public.location_group
-    FOR SELECT TO data_manager, garden_staff USING (true);
+    FOR SELECT TO database_manager, garden_staff USING (true);
 CREATE POLICY data_roles_write_custom_groups ON public.location_group
-    FOR INSERT TO data_manager, garden_staff
+    FOR INSERT TO database_manager, garden_staff
     WITH CHECK (location_group_name <> 'All HLC Gardens');
 CREATE POLICY data_roles_update_custom_groups ON public.location_group
-    FOR UPDATE TO data_manager, garden_staff
+    FOR UPDATE TO database_manager, garden_staff
     USING (location_group_name <> 'All HLC Gardens')
     WITH CHECK (location_group_name <> 'All HLC Gardens');
 CREATE POLICY data_roles_delete_custom_groups ON public.location_group
-    FOR DELETE TO data_manager, garden_staff
+    FOR DELETE TO database_manager, garden_staff
     USING (location_group_name <> 'All HLC Gardens');
 
 DROP POLICY IF EXISTS data_roles_all_rows ON public.group_location;
+DROP POLICY IF EXISTS data_roles_read_group_locations ON public.group_location;
+DROP POLICY IF EXISTS data_roles_write_custom_group_locations ON public.group_location;
+DROP POLICY IF EXISTS data_roles_update_custom_group_locations ON public.group_location;
+DROP POLICY IF EXISTS data_roles_delete_custom_group_locations ON public.group_location;
 CREATE POLICY data_roles_read_group_locations ON public.group_location
-    FOR SELECT TO data_manager, garden_staff USING (true);
+    FOR SELECT TO database_manager, garden_staff USING (true);
 CREATE POLICY data_roles_write_custom_group_locations ON public.group_location
-    FOR INSERT TO data_manager, garden_staff
+    FOR INSERT TO database_manager, garden_staff
     WITH CHECK (location_group_name <> 'All HLC Gardens');
 CREATE POLICY data_roles_update_custom_group_locations ON public.group_location
-    FOR UPDATE TO data_manager, garden_staff
+    FOR UPDATE TO database_manager, garden_staff
     USING (location_group_name <> 'All HLC Gardens')
     WITH CHECK (location_group_name <> 'All HLC Gardens');
 CREATE POLICY data_roles_delete_custom_group_locations ON public.group_location
-    FOR DELETE TO data_manager, garden_staff
+    FOR DELETE TO database_manager, garden_staff
     USING (location_group_name <> 'All HLC Gardens');
 
 -- Supabase Auth role assignment and token hook. Assign only garden_staff or
--- data_manager to invited Auth users; database_admin remains out of the API.
+-- database_manager to existing Auth users; database_admin remains out of the API.
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA private TO supabase_auth_admin;
@@ -416,11 +434,19 @@ GRANT USAGE ON SCHEMA private TO supabase_auth_admin;
 CREATE TABLE IF NOT EXISTS private.user_role_assignment (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     database_role TEXT NOT NULL
-        CHECK (database_role IN ('garden_staff', 'data_manager'))
+        CHECK (database_role IN ('garden_staff', 'database_manager'))
 );
+ALTER TABLE private.user_role_assignment
+    DROP CONSTRAINT IF EXISTS user_role_assignment_database_role_check;
+UPDATE private.user_role_assignment
+SET database_role = 'database_manager'
+WHERE database_role = 'data_manager';
+ALTER TABLE private.user_role_assignment
+    ADD CONSTRAINT user_role_assignment_database_role_check
+    CHECK (database_role IN ('garden_staff', 'database_manager'));
 ALTER TABLE private.user_role_assignment ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON private.user_role_assignment FROM PUBLIC, anon, authenticated,
-    garden_staff, data_manager;
+    garden_staff, database_manager;
 GRANT SELECT ON private.user_role_assignment TO supabase_auth_admin;
 DROP POLICY IF EXISTS auth_hook_read_user_role ON private.user_role_assignment;
 CREATE POLICY auth_hook_read_user_role ON private.user_role_assignment
@@ -443,7 +469,7 @@ BEGIN
     WHERE ura.user_id = (event ->> 'user_id')::UUID;
 
     claims := event -> 'claims';
-    IF assigned_role IN ('garden_staff', 'data_manager') THEN
+    IF assigned_role IN ('garden_staff', 'database_manager') THEN
         claims := jsonb_set(claims, '{role}', to_jsonb(assigned_role), true);
     ELSE
         claims := jsonb_set(claims, '{role}', '"authenticated"'::JSONB, true);
@@ -454,13 +480,42 @@ END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.custom_access_token_hook(JSONB)
-    FROM PUBLIC, anon, authenticated, garden_staff, data_manager;
+    FROM PUBLIC, anon, authenticated, garden_staff, database_manager;
 GRANT EXECUTE ON FUNCTION public.custom_access_token_hook(JSONB)
     TO supabase_auth_admin;
 
+-- Allow only database_manager to assign application database roles. Auth user
+-- creation/deletion is handled by Supabase Auth and is outside PostgreSQL SQL.
+CREATE OR REPLACE FUNCTION public.set_user_database_role(
+    p_user_id UUID,
+    p_database_role TEXT
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+    IF p_database_role IS NULL
+       OR p_database_role NOT IN ('garden_staff', 'database_manager') THEN
+        RAISE EXCEPTION 'Unsupported database role: %', p_database_role;
+    END IF;
+
+    INSERT INTO private.user_role_assignment (user_id, database_role)
+    VALUES (p_user_id, p_database_role)
+    ON CONFLICT (user_id)
+    DO UPDATE SET database_role = EXCLUDED.database_role;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.set_user_database_role(UUID, TEXT)
+    FROM PUBLIC, anon, authenticated, garden_staff;
+GRANT EXECUTE ON FUNCTION public.set_user_database_role(UUID, TEXT)
+    TO database_manager;
+
 -- Default permissions for future objects created as database_admin
 ALTER DEFAULT PRIVILEGES FOR ROLE database_admin IN SCHEMA public
-GRANT ALL PRIVILEGES ON TABLES TO data_manager;
+GRANT ALL PRIVILEGES ON TABLES TO database_manager;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE database_admin IN SCHEMA public
-GRANT ALL PRIVILEGES ON SEQUENCES TO data_manager;
+GRANT ALL PRIVILEGES ON SEQUENCES TO database_manager;
