@@ -155,27 +155,7 @@ INSERT INTO budget (budget_name, budget_amount, remaining_budget) VALUES ('Garde
 -- Includes items appearing in Inventory List, Purchase Requests,
 -- or Materials Inventory Sign Out.
 -- ------------------------------------------------------------
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('1 Gallon Jug (10 pack)', NULL, 'Amazon', 'LINK', 39.77, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('100 pc Shockwave Driver bit Pack', NULL, 'C.E.S. Cape  Coral', 'Quote', 90.49, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('12" Flat Stainless Steel Straight Brackets 4 pack (makes 2 boxes)', NULL, 'Amazon', 'Bracket Link', 7.21, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('24" hedge trimmer', NULL, 'Amazon', 'LINK', 169, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('25 x 40 waterproff tarp', NULL, 'Amazon', 'LINK', 98.95, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('HLC Cafeteria Menu Board Magnet', 'Magnets', NULL, NULL, 3.45, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('3/8 drive 32 pc Rachet,socket set', NULL, 'C..E.S. Cape coral', 'Quote', 109.95, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('5" top pots with holes', NULL, 'VertiGro', 'QUOTE', 0.8, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('5-gallon bucket (water refill) 2ct', NULL, 'Amazon', 'LINK', 16, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('6.5 x300'' 3.5 ounce weed fabric', NULL, 'Amazon', NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Avery labels 5X4, 100', NULL, 'https://a.co/d/0aIqliWK', NULL, 45.34, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Binder Dividers, 8 tab (6 pack)', NULL, 'Amazon', 'LINK', 23.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Binders', NULL, 'Amazon', 'LINK', 29.44, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('HLC Car Magnet', 'Magnets', 'Sallee', 'Quote', 24.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sponsor Car Magnet', 'Magnets', 'Sallee', 'Quote', 24.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Disposable Gloves (Adult, L, 10 pack of 100)', NULL, 'Amazon', 'LINK', 50, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Disposable Masks', NULL, 'Amazon', 'LINK', 10, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Dry Erase Pockets Sleeves', NULL, 'amazon', 'https://a.co/d/0e5tvuUK', 18.04, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Funnel (3 pack)', NULL, 'Amazon', 'LINK', 11.56, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('4 inch nursery pots', 'Garden', 'Amazon', 'LINK', 20.89, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('BHD Plant Starts', 'Garden', 'BHD', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Black 2.5 in pots, bulk', 'Garden', 'Greenhouse megastore', 'LINK', 96, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Boot scraper', 'Garden', 'Amazon', 'LINK', 23, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Euro pots 6in (17cm), Case', 'Garden', 'Greenhouse Megastore', 'Link', 117, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -199,27 +179,28 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hose, 10 ft', 'Garden', 'Amazon', 'LINK', 16.59, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hose, 50 ft', 'Garden', 'Amazon', 'LINK', 39.98, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hose, 75 ft', 'Garden', 'Amazon', 'LINK', 54.98, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('BHD Plant Starts', 'Garden', 'BHD', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Mobley Plant Starts', 'Garden', 'Mobley', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Slow Release Nutrients', 'Garden', 'Sakata', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Frost Fabric', 'Garden', 'Sakata', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Syngro Compost', 'Garden', 'Syngro', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Plant Starts', 'Garden', 'Sakata', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Johnny Seeds', 'Garden', 'Johnny''s Seeds', 'QUOTE', 885.77, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Landscape 6 x 100', 'Garden', 'Amazon', 'LINK', 94.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Landscape fabric 3 x 100', 'Garden', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Landscape fabric 4 x 100', 'Garden', 'Amazon', 'LINK', 59.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Landscape staples 6", 120 pk', 'Garden', 'Amazon', 'LINK', 14.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Landscape staples 6", 240 pk', 'Garden', 'Amazon', 'LINK', 19.69, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Mobley Plant Starts', 'Garden', 'Mobley', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Plastic sheeting, 4''x50 solarizing', 'Garden', 'Amazon', 'LINK', 24.02, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Raised Bed Planter', 'Garden', 'Amazon', 'LINK', 111.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Frost Fabric', 'Garden', 'Sakata', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Plant Starts', 'Garden', 'Sakata', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Seeds', 'Garden', 'Sakata Seed America', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Slow Release Nutrients', 'Garden', 'Sakata', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Seed envelops 100', 'Garden', 'Amazon', 'LINK', 5.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Shears, 2 pack', 'Garden', 'Amazon', 'LINK', 9.49, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Standard round pots 3.5"x3.25", Case', 'Garden', 'Greenhouse Megastore', 'LINK', 247.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Syngro Compost', 'Garden', 'Syngro', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tomato Stakes, 25pk', 'Garden', 'Amazon', 'LINK', 51.96, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tomato Stakes, wood  6''', 'Garden', 'L.A.R.C.', 'no link', 650, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tomato Tape,  1/2" x150'', 24 ct)', 'Garden', 'Amazon', 'LINK', 32.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tomato twine', 'Garden', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tomato Stakes, wood  6''', 'Garden', 'L.A.R.C.', 'no link', 650, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Vego arched trellis', 'Garden', 'Amazon', 'LINK', 150, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Vego raised beds', 'Garden', 'Amazon', 'LINK', 179.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Watering cans', 'Garden', 'Amazon', 'LINK', 30.52, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -237,7 +218,7 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Distilled Water', 'Hydroponics', 'Walmart', NULL, 1.79, 'Inventory list price; Grow Rack purchase recorded at $1.37 per gallon, prior Amazon price was $1.50.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Electric Pump, 650 gph, 6.5 ft. power cord', 'Hydroponics', 'Amazon', 'LINK', 24.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Funnels (3 pk)', 'Hydroponics', 'Amazon', 'LINK', 11.56, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Grow Rack', 'Hydroponics', 'Bootstrap Farmer', 'QUOTE', 2579, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('green pots for clay balls', 'Hydroponics', 'Vertigo', NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Grow Rack Systems', 'Hydroponics', 'Bootstrap Farmer', 'QUOTE', 2746.64, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hydroton balls ( leca) 40 L', 'Hydroponics', 'Amazon', 'LINK', 51, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hydroton, 40L large bag', 'Media', 'Amazon', 'LINK', 51.97, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -250,7 +231,7 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Micro line, drip line 10x125ft', 'Hydroponics', 'Vertigo', NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Mr. Stacky 13 in Stackable Planter Pots (5/tower kit)', 'Hydroponics', 'Mr. Stacky', 'LINK', 37, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Mr. Stacky 18 in Stackable Planter Pots (5/tower kit)', 'Hydroponics', 'Mr. Stacky', 'LINK', 80, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Pump, 800gph, 6.5 ft. power cord', 'Hydroponics', NULL, 'LINK', NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('net cup  trays', 'Hydroponics', 'Bootstrap Farmer', NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Solar Power System', 'Hydroponics', 'HLC Systems Inventory', 'LINK', 150, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Solar System Replacement Timers', 'Hydroponics', '12v Programmable Timer', 'LINK', 15, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('TowerGarden', 'Hydroponics', 'TowerGarden', 'QUOTE', 1385, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -258,8 +239,6 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Vertigro Swivels, 1 ct', 'Hydroponics', 'VertiGro', 'QUOTE', 1.75, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Vertigro USED Stackable Pots, 1 ct', 'Hydroponics', 'VertiGro', 'QUOTE', 2195.55, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Vertigrow tower system (10 towers)', 'Hydroponics', 'Vertigro', 'LINK', 1399.95, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('green pots for clay balls', 'Hydroponics', 'Vertigo', NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('net cup  trays', 'Hydroponics', 'Bootstrap Farmer', NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Bonide, 16 oz. concentrated', 'IPM', 'Amazon', 'LINK', 17.21, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Neem Oil', 'IPM', 'Amazon', 'LINK', 19.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Safer Soap, 6 pack', 'IPM', 'Amazon', 'LINK', 79.55, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -269,8 +248,6 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('1/2" T connections,', 'Irrigation', 'Amazon', 'LINK', 14, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('3/4" T connections, PVC', 'Irrigation', 'Amazon', 'LINK', 14, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Barbed Tee Universal Connector  Tubing, 1/4 Inch, 50 piece', 'Irrigation', 'Amazon', 'LINK', 5.8, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Irrigation Bilge Pump 500GPH', 'Irrigation', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Bilge Pump 700gph', 'Irrigation', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Drip Irrigation Fittings Kit', 'Irrigation', 'Amazon', 'LINK', 13.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Drip irrigation system', 'Irrigation', 'Amazon', 'LINK', 42, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('End plug, 1/4", 100 piece', 'Irrigation', 'Amazon', 'LINK', 5.97, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -281,7 +258,6 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hose clamp, 2", 20pk', 'Irrigation', 'Amazon', 'LINK', 12.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Irrigation Kit', 'Irrigation', 'Amazon', 'LINK', 36.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Valve (for 1/2", 10 pk)', 'Irrigation', 'Amazon', 'LINK', 9.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Lee county Solid Waste ,Mulch', NULL, NULL, NULL, 100, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Coco Coir, 10 lbs', 'Media', 'Amazon', 'LINK', 11.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Coco Coir, 2cf Just Coir', 'Media', 'Diamond R', 'QUOTE', 26.47, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Crushed shell', 'Media', 'Cemex', NULL, 300, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -293,20 +269,15 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata Donations', 'Media', 'Sakata Seed', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sakata compost', 'Media', 'Sakata Seed', NULL, NULL, 'Source note describes a dump trailer load delivered to Gulf Elementary; price was not provided.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Soil/compost', 'Media', 'Forestry Resources', 'no link', 6, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Media: Coco Coir (190), Old Castle 50/50 mix (180), Perlite 4CF 30/1 (60)', NULL, 'Diamon R', 'QUOTE', 7468.4, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('10 x 100''', 'Microtubing', 'VertiGro', 'QUOTE', 16.95, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Milwaukee # 9 step drill bit 48-89-9209', NULL, 'C.E.S. Cape Coral', 'Quote', 59.29, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Milwaukee 21 pc drill bit,48-89-2801', NULL, 'C.E.S. Cape Coral', 'Quote', 32.6, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Multi Purpose Wire stripper W / crimper', NULL, 'C.E.S. Cape Coral', 'Quote', 17.25, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('5-11-26 NPK Hydroponic Nutrients', 'Nutrients', 'Southern Ag', 'no link', 136, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Calcium Nitrate', 'Nutrients', 'Southern Ag', 'no link', 80, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Clear Jugs, 64oz wide mouth, 6pk', 'Nutrients', 'Amazon', 'LINK', 25.2, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Clear jugs, 1 Gal, Wide Mouth, 3', 'Nutrients', 'Amazon', 'LINK', 24.97, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Clear Jugs, 64oz wide mouth, 6pk', 'Nutrients', 'Amazon', 'LINK', 25.2, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Epsom Salt (5lb)', 'Nutrients', 'Amazon', 'LINK', 17.95, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Fish Emulsion', 'Nutrients', 'Diamond R', NULL, 0, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Magnesium Sulfate', 'Nutrients', 'Southern Ag', 'no link', 51, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('latex free gloves - Large - 1000  (10 boxes of 100)', 'Nutrients', 'Amazon', 'LINK', 45.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('latex free gloves - Med - 1000  (10 boxes of 100)', 'Nutrients', 'Amazon', 'LINK', 45.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Magnesium Sulfate', 'Nutrients', 'Southern Ag', 'no link', 51, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Binder Tabs', 'Office', 'Amazon', 'LINK', 23.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Clipboard', 'Office', 'Amazon', 'LINK', 5.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Dehumidifier', 'Office', 'Amazon', 'LINK', 175, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -314,33 +285,22 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('EXPO White board care', 'Office', 'Amazon', 'LINK', 10, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('HLC Tent', 'Office', 'Sallee', 'Quote', 550, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('HLC Tent weights, 4 sets of 20lb weights', 'Office', 'Amazon', 'LINK', 36.59, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Office Safety Glasses (set of 20)', 'Office', 'Amazon', 'LINK', 35, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Scissors  9 in.', 'Office', 'Amazon', 'LINK', 29.9, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sharpie Marker, 12 ct', 'Office', 'Amazon', 'LINK', 10, 'Inventory list price; individual purchases retain their recorded prices, including a prior $12.00 order and a $6.59 SGLT purchase.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('iPhone Otterbox case', 'Office', 'Amazon', 'LINK', 28.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('iPhone Screen Protector Glass', 'Office', 'Amazon', 'LINK', 15, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Scissors  9 in.', 'Office', 'Amazon', 'LINK', 29.9, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sharpie Marker, 12 ct', 'Office', 'Amazon', 'LINK', 10, 'Inventory list price; individual purchases retain their recorded prices, including a prior $12.00 order and a $6.59 SGLT purchase.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Avery labels 2X4', 'Office HLC', 'Amazon', 'LINK', 13.71, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Avery labels 3 1/3 x 4', 'Office HLC', 'Amazon', 'LINK', 38, 'Inventory list price; the recorded purchase request retains its $32.49 unit price.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Clear containers, 25 Q', 'Office HLC', 'Amazon', 'LINK', 35, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Clear containers, 36 Q', 'Office HLC', 'Amazon', 'LINK', 39, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Clear containers, 58 Q', 'Office HLC', 'Amazon', 'LINK', 58, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Pich fork', NULL, 'Amazon', 'LINK', 33.24, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sweet Potato slips, Beauregard, 25 slips', 'Plants', 'George''s Taterman', 'LINK', 20, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sweet Potato slips, Centennial, 25 slips', 'Plants', 'George''s Taterman', 'LINK', 20, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sweet Potato slips, Vafaman, 25 slips', 'Plants', 'George''s Taterman', 'LINK', 20, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Plastic Plant Labels (300 ct)', NULL, 'Amazon', 'LINK', 6.39, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Plastic Table Cloth Roll', NULL, 'Amazon', 'LINK', 34.19, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Potting Mat (small)', NULL, 'Amazon', 'LINK', 5.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Roll magnet', NULL, 'Amazon', 'LINK', 14.95, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Rubber truck liner', NULL, 'Amazon', 'LINK', 35.7, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('SPC screwdriver kit,W square drive', NULL, 'C.E.S. Cape Coral', 'Quote', 12.67, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Seeds', NULL, 'Johnny''s', 'Quote', 368.6, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sheet Protectors', NULL, 'Amazon', 'LINK', 26.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Spatulas (3 pack)', NULL, 'Amazon', 'LINK', 14.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('5-gallon bucket, 6tc', 'Supplies', 'Amazon', 'LINK', 40.84, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Cooler', 'Supplies', 'Amazon', 'LINK', 22.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Duct tape', 'Supplies', 'Amazon', 'LINK', 7, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Jiffy Seed Starting Greenhouse Kit', 'Supplies', 'Home Depot', 'LINK', 9.97, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('latex gloves (1,000 ct)', 'Supplies', 'Amazon', 'LINK', 45.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Mini Fridge', 'Supplies', 'Amazon', 'LINK', 189.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Mortar tub, Large', 'Supplies', 'Home Depot', 'LINK', 16.97, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Plant Labels, 200ct', 'Supplies', 'Amazon', 'LINK', 10.99, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -354,16 +314,12 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tote with lid, 52 qt, 6ct', 'Supplies', 'Amazon', 'LINK', 99.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Twine', 'Supplies', 'Amazon', 'LINK', 9.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Utility Cart', 'Supplies', 'Amazon', 'LINK', 129.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wasp Spray', 'Supplies', 'Amazon', 'LINK', 9.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('White Vinegar', 'Supplies', 'Amazon', 'LINK', 7, 'Inventory list price; earlier Amazon request was $5.00 and Grow Rack Walmart purchase was recorded at $3.94 per gallon.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Zip Ties 12", 100 ct', 'Supplies', 'Amazon', 'LINK', 4.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Zip Ties 12", 1000 ct', 'Supplies', 'Amazon', 'LINK', 21.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('latex gloves (1,000 ct)', 'Supplies', 'Amazon', 'LINK', 45.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Plastic storage bags - 2 Gal  (120)', 'Supply', 'Amazon', 'LINK', 28.55, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Quart Size Ziplock Bags', 'Supply', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Quart Size Ziplock Bags (500)', 'Supply', 'Amazon', 'LINK', 40.49, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Quart Size Ziplock Bags (60)', 'Supply', 'Amazon', 'LINK', 8, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Small Envelopes', 'Supply', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES (' Sprayer Pump, 1 gal', 'Tools', 'Amazon', 'LINK', 15.49, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Backpack Sprayer,  3.2 Gallon Battery Powered', 'Tools', 'Amazon', 'LINK', 56.09, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Basic Tool Box', 'Tools', 'Amazon', 'LINK', 60, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -376,17 +332,16 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hand pruners', 'Tools', 'Amazon', 'LINK', 25, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hand rake Fiskars', 'Tools', 'Amazon', 'LINK', 7.38, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hand trowels, set of 2', 'Tools', 'Amazon', 'LINK', 8.31, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Harvest Knives', 'Tools', 'Amazon', 'LINK', 12.52, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Hoe', 'Tools', 'Amazon', 'LINK', 36.44, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Level, 3 way, magnetic, 9"', 'Tools', 'Amazon', 'LINK', 6.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Orange Handle Knife', 'Tools', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('PH & EC meter kit', 'Tools', 'Amazon', 'LINK', 27.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('PVC cutters', 'Tools', 'Amazon', 'LINK', 28, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Pallet PullerSingle scisser 5 in.stringer', 'Tools', 'Grainger', 'Quote', 98, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('PH & EC meter kit', 'Tools', 'Amazon', 'LINK', 27.99, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Pliers, set of 3', 'Tools', 'Amazon', 'LINK', 30, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Pruning Snip Fiskars', 'Tools', 'Amazon', 'LINK', 10, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('PVC cutters', 'Tools', 'Amazon', 'LINK', 28, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Rain Gauge', 'Tools', 'Amazon', 'LINK', 12, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Rake', 'Tools', 'Home Depot', 'LINK', 17.99, 'Source spreadsheet contains two vendor/cost rows for this same item name; the first catalog row is used and the alternate vendor is retained here.') ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Rake', 'Tools', 'Home Depot', 'LINK', 17.99, 'Source lists both Home Depot at $17.99 and Amazon at $39.99.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sanitizing wipes', 'Tools', 'Amazon', 'LINK', 14.36, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Saw blades', 'Tools', 'Home Depot', 'LINK', 29.97, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Shed', 'Tools', 'Lowes', 'LINK', 399.99, NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -394,21 +349,66 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Shovel, Root Slayer', 'Tools', 'Lowes', 'LINK', 39.98, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Shovels', 'Tools', 'Amazon', 'LINK', 30, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Solar Fan (Connex)', 'Tools', 'Amazon', 'LINK', 599.95, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tool Caddy', 'Tools', 'Amazon', 'LINK', 36, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tool box', 'Tools', 'Amazon', 'LINK', 60, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tool Caddy', 'Tools', 'Amazon', 'LINK', 36, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Utility knife, 2pk', 'Tools', 'Amazon', 'LINK', 18.96, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wheelbarrow', 'Tools', 'Lowes', 'LINK', 189, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wheelbarrow', 'Tools', 'Lowes', 'LINK', 189, 'Source lists both Lowes at $189.00 and Amazon at $139.00.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wheeled Caddy', 'Tools', 'Amazon', 'LINK', 55.63, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wire cutters', 'Tools', 'Amazon', 'LINK', 9.99, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tools box for the truck', NULL, 'Link', NULL, 33.44, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Quart Size Ziplock Bags', 'Supply', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('24" hedge trimmer', NULL, 'Amazon', 'LINK', 169, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Binder Dividers, 8 tab (6 pack)', NULL, 'Amazon', 'LINK', 23.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Seeds', NULL, 'Johnny''s', 'Quote', 368.6, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Spatulas (3 pack)', NULL, 'Amazon', 'LINK', 14.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Plastic Table Cloth Roll', NULL, 'Amazon', 'LINK', 34.19, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Dry Erase Pockets Sleeves', NULL, 'amazon', 'https://a.co/d/0e5tvuUK', 18.04, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Roll magnet', NULL, 'Amazon', 'LINK', 14.95, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('5-gallon bucket (water refill) 2ct', NULL, 'Amazon', 'LINK', 16, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Plastic Plant Labels (300 ct)', NULL, 'Amazon', 'LINK', 6.39, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Potting Mat (small)', NULL, 'Amazon', 'LINK', 5.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('5" top pots with holes', NULL, 'VertiGro', 'QUOTE', 0.8, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('10 x 100''', 'Microtubing', 'VertiGro', 'QUOTE', 16.95, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Grow Rack', 'Hydroponics', 'Bootstrap Farmer', 'QUOTE', 2579, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tower Garden Repair Items, light kit, nutrients', NULL, 'TowerGarden', 'QUOTE', 390, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('WD40', NULL, 'amazon', 'https://a.co/d/0glmeBg3', 7.98, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Disposable Gloves (Adult, L, 10 pack of 100)', NULL, 'Amazon', 'LINK', 50, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Disposable Masks', NULL, 'Amazon', 'LINK', 10, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Pump, 800gph, 6.5 ft. power cord', 'Hydroponics', NULL, 'LINK', NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Irrigation Bilge Pump 500GPH', 'Irrigation', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Bilge Pump 700gph', 'Irrigation', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Office Safety Glasses (set of 20)', 'Office', 'Amazon', 'LINK', 35, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Duct tape', 'Supplies', 'Amazon', 'LINK', 7, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wasp Spray', 'Supplies', 'Amazon', 'LINK', 9.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Small Envelopes', 'Supply', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Harvest Knives', 'Tools', 'Amazon', 'LINK', 12.52, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Ziploc quart bags for nutients', NULL, 'Amazon', 'LINK', 7.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('3/8 drive 32 pc Rachet,socket set', NULL, 'C..E.S. Cape coral', 'Quote', 109.95, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('100 pc Shockwave Driver bit Pack', NULL, 'C.E.S. Cape  Coral', 'Quote', 90.49, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('SPC screwdriver kit,W square drive', NULL, 'C.E.S. Cape Coral', 'Quote', 12.67, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Multi Purpose Wire stripper W / crimper', NULL, 'C.E.S. Cape Coral', 'Quote', 17.25, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Milwaukee 21 pc drill bit,48-89-2801', NULL, 'C.E.S. Cape Coral', 'Quote', 32.6, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Milwaukee # 9 step drill bit 48-89-9209', NULL, 'C.E.S. Cape Coral', 'Quote', 59.29, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('12" Flat Stainless Steel Straight Brackets 4 pack (makes 2 boxes)', NULL, 'Amazon', 'Bracket Link', 7.21, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('1 Gallon Jug (10 pack)', NULL, 'Amazon', 'LINK', 39.77, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Funnel (3 pack)', NULL, 'Amazon', 'LINK', 11.56, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Lee county Solid Waste ,Mulch', NULL, NULL, NULL, 100, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Ziplock bags for nutrients', NULL, 'Amazon', 'LINK', 35.84, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Binders', NULL, 'Amazon', 'LINK', 29.44, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sheet Protectors', NULL, 'Amazon', 'LINK', 26.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('25 x 40 waterproff tarp', NULL, 'Amazon', 'LINK', 98.95, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Media: Coco Coir (190), Old Castle 50/50 mix (180), Perlite 4CF 30/1 (60)', NULL, 'Diamon R', 'QUOTE', 7468.4, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Rubber truck liner', NULL, 'Amazon', 'LINK', 35.7, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Pich fork', NULL, 'Amazon', 'LINK', 33.24, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('WD40', NULL, 'amazon', 'https://a.co/d/0glmeBg3', 7.98, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('HLC Car Magnet', 'Magnets', 'Sallee', 'Quote', 24.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Sponsor Car Magnet', 'Magnets', 'Sallee', 'Quote', 24.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('HLC Cafeteria Menu Board Magnet', 'Magnets', NULL, NULL, 3.45, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Avery labels 5X4, 100', NULL, 'https://a.co/d/0aIqliWK', NULL, 45.34, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Tools box for the truck', NULL, 'Link', NULL, 33.44, NULL) ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('6.5 x300'' 3.5 ounce weed fabric', NULL, 'Amazon', NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 
 -- ------------------------------------------------------------
 -- Current Inventory List snapshot
--- ------------------------------------------------------------
+INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('4 inch nursery pots', 0, 0, NULL, TRUE, 'SGM Office', NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Black 2.5 in pots, bulk', 1000, 940, NULL, TRUE, 'SGM Office', NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Boot scraper', 0, 0, 0, TRUE, 'SGM Office', NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Euro pots 6in (17cm), Case', 302, 302, 5, TRUE, 'SGM Office', NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -594,7 +594,7 @@ INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Pruning Snip Fiskars', 0, 0, 0, FALSE, 'Connex??', NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('PVC cutters', 0, 0, 0, FALSE, 'Connex??', NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Rain Gauge', 0, 0, 0, FALSE, 'Connex??', NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Rake', 0, 0, 0, FALSE, 'Connex??', 'Alternate vendor: Amazon') ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Rake', 0, 0, 0, FALSE, 'Connex??', 'Alternate vendor: Amazon; source cost $39.99.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Sanitizing wipes', 0, 0, 0, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Saw blades', 0, 0, 0, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Shed', 0, 0, 0, FALSE, 'Distributed', NULL) ON CONFLICT (item_name) DO NOTHING;
@@ -605,28 +605,19 @@ INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Tool box', 0, 0, 0, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Tool Caddy', 0, 0, 0, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Utility knife, 2pk', 0, 0, 0, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Wheelbarrow', 0, 0, 0, FALSE, 'Connex??', 'Alternate vendor: Amazon') ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Wheelbarrow', 0, 0, 0, FALSE, 'Connex??', 'Alternate vendor: Amazon; source cost $139.00.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Wheeled Caddy', 0, 0, 0, FALSE, 'Connex??', NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Wire cutters', 0, 0, 0, FALSE, 'Connex??', NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Quart Size Ziplock Bags', 0, 0, NULL, FALSE, NULL, 'Added because it appears in Materials Inventory Sign Out but not in Inventory List.') ON CONFLICT (item_name) DO NOTHING;
 
--- ------------------------------------------------------------
--- 2026-2027 PURCHASE REQUEST ITEMS MISSING FROM THE SOURCE INVENTORY SNAPSHOT
+-- Additional catalog inventory rows not listed in the pasted snapshot, retained from transactions and purchase requests.
+INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Quart Size Ziplock Bags', 0, 0, NULL, FALSE, NULL, 'Added because it appears in Materials Inventory Sign Out but not in Inventory List.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('24" hedge trimmer', 0, 0, NULL, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
-INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('4 inch nursery pots', 0, 0, NULL, TRUE, 'SGM Office', NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Binder Dividers, 8 tab (6 pack)', 0, 0, NULL, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Seeds', 0, 0, NULL, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Spatulas (3 pack)', 0, 0, NULL, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Plastic Table Cloth Roll', 0, 0, NULL, FALSE, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Dry Erase Pockets Sleeves', 0, 0, NULL, FALSE, NULL, 'Source stock count was blank; initialized to 0 for the nonnegative_count NOT NULL constraint.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Roll magnet', 0, 0, NULL, FALSE, NULL, 'Source stock count was blank; initialized to 0 for the nonnegative_count NOT NULL constraint.') ON CONFLICT (item_name) DO NOTHING;
--- Purchase Requests
--- The spreadsheet contains historical delivered flags. The inventory
--- sheet is already a current snapshot, so the delivery trigger is
--- disabled only while importing these historical request rows.
--- ------------------------------------------------------------
-ALTER TABLE purchase_request DISABLE TRIGGER trg_update_inventory_when_received;
--- 2025-2026 PURCHASE REQUEST ITEMS MISSING FROM THE SOURCE INVENTORY SNAPSHOT
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('5-gallon bucket (water refill) 2ct', 0, 0, NULL, FALSE, NULL, 'Source purchase request lists QTY in stock as 0; cumulative asset, reorder point, and storage location were not specified.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Plastic Plant Labels (300 ct)', 0, 0, NULL, FALSE, NULL, 'Source purchase request lists QTY in stock as 0; cumulative asset, reorder point, and storage location were not specified.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Potting Mat (small)', 0, 0, NULL, FALSE, NULL, 'Source purchase request lists QTY in stock as 0; cumulative asset, reorder point, and storage location were not specified.') ON CONFLICT (item_name) DO NOTHING;
@@ -668,6 +659,16 @@ INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('HLC Cafeteria Menu Board Magnet', 0, 0, NULL, FALSE, NULL, 'Source stock count was blank; initialized to 0 for the nonnegative_count NOT NULL constraint.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Avery labels 5X4, 100', 0, 0, NULL, FALSE, NULL, 'Source stock count was blank; initialized to 0 for the nonnegative_count NOT NULL constraint.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('Tools box for the truck', 0, 0, NULL, FALSE, NULL, 'Source stock count was blank; initialized to 0 for the nonnegative_count NOT NULL constraint.') ON CONFLICT (item_name) DO NOTHING;
+INSERT INTO inventory_list (item_name, cumulative_asset, instock_total, reorder_point, counted, storage_location, notes) VALUES ('6.5 x300'' 3.5 ounce weed fabric', 0, 0, NULL, FALSE, NULL, 'Source purchase request did not provide inventory counts.') ON CONFLICT (item_name) DO NOTHING;
+-- ------------------------------------------------------------
+
+-- ------------------------------------------------------------
+-- Purchase Requests
+-- The spreadsheet contains historical delivered flags. The inventory
+-- sheet is already a current snapshot, so the delivery trigger is
+-- disabled only while importing these historical request rows.
+-- ------------------------------------------------------------
+ALTER TABLE purchase_request DISABLE TRIGGER trg_update_inventory_when_received;
 -- ==================== 2025-2026 PURCHASE REQUESTS ====================
 INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Lori', 'Cape Coral High School', '5-gallon bucket (water refill) 2ct', 1, 16, TRUE, 'Ordered 3-15-26', TRUE, 'SHCF_25-26_#9556', '2025-2026', 'Grow Rack Initiative | Source sheet: Delivered to FNS = Yes');
 INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, unit_cost_at_request, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Lori', 'Cape Coral High School', 'Distilled Water', 1.5, 1, 1.5, FALSE, 'Will need to be purchased locally - no option to add to cart on Amazon', FALSE, 'SHCF_25-26_#9556', '2025-2026', 'Grow Rack Initiative');
