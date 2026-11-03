@@ -355,6 +355,7 @@ INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALU
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wheelbarrow', 'Tools', 'Lowes', 'LINK', 189, 'Source lists both Lowes at $189.00 and Amazon at $139.00.') ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wheeled Caddy', 'Tools', 'Amazon', 'LINK', 55.63, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Wire cutters', 'Tools', 'Amazon', 'LINK', 9.99, NULL) ON CONFLICT (item_name) DO NOTHING;
+-- Additional catalog items not listed in the pasted inventory snapshot, retained from transactions and purchase requests.
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Quart Size Ziplock Bags', 'Supply', NULL, NULL, NULL, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('24" hedge trimmer', NULL, 'Amazon', 'LINK', 169, NULL) ON CONFLICT (item_name) DO NOTHING;
 INSERT INTO item (item_name, category, vendor_name, link, unit_cost, notes) VALUES ('Binder Dividers, 8 tab (6 pack)', NULL, 'Amazon', 'LINK', 23.99, NULL) ON CONFLICT (item_name) DO NOTHING;
