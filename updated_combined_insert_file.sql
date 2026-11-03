@@ -1,31 +1,33 @@
 BEGIN;
 
-INSERT INTO location (location_name, is_hlc) VALUES ('Bonita Springs High School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Bonita Springs Middle School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Buckingham Exceptional Center', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Caloosa Middle School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Cape Coral High School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Dunbar High School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('East Lee County High School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Gateway High School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('General HLC', FALSE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Gulf Elementary School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('HLC Office', FALSE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Harns Marsh Middle School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Harns Marsh Elementary', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Heights Elementary', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Island Coast High School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Littleton Elementary School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Paul Laurence Dunbar Middle School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Other SDLC school site', FALSE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Mark', FALSE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('School Garden Training', FALSE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('The Alva School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Trafalgar Middle School', TRUE) ON CONFLICT (location_name) DO NOTHING;
-INSERT INTO location (location_name, is_hlc) VALUES ('Success Academy', TRUE) ON CONFLICT (location_name) DO NOTHING;
+INSERT INTO location (location_name, is_hlc) VALUES ('Bonita Springs High School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Bonita Springs Middle School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Buckingham Exceptional Center', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Caloosa Middle School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Cape Coral High School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Dunbar High School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('East Lee County High School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Gateway High School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('General HLC', FALSE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Gulf Elementary School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('HLC Office', FALSE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Harns Marsh Middle School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Harns Marsh Elementary', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Heights Elementary', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Island Coast High School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Littleton Elementary School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Paul Laurence Dunbar Middle School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Other SDLC school site', FALSE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Mark', FALSE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('School Garden Training', FALSE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('The Alva School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Trafalgar Middle School', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
+INSERT INTO location (location_name, is_hlc) VALUES ('Success Academy', TRUE) ON CONFLICT (location_name) DO UPDATE SET is_hlc = EXCLUDED.is_hlc;
 
 
 
+-- Ensure the schema-managed All HLC Gardens group is present; schema triggers populate its membership.
+INSERT INTO location_group (location_group_name) VALUES ('All HLC Gardens') ON CONFLICT (location_group_name) DO UPDATE SET location_group_name = EXCLUDED.location_group_name;
 -- Numbered groups for rows that list multiple locations.
 INSERT INTO location_group (location_group_name) VALUES ('CCH,LES') ON CONFLICT (location_group_name) DO NOTHING;
 INSERT INTO location_group (location_group_name) VALUES ('BSH,BSM,CCH,ELH,GHS,PLD') ON CONFLICT (location_group_name) DO NOTHING;
