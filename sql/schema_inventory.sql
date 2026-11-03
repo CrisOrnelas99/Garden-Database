@@ -79,8 +79,8 @@ CREATE TABLE purchase_request (
     requesting_school VARCHAR(200),
     requesting_school_group VARCHAR(200),
     item_name VARCHAR(200) NOT NULL,
-    unit_cost_at_request dollar NOT NULL,
-    quantity_requested nonnegative_count NOT NULL
+    unit_cost_at_request dollar,
+    quantity_requested nonnegative_count
         CHECK (quantity_requested > 0),
     total_cost dollar NOT NULL DEFAULT 0,
     delivered_to_fns BOOLEAN NOT NULL DEFAULT FALSE,
@@ -106,6 +106,9 @@ CREATE TABLE purchase_request (
     CONSTRAINT chk_purchase_request_at_most_one_location_assignment
         CHECK (requesting_school IS NULL OR requesting_school_group IS NULL),
 
+    CONSTRAINT chk_purchase_request_delivered_has_quantity
+        CHECK (NOT delivered_to_fns OR quantity_requested IS NOT NULL),
+
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_purchase_request_item
         FOREIGN KEY (item_name)
@@ -115,10 +118,8 @@ CREATE TABLE purchase_request (
     CONSTRAINT fk_purchase_request_budget
         FOREIGN KEY (budget_name)
         REFERENCES budget(budget_name)
-        ON UPDATE CASCADE,
+        ON UPDATE CASCADE
 
-    CONSTRAINT chk_purchase_request_delivered_must_be_ordered
-        CHECK (NOT delivered_to_fns OR ordered)
 );
 
 
@@ -191,13 +192,9 @@ BEGIN
                 NEW.item_name;
         END IF;
 
-        IF item_unit_cost IS NULL THEN
-            RAISE EXCEPTION
-                'Item "%" does not have a unit_cost in item',
-                NEW.item_name;
+        IF item_unit_cost IS NOT NULL THEN
+            NEW.unit_cost_at_request := item_unit_cost;
         END IF;
-
-        NEW.unit_cost_at_request := item_unit_cost;
     END IF;
 
     -- Historical source totals can include shipping or discounts. Retain an
@@ -216,8 +213,10 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    NEW.total_cost :=
-        NEW.quantity_requested * NEW.unit_cost_at_request;
+    IF NEW.unit_cost_at_request IS NOT NULL THEN
+        NEW.total_cost :=
+            NEW.quantity_requested * NEW.unit_cost_at_request;
+    END IF;
 
     RETURN NEW;
 END;

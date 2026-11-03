@@ -51,7 +51,8 @@ VALUES
     ('Northside Community School', TRUE, 'Mia King', 'mia@northside.edu', 'Active', 'Good', 0, 'Type: Community Garden; Footprint: 2200 sq ft; Manager: Mia King. Shared garden maintained by students and volunteers.'),
     ('Eastview Academy', TRUE, 'Noah Wright', 'noah@eastview.edu', 'Active', 'Good', 0, 'Type: Native Plant Garden; Footprint: 1500 sq ft; Manager: Noah Wright. Primarily active during spring and summer.'),
     ('Westfield School', TRUE, 'Olivia Scott', 'olivia@westfield.edu', 'Active', 'Good', 0, 'Type: Greenhouse Garden; Footprint: 950 sq ft; Manager: Olivia Scott. Protected growing space for seedlings.'),
-    ('Brookside School', TRUE, 'Paula Green', 'paula@brookside.edu', 'Planned', NULL, 0, 'School planning a garden; beds have not been installed yet.');
+    ('Brookside School', TRUE, 'Paula Green', 'paula@brookside.edu', 'Planned', NULL, 0, 'School planning a garden; beds have not been installed yet.')
+ON CONFLICT (location_name) DO NOTHING;
 
 
 -- ============================================================
@@ -97,7 +98,8 @@ VALUES
     ('Garden Maintenance', 10000.00, 10000.00, 'Garden maintenance'),
     ('Seeds and Soil', 4000.00, 4000.00, 'Seeds and soil supplies'),
     ('Tools and Equipment', 7500.00, 7500.00, 'Reusable garden tools'),
-    ('Community Donation', 1200.00, 1200.00, 'Local donation awaiting a named funding source');
+    ('Community Donation', 1200.00, 1200.00, 'Local donation awaiting a named funding source')
+ON CONFLICT (budget_name) DO NOTHING;
 
 
 -- ============================================================
@@ -128,7 +130,8 @@ VALUES
     ('Basil Seeds', 'Seeds', 'Johnny Seeds', 'https://johnnyseeds.com', 4.49, 'Basil seed packets'),
     ('Compost Mix', 'Soil', 'Home Depot', 'https://homedepot.com', 11.99, 'Compost and soil amendment for Professor Sprout-approved beds'),
     ('Drip Irrigation Kit', 'Irrigation', 'Home Depot', 'https://homedepot.com', 39.99, 'Small garden irrigation kit'),
-    ('Knee Pads', 'Safety', 'Walmart', 'https://walmart.com', 18.99, 'Protective equipment');
+    ('Knee Pads', 'Safety', 'Walmart', 'https://walmart.com', 18.99, 'Protective equipment')
+ON CONFLICT (item_name) DO NOTHING;
 
 
 -- ============================================================
@@ -160,7 +163,8 @@ VALUES
     ('Basil Seeds', 45, 25, 8, TRUE, 'Seed Storage', 'Inventory item'),
     ('Compost Mix', 70, 38, 12, TRUE, 'Garden Storage', 'Inventory item; use for Herbology beds'),
     ('Drip Irrigation Kit', 12, 7, 2, TRUE, 'Equipment Room', 'Inventory item'),
-    ('Knee Pads', 20, 11, 3, FALSE, 'Safety Equipment', 'Inventory item');
+    ('Knee Pads', 20, 11, 3, FALSE, 'Safety Equipment', 'Inventory item')
+ON CONFLICT (item_name) DO NOTHING;
 
 
 -- ============================================================

@@ -18,6 +18,7 @@ INSERT INTO location (location_name, is_hlc) VALUES ('Island Coast High School',
 INSERT INTO location (location_name, is_hlc) VALUES ('Littleton Elementary School', TRUE) ON CONFLICT (location_name) DO NOTHING;
 INSERT INTO location (location_name, is_hlc) VALUES ('Paul Laurence Dunbar Middle School', TRUE) ON CONFLICT (location_name) DO NOTHING;
 INSERT INTO location (location_name, is_hlc) VALUES ('Other SDLC school site', FALSE) ON CONFLICT (location_name) DO NOTHING;
+INSERT INTO location (location_name, is_hlc) VALUES ('Mark', FALSE) ON CONFLICT (location_name) DO NOTHING;
 INSERT INTO location (location_name, is_hlc) VALUES ('School Garden Training', FALSE) ON CONFLICT (location_name) DO NOTHING;
 INSERT INTO location (location_name, is_hlc) VALUES ('The Alva School', TRUE) ON CONFLICT (location_name) DO NOTHING;
 INSERT INTO location (location_name, is_hlc) VALUES ('Trafalgar Middle School', TRUE) ON CONFLICT (location_name) DO NOTHING;
@@ -34,6 +35,7 @@ INSERT INTO location_group (location_group_name) VALUES ('CCH,HMM,PLD,TAS') ON C
 INSERT INTO location_group (location_group_name) VALUES ('BSH,BEC,CMS,CCH,DHS,ELH,GHS,HMM,HE,PLD,TAS') ON CONFLICT (location_group_name) DO NOTHING;
 INSERT INTO location_group (location_group_name) VALUES ('BSM,GES,TAS') ON CONFLICT (location_group_name) DO NOTHING;
 INSERT INTO location_group (location_group_name) VALUES ('BEC,HE,TAS') ON CONFLICT (location_group_name) DO NOTHING;
+INSERT INTO location_group (location_group_name) VALUES ('Littleton Elementary School, Cape Coral High School, Trafalgar Middle School') ON CONFLICT (location_group_name) DO NOTHING;
 INSERT INTO location_group (location_group_name) VALUES ('CMS,CCH') ON CONFLICT (location_group_name) DO NOTHING;
 INSERT INTO location_group (location_group_name) VALUES ('LES,CCH,TMS') ON CONFLICT (location_group_name) DO NOTHING;
 INSERT INTO location_group (location_group_name) VALUES ('OSS,CMS') ON CONFLICT (location_group_name) DO NOTHING;
@@ -137,6 +139,9 @@ INSERT INTO group_location (location_group_name, location_name) VALUES ('19 HLC 
 INSERT INTO group_location (location_group_name, location_name) VALUES ('19 HLC Gardens', 'Success Academy') ON CONFLICT (location_group_name, location_name) DO NOTHING;
 INSERT INTO group_location (location_group_name, location_name) VALUES ('19 HLC Gardens', 'The Alva School') ON CONFLICT (location_group_name, location_name) DO NOTHING;
 INSERT INTO group_location (location_group_name, location_name) VALUES ('19 HLC Gardens', 'Trafalgar Middle School') ON CONFLICT (location_group_name, location_name) DO NOTHING;
+INSERT INTO group_location (location_group_name, location_name) VALUES ('Littleton Elementary School, Cape Coral High School, Trafalgar Middle School', 'Littleton Elementary School') ON CONFLICT (location_group_name, location_name) DO NOTHING;
+INSERT INTO group_location (location_group_name, location_name) VALUES ('Littleton Elementary School, Cape Coral High School, Trafalgar Middle School', 'Cape Coral High School') ON CONFLICT (location_group_name, location_name) DO NOTHING;
+INSERT INTO group_location (location_group_name, location_name) VALUES ('Littleton Elementary School, Cape Coral High School, Trafalgar Middle School', 'Trafalgar Middle School') ON CONFLICT (location_group_name, location_name) DO NOTHING;
 
 
 -- ------------------------------------------------------------
@@ -685,7 +690,7 @@ INSERT INTO purchase_request (request_date, requested_by, requesting_school, ite
 Approved by Mary');
 INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Mark', 'General HLC', 'Dehumidifier', 1, 175, FALSE, 'Ordered 3-15-26', TRUE, 'SHCF_25-26_#9556', '2025-2026', 'Approved by Mark 
 For Central Storage Room');
-INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Susie, Lori', 'Littleton Elementary School, Cape Coral High School, Trafalgar Middle School', '5-11-26 NPK Hydroponic Nutrients', NULL, 0, FALSE, 'DO NOT PURCHASE: Needs to be moved from Warehouse', FALSE, NULL, '2025-2026', 'DO NOT PURCHASE: Needs to be moved from Warehouse');
+INSERT INTO purchase_request (request_date, requested_by, requesting_school_group, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Susie, Lori', 'Littleton Elementary School, Cape Coral High School, Trafalgar Middle School', '5-11-26 NPK Hydroponic Nutrients', NULL, 0, FALSE, 'DO NOT PURCHASE: Needs to be moved from Warehouse', FALSE, NULL, '2025-2026', 'DO NOT PURCHASE: Needs to be moved from Warehouse');
 INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Mark', 'General HLC', 'Vertigro Stackable Pots, 1 ct', 240, 1908, FALSE, 'Ordered 3/30/26 - Shipping to TMS', TRUE, 'SHCF_25-26_#9556', '2025-2026', 'Approved by Mark 
 26-27 Repairs');
 INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Mark', 'General HLC', 'Vertigro Swivels, 1 ct', 100, 175, FALSE, 'Ordered 3/30/26 - Shipping to TMS', TRUE, 'SHCF_25-26_#9556', '2025-2026', 'Approved by Mark 
@@ -810,8 +815,6 @@ INSERT INTO purchase_request (request_date, requested_by, requesting_school, ite
 INSERT INTO purchase_request (request_date, requested_by, requesting_school_group, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Daniela', '18 HLC Gardens', 'Dry Erase Pockets Sleeves', 3, 41.97, TRUE, 'Ordered 9-14-26', TRUE, 'SHCF_26-27_#9556', '2026-2027', 'Source sheet: Delivered to FNS = Yes');
 INSERT INTO purchase_request (request_date, requested_by, requesting_school_group, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Daniela', '18 HLC Gardens', 'Roll magnet', 1, 14.95, TRUE, 'Ordered 9-14-26', TRUE, 'SHCF_26-27_#9556', '2026-2027', 'Source sheet: Delivered to FNS = Yes');
 INSERT INTO purchase_request (request_date, requested_by, requesting_school_group, item_name, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, funding_source, school_year, notes) VALUES (NULL, 'Leisha', '19 HLC Gardens', 'Clear jugs, 1 Gal, Wide Mouth, 3', 4, 99.88, TRUE, 'Ordered 9-14-26', TRUE, 'SHCF_26-27_#9556', '2026-2027', 'Source sheet: Delivered to FNS = Yes');
-ALTER TABLE purchase_request ENABLE TRIGGER trg_update_inventory_when_received;
-
 -- ------------------------------------------------------------
 -- Materials Inventory Sign Out -> inventory_transaction
 -- The source is a current sign-out/history sheet. Stock movement
@@ -893,6 +896,8 @@ INSERT INTO inventory_transaction (transaction_date, status, taken_by, for_schoo
 INSERT INTO inventory_transaction (transaction_date, status, taken_by, for_school, item_name, quantity, notes) VALUES ('2026-09-23', 'Checked Out', 'Mark', 'The Alva School', '5-11-26 NPK Hydroponic Nutrients', 6, 'NPK 25 lb bags');
 INSERT INTO inventory_transaction (transaction_date, status, taken_by, for_school, item_name, quantity, notes) VALUES ('2026-09-23', 'Checked Out', 'Mark', 'The Alva School', 'Calcium Nitrate', 2, '50- pound bags');
 INSERT INTO inventory_transaction (transaction_date, status, taken_by, for_school, item_name, quantity, notes) VALUES ('2026-09-23', 'Checked Out', 'Mark', 'Trafalgar Middle School', 'Soil/compost', 1, '1 dump trailer load of Sakata soil.');
-ALTER TABLE inventory_transaction ENABLE TRIGGER trg_inventory_transaction;
-
 COMMIT;
+-- Restore live stock movement only after all deferred group-membership checks
+-- have completed at commit; PostgreSQL disallows ALTER TABLE while events wait.
+ALTER TABLE purchase_request ENABLE TRIGGER trg_update_inventory_when_received;
+ALTER TABLE inventory_transaction ENABLE TRIGGER trg_inventory_transaction;
