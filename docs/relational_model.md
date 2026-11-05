@@ -8,7 +8,7 @@ This document describes the implemented PostgreSQL schema. `PK` means primary ke
 
 **location_group**(`location_group_id` PK, `location_group_name` UQ)
 
-**group_location**(`location_group_name`, `location_name`), PK(`location_group_name`, `location_name`), FK(`location_group_name`) -> location_group(`location_group_name`), FK(`location_name`) -> location(`location_name`)
+**group_members**(`location_group_name`, `location_name`), PK(`location_group_name`, `location_name`), FK(`location_group_name`) -> location_group(`location_group_name`), FK(`location_name`) -> location(`location_name`)
 
 **budget**(`budget_id` PK, `budget_name` UQ, budget_amount, remaining_budget, notes)
 
@@ -59,7 +59,7 @@ Stores named groups of locations.
 | location_group_id | SERIAL | PK; generated identifier |
 | location_group_name | VARCHAR(200) | NOT NULL, UQ; readable group name |
 
-### group_location
+### group_members
 
 Associative relation connecting locations to groups; one row per group membership.
 

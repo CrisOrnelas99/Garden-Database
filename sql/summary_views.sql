@@ -38,7 +38,7 @@ SELECT
     CASE
         WHEN pr.requesting_school_group IS NOT NULL THEN (
             SELECT STRING_AGG(lal.location_name, ', ' ORDER BY lal.location_name)
-            FROM group_location lal
+            FROM group_members lal
             WHERE lal.location_group_name = pr.requesting_school_group
         )
         ELSE pr.requesting_school

@@ -38,7 +38,7 @@ Tables store information and allow you to add, update, and delete records. Examp
 
 - `location` — School locations and garden information.
 - `location_group` — Groups of school locations.
-- `group_location` — Connects individual schools to location groups.
+- `group_members` — Connects individual schools to location groups.
 - `item` — Catalog of supplies, tools, and equipment.
 - `inventory_list` — Available inventory and stock quantities.
 - `inventory_transaction` — Records inventory distribution and checkout.

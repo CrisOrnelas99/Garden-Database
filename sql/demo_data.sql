@@ -6,7 +6,7 @@
 -- TRUNCATE TABLE
 --     inventory_transaction,
 --     purchase_request,
---     group_location,
+--     group_members,
 --     location_group,
 --     inventory_list,
 --     item,
@@ -67,7 +67,7 @@ VALUES
     ('Triwizard Greenhouse Team')
 ON CONFLICT (location_group_name) DO NOTHING;
 
-INSERT INTO group_location
+INSERT INTO group_members
     (
         location_group_name,
         location_name

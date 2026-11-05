@@ -407,21 +407,21 @@ CREATE POLICY data_roles_delete_custom_groups ON public.location_group
     FOR DELETE TO database_manager, garden_staff
     USING (location_group_name <> 'All HLC Gardens');
 
-DROP POLICY IF EXISTS data_roles_all_rows ON public.group_location;
-DROP POLICY IF EXISTS data_roles_read_group_locations ON public.group_location;
-DROP POLICY IF EXISTS data_roles_write_custom_group_locations ON public.group_location;
-DROP POLICY IF EXISTS data_roles_update_custom_group_locations ON public.group_location;
-DROP POLICY IF EXISTS data_roles_delete_custom_group_locations ON public.group_location;
-CREATE POLICY data_roles_read_group_locations ON public.group_location
+DROP POLICY IF EXISTS data_roles_all_rows ON public.group_members;
+DROP POLICY IF EXISTS data_roles_read_group_members ON public.group_members;
+DROP POLICY IF EXISTS data_roles_write_custom_group_members ON public.group_members;
+DROP POLICY IF EXISTS data_roles_update_custom_group_members ON public.group_members;
+DROP POLICY IF EXISTS data_roles_delete_custom_group_members ON public.group_members;
+CREATE POLICY data_roles_read_group_members ON public.group_members
     FOR SELECT TO database_manager, garden_staff USING (true);
-CREATE POLICY data_roles_write_custom_group_locations ON public.group_location
+CREATE POLICY data_roles_write_custom_group_members ON public.group_members
     FOR INSERT TO database_manager, garden_staff
     WITH CHECK (location_group_name <> 'All HLC Gardens');
-CREATE POLICY data_roles_update_custom_group_locations ON public.group_location
+CREATE POLICY data_roles_update_custom_group_members ON public.group_members
     FOR UPDATE TO database_manager, garden_staff
     USING (location_group_name <> 'All HLC Gardens')
     WITH CHECK (location_group_name <> 'All HLC Gardens');
-CREATE POLICY data_roles_delete_custom_group_locations ON public.group_location
+CREATE POLICY data_roles_delete_custom_group_members ON public.group_members
     FOR DELETE TO database_manager, garden_staff
     USING (location_group_name <> 'All HLC Gardens');
 

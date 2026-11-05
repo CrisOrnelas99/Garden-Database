@@ -675,7 +675,7 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1
-        FROM group_location
+        FROM group_members
         WHERE location_group_name = group_name_to_check
     ) THEN
         RAISE EXCEPTION
@@ -689,7 +689,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- TRIGGER 8: validate a purchase request's group after all transaction changes.
-CREATE CONSTRAINT TRIGGER trg_require_purchase_request_group_locations
+CREATE CONSTRAINT TRIGGER trg_require_purchase_request_group_members
 AFTER INSERT OR UPDATE
 ON purchase_request
 DEFERRABLE INITIALLY DEFERRED
@@ -697,7 +697,7 @@ FOR EACH ROW
 EXECUTE FUNCTION ensure_referenced_group_has_locations();
 
 -- TRIGGER 9: validate an inventory transaction's group after all transaction changes.
-CREATE CONSTRAINT TRIGGER trg_require_inventory_transaction_group_locations
+CREATE CONSTRAINT TRIGGER trg_require_inventory_transaction_group_members
 AFTER INSERT OR UPDATE
 ON inventory_transaction
 DEFERRABLE INITIALLY DEFERRED
@@ -735,7 +735,7 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
-        FROM group_location
+        FROM group_members
         WHERE location_group_name = group_name_to_check
     ) THEN
         RETURN NULL;
@@ -763,7 +763,7 @@ $$ LANGUAGE plpgsql;
 -- TRIGGER 10: prevent a used group from becoming unassigned.
 CREATE CONSTRAINT TRIGGER trg_prevent_emptying_referenced_location_group
 AFTER DELETE OR UPDATE
-ON group_location
+ON group_members
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION prevent_emptying_referenced_location_group();

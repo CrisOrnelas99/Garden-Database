@@ -68,8 +68,8 @@ This database uses readable names for several foreign keys so linked records are
 - `garden_bed.location_name` -> `location.location_name`
 - `crop_rotation.plant_name` -> `plant.plant_name`
 - `crop_rotation(location_name, bed_name)` -> `garden_bed(location_name, bed_name)`
-- `group_location.location_group_name` -> `location_group.location_group_name`
-- `group_location.location_name` -> `location.location_name`
+- `group_members.location_group_name` -> `location_group.location_group_name`
+- `group_members.location_name` -> `location.location_name`
 - Inventory requests and transactions reference readable location, group, item, and budget names.
 
 The referenced names are unique, but names are still labels that people can edit. A later frontend can keep showing names while using stable numeric IDs internally: dropdowns display a location or plant name, but submit its ID as the selected value.
@@ -86,6 +86,6 @@ This is a database migration, not just a frontend setting. The migration should 
 
 For the garden relationship, `crop_rotation` can use `bed_id` to identify its bed and get the location through `garden_bed -> location`. If `crop_rotation` also keeps a separate `location_id`, add a composite constraint to ensure that the selected bed belongs to that location; otherwise the two fields could disagree.
 
-For shared locations, migrate both the group membership table and the assignment fields: `group_location` would store `location_group_id` and `location_id`, while purchase requests and inventory transactions would reference either a direct `location_id` or a `location_group_id`. Preserve the existing rule that one assignment path is selected at a time.
+For shared locations, migrate both the group membership table and the assignment fields: `group_members` would store `location_group_id` and `location_id`, while purchase requests and inventory transactions would reference either a direct `location_id` or a `location_group_id`. Preserve the existing rule that one assignment path is selected at a time.
 
 Names can remain as unique display fields after the migration. IDs are used for relationships; names are joined in for people to read. Existing Supabase data should be changed with reviewed migrations and a backup, not by rerunning the full `CREATE TABLE` schema files.

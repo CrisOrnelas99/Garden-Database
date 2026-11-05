@@ -37,8 +37,8 @@ erDiagram
     LOCATION o|--o{ INVENTORY_TRANSACTION : for_school
     LOCATION_GROUP o|--o{ PURCHASE_REQUEST : requesting_school_group
     LOCATION_GROUP o|--o{ INVENTORY_TRANSACTION : for_school_group
-    LOCATION_GROUP ||--o{ GROUP_LOCATION : has_members
-    LOCATION ||--o{ GROUP_LOCATION : belongs_to
+    LOCATION_GROUP ||--o{ GROUP_MEMBERS : has_members
+    LOCATION ||--o{ GROUP_MEMBERS : belongs_to
     LOCATION ||--o{ GARDEN : has
 
     ITEM ||--o{ PURCHASE_REQUEST : requested_item
@@ -63,7 +63,7 @@ erDiagram
         varchar location_group_name UK
     }
 
-    GROUP_LOCATION {
+    GROUP_MEMBERS {
         varchar location_group_name PK, FK
         varchar location_name PK, FK
     }
@@ -106,7 +106,7 @@ erDiagram
     }
 ```
 
-`LOCATION_GROUP` stores one row per group. `GROUP_LOCATION` stores one row per member location, using readable group and location names as foreign keys.
+`LOCATION_GROUP` stores one row per group. `group_members` stores one row per member location, using readable group and location names as foreign keys.
 
 The schema creates the built-in `All HLC Gardens` group and maintains membership for locations where `is_hlc` is `TRUE`, independently of garden status; demo data is not required. Purchase requests and inventory transactions may use one direct location, one location group, or neither for personal use; entering one assignment clears the other. Location and bed records with dependent garden records cannot be deleted.
 

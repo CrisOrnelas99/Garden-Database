@@ -76,23 +76,23 @@ CREATE TABLE location_group (
 
 
 -- ============================================================
--- group_location
+-- group_members
 -- One row for each location assigned to a group.
 -- ============================================================
-CREATE TABLE group_location (
+CREATE TABLE group_members (
     location_group_name VARCHAR(200) NOT NULL,
     location_name VARCHAR(200) NOT NULL,
 
-    CONSTRAINT pk_group_location
+    CONSTRAINT pk_group_members
         PRIMARY KEY (location_group_name, location_name),
 
-    CONSTRAINT fk_group_location_group
+    CONSTRAINT fk_group_members_group
         FOREIGN KEY (location_group_name)
         REFERENCES location_group(location_group_name)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
-    CONSTRAINT fk_group_location_location
+    CONSTRAINT fk_group_members_location
         FOREIGN KEY (location_name)
         REFERENCES location(location_name)
         ON UPDATE CASCADE
@@ -492,7 +492,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     IF TG_TABLE_NAME = 'location' THEN
         IF NEW.is_hlc THEN
-            INSERT INTO group_location (location_group_name, location_name)
+            INSERT INTO group_members (location_group_name, location_name)
             SELECT 'All HLC Gardens', NEW.location_name
             FROM location_group
             WHERE location_group_name = 'All HLC Gardens'
@@ -500,7 +500,7 @@ BEGIN
         END IF;
     ELSIF TG_TABLE_NAME = 'location_group' THEN
         IF NEW.location_group_name = 'All HLC Gardens' THEN
-            INSERT INTO group_location (location_group_name, location_name)
+            INSERT INTO group_members (location_group_name, location_name)
             SELECT NEW.location_group_name, l.location_name
             FROM location l
             WHERE l.is_hlc
@@ -533,13 +533,13 @@ CREATE OR REPLACE FUNCTION sync_all_hlc_gardens_location_status()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.is_hlc THEN
-        INSERT INTO group_location (location_group_name, location_name)
+        INSERT INTO group_members (location_group_name, location_name)
         SELECT 'All HLC Gardens', NEW.location_name
         FROM location_group
         WHERE location_group_name = 'All HLC Gardens'
         ON CONFLICT (location_group_name, location_name) DO NOTHING;
     ELSE
-        DELETE FROM group_location
+        DELETE FROM group_members
         WHERE location_group_name = 'All HLC Gardens'
           AND location_name = NEW.location_name;
     END IF;
@@ -624,7 +624,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_protect_all_hlc_gardens_membership
 BEFORE INSERT OR UPDATE OR DELETE
-ON group_location
+ON group_members
 FOR EACH ROW
 EXECUTE FUNCTION protect_all_hlc_gardens_membership();
 
