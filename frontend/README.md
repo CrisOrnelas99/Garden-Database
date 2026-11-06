@@ -29,6 +29,16 @@ frontend/
 - Python 3.9 or newer (`python3 --version`)
 - The Supabase database connection string and password
 
+### Install Python first
+
+You need Python 3.9 or newer, an internet connection to install the app's Python packages, and a web browser. The launcher installs the packages listed in `requirements.txt` automatically. You do not need to install Git or a database server to run the app.
+
+- **Windows:** Install Python from [python.org/downloads](https://www.python.org/downloads/) and reopen PowerShell. You can also use the official Python Install Manager with `winget install 9NQ7512CXL7T`. Confirm installation with `py --version`.
+- **macOS:** Install Python 3 from [python.org/downloads](https://www.python.org/downloads/), then reopen Terminal and confirm with `python3 --version`.
+- **Linux:** Install Python 3, its `venv` support, and `pip` with your distribution's package manager. For Ubuntu or Debian, run `sudo apt update` followed by `sudo apt install python3 python3-venv python3-pip`. Confirm with `python3 --version`.
+
+Use the official Python downloads page if you are unsure which installer matches your computer. The database URI is needed when starting the app; enter it at the launcher's hidden prompt and never commit it to GitHub or share it in chat.
+
 ## 1. Get the connection string from Supabase
 
 1. Open the project in Supabase and click **Connect** at the top.
@@ -104,6 +114,15 @@ From the `frontend` folder, run the launcher in PowerShell:
 ```
 
 The launcher creates the virtual environment if needed, installs the requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser, and starts the server. Press `Ctrl+C` in the PowerShell window to stop it. Python 3.9 or newer must be installed.
+
+If Windows says the downloaded script is not digitally signed, first make sure it came from the trusted class repository and inspect `Run-GardenApp.ps1`. Then, from the `frontend` folder, unblock only that script and run it:
+
+```powershell
+Unblock-File .\Run-GardenApp.ps1
+.\Run-GardenApp.ps1
+```
+
+This removes the downloaded-file mark from this one script; it does not change PowerShell's execution policy.
 
 Only run this script from the project copy you downloaded from the trusted class repository. The app connects to the shared database, and its add, edit, and delete actions affect shared records immediately. Do not put the database URI in the script or commit it to GitHub.
 
