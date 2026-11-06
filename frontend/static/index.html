@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LCSD Garden Program</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">🌱</span>
+      <div>
+        <div class="brand-title">LCSD Garden</div>
+        <div class="brand-sub">Program Database</div>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+  </aside>
+
+  <main>
+    <header class="page-header">
+      <div>
+        <h1 id="page-title">Dashboard</h1>
+        <p id="page-sub" class="muted"></p>
+      </div>
+      <div class="page-actions" id="page-actions"></div>
+    </header>
+    <section id="content"></section>
+  </main>
+
+  <dialog id="dialog">
+    <form id="form" method="dialog">
+      <header class="dialog-header">
+        <h2 id="dialog-title"></h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </header>
+      <div id="form-error" class="alert" hidden></div>
+      <div id="form-fields" class="form-grid"></div>
+      <footer class="dialog-footer">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary" id="form-submit">Save</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
