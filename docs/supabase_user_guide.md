@@ -274,6 +274,8 @@ The person will receive an invitation to join the organization.
 
 **Note:** These are Supabase organization roles, not separate read-only and editing permissions for individual tables. Developer access can include powerful database capabilities, so only invite trusted users.
 
+**Garden Database roles are separate:** `staff`, `finance_staff`, and `database_manager` are application data roles. They are not Supabase organization roles and will not appear in this invitation menu. Supabase organization access controls who can enter and manage the Supabase dashboard; Garden Database roles control access to garden records through the application's role setup.
+
 ## 14. What Areas of Supabase Should You Use?
 
 For regular database activities, primarily use:

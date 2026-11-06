@@ -20,9 +20,7 @@ Plan planting schedules, manage crop rotations to maintain soil health, and trac
 
 
 # IMPLEMENTATION
-The garden schema is loaded first and defines shared types, locations, location groups, and garden tables. The inventory schema is loaded next and defines inventory and budget tables. Then load the summary views and demo data.
-
-For future application integration, Supabase connection setup, and the migration path from name-based to ID-based foreign keys, see [application_integration.md](application_integration.md).
+The garden schema is loaded first and defines shared types, locations, location groups, and garden tables. The inventory schema is loaded next and defines inventory and budget tables. Then load the summary views and demo data. Run `sql/schema_roles.sql` last in Supabase to configure database roles and access rules.
 
 # Current Database Schema
 

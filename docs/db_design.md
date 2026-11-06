@@ -12,6 +12,26 @@ The current schema uses readable names as foreign keys so relationships are easy
 2. `sql/schema_inventory.sql`
 3. `sql/summary_views.sql`
 4. `sql/demo_data.sql`
+5. `sql/schema_roles.sql` (run last, after all tables, views, and data are loaded)
+
+`schema_roles.sql` is Supabase-specific: it uses Supabase Auth roles and
+`auth.users`. Run it in the Supabase SQL Editor as the project database owner.
+After it succeeds, enable `public.custom_access_token_hook` as the project's
+Custom Access Token Hook in Supabase Auth. Assign the first `database_manager`
+in `private.user_role_assignment` from the SQL Editor, replacing the email with
+the manager's existing Supabase Auth email:
+
+```sql
+INSERT INTO private.user_role_assignment (user_id, database_role)
+SELECT id, 'database_manager'
+FROM auth.users
+WHERE email = 'manager@example.com'
+ON CONFLICT (user_id)
+DO UPDATE SET database_role = EXCLUDED.database_role;
+```
+
+After that, a manager can assign application roles with
+`public.set_user_database_role`.
 
 ## Reusable types
 
