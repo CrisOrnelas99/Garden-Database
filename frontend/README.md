@@ -95,6 +95,29 @@ auto-generated IDs) are shown but not editable. In purchase requests,
 blank. If a database rule rejects a change (for example, checking out more
 stock than is available), the error message is shown in the form.
 
+## Windows quick start
+
+From the `frontend` folder, run the launcher in PowerShell:
+
+```powershell
+.\Run-GardenApp.ps1
+```
+
+The launcher creates the virtual environment if needed, installs the requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser, and starts the server. Press `Ctrl+C` in the PowerShell window to stop it. Python 3.9 or newer must be installed.
+
+Only run this script from the project copy you downloaded from the trusted class repository. The app connects to the shared database, and its add, edit, and delete actions affect shared records immediately. Do not put the database URI in the script or commit it to GitHub.
+
+## macOS / Linux quick start
+
+From the `frontend` folder, open Terminal and run:
+
+```bash
+chmod +x ./run-garden-app.sh
+./run-garden-app.sh
+```
+
+The launcher creates the virtual environment if needed, installs requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser when possible, and starts the server. Press `Ctrl+C` in Terminal to stop it. Python 3.9 or newer must be installed.
+
 ## Troubleshooting
 
 | Message | Fix |
