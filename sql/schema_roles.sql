@@ -2,6 +2,16 @@
 -- Create roles if they do not already exist
 DO $$
 BEGIN
+    -- Remove the former internal owner role on databases where an earlier
+    -- version of this script created it. Supabase's postgres role remains the
+    -- owner of the database objects and handles schema administration.
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'database_admin') THEN
+        EXECUTE 'REASSIGN OWNED BY database_admin TO postgres';
+        EXECUTE 'DROP OWNED BY database_admin';
+        EXECUTE 'REVOKE database_admin FROM postgres';
+        EXECUTE 'DROP ROLE database_admin';
+    END IF;
+
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'garden_staff')
        AND NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'staff') THEN
         EXECUTE 'ALTER ROLE garden_staff RENAME TO staff';
@@ -20,9 +30,6 @@ BEGIN
             'Both data_manager and database_manager exist. Resolve the duplicate role before applying schema_roles.sql.';
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'database_admin') THEN
-        CREATE ROLE database_admin NOLOGIN;
-    END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'database_manager') THEN
         CREATE ROLE database_manager NOLOGIN;
     END IF;
@@ -35,129 +42,16 @@ BEGIN
 END $$;
 
 -- Configure role attributes
-ALTER ROLE database_admin NOLOGIN CREATEROLE NOBYPASSRLS;
-ALTER ROLE database_manager NOLOGIN CREATEROLE NOBYPASSRLS;
+ALTER ROLE database_manager NOLOGIN NOCREATEROLE NOBYPASSRLS;
 ALTER ROLE staff NOLOGIN NOCREATEROLE NOBYPASSRLS;
 ALTER ROLE finance_staff NOLOGIN NOCREATEROLE NOBYPASSRLS;
 
 -- Supabase Data API role switching: allow the API authenticator to assume the
--- two non-admin roles. database_admin is deliberately not exposed to Auth.
+-- application data roles.
 GRANT staff, finance_staff, database_manager TO authenticator;
 
--- Allow postgres to assume database_admin for ownership transfer
-GRANT database_admin TO postgres;
-
--- Give database_admin ownership of the public schema
-ALTER SCHEMA public OWNER TO database_admin;
-
--- Transfer existing table ownership
-DO $$
-DECLARE obj RECORD;
-BEGIN
-    FOR obj IN
-        SELECT tablename FROM pg_tables
-        WHERE schemaname = 'public'
-    LOOP
-        EXECUTE format(
-            'ALTER TABLE public.%I OWNER TO database_admin',
-            obj.tablename
-        );
-    END LOOP;
-END $$;
-
--- Transfer view ownership
-DO $$
-DECLARE obj RECORD;
-BEGIN
-    FOR obj IN
-        SELECT viewname FROM pg_views
-        WHERE schemaname = 'public'
-    LOOP
-        EXECUTE format(
-            'ALTER VIEW public.%I OWNER TO database_admin',
-            obj.viewname
-        );
-    END LOOP;
-END $$;
-
--- Transfer materialized view ownership
-DO $$
-DECLARE obj RECORD;
-BEGIN
-    FOR obj IN
-        SELECT matviewname FROM pg_matviews
-        WHERE schemaname = 'public'
-    LOOP
-        EXECUTE format(
-            'ALTER MATERIALIZED VIEW public.%I OWNER TO database_admin',
-            obj.matviewname
-        );
-    END LOOP;
-END $$;
-
--- Transfer sequence ownership
-DO $$
-DECLARE obj RECORD;
-BEGIN
-    FOR obj IN
-        SELECT sequencename FROM pg_sequences
-        WHERE schemaname = 'public'
-    LOOP
-        EXECUTE format(
-            'ALTER SEQUENCE public.%I OWNER TO database_admin',
-            obj.sequencename
-        );
-    END LOOP;
-END $$;
-
--- Transfer function ownership
-DO $$
-DECLARE obj RECORD;
-BEGIN
-    FOR obj IN
-        SELECT
-            p.proname,
-            pg_get_function_identity_arguments(p.oid) AS args
-        FROM pg_proc p
-        JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname = 'public'
-          AND p.prokind = 'f'
-    LOOP
-        EXECUTE format(
-            'ALTER FUNCTION public.%I(%s) OWNER TO database_admin',
-            obj.proname,
-            obj.args
-        );
-    END LOOP;
-END $$;
-
--- Transfer custom type and domain ownership
-DO $$
-DECLARE obj RECORD;
-BEGIN
-    FOR obj IN
-        SELECT typname, typtype
-        FROM pg_type
-        WHERE typnamespace = 'public'::regnamespace
-          AND typtype IN ('e', 'd')
-    LOOP
-        IF obj.typtype = 'd' THEN
-            EXECUTE format(
-                'ALTER DOMAIN public.%I OWNER TO database_admin',
-                obj.typname
-            );
-        ELSE
-            EXECUTE format(
-                'ALTER TYPE public.%I OWNER TO database_admin',
-                obj.typname
-            );
-        END IF;
-    END LOOP;
-END $$;
-
 -- Schema permissions
-GRANT USAGE ON SCHEMA public TO database_admin, database_manager, staff, finance_staff;
-GRANT CREATE ON SCHEMA public TO database_admin;
+GRANT USAGE ON SCHEMA public TO database_manager, staff, finance_staff;
 
 -- Fail closed for ordinary Supabase API roles. Access is granted below only
 -- through the database roles selected by the signed Auth token.
@@ -165,12 +59,12 @@ REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
 REVOKE CREATE ON SCHEMA public FROM anon, authenticated;
 
--- Full data access for database_admin and database_manager
+-- Full data access for database_manager
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public
-TO database_admin, database_manager;
+TO database_manager;
 
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public
-TO database_admin, database_manager;
+TO database_manager;
 
 -- Remove previous staff grants before applying restrictions
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public
@@ -461,8 +355,8 @@ SET search_path = public, pg_temp;
 -- staff additionally has full budget-table access. Both roles can edit
 -- all columns on permitted operational tables and cannot delete unrelated
 -- operational rows.
--- database_manager can access all rows; database_admin owns objects and
--- remains the schema administrator.
+-- database_manager can access all rows; Supabase postgres owns objects and
+-- remains responsible for schema administration.
 DO $$
 DECLARE obj RECORD;
 BEGIN
@@ -610,7 +504,7 @@ CREATE POLICY data_roles_delete_custom_group_members ON public.group_members
     FOR DELETE TO database_manager
     USING (location_group_name <> 'All HLC Gardens');
 
--- Supabase Auth role assignment and token hook. database_admin remains out of the API.
+-- Supabase Auth role assignment and token hook.
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA private TO supabase_auth_admin;
@@ -751,15 +645,15 @@ REVOKE EXECUTE ON FUNCTION public.set_user_database_role(UUID, TEXT)
 GRANT EXECUTE ON FUNCTION public.set_user_database_role(UUID, TEXT)
     TO database_manager;
 
--- Default permissions for future objects created as database_admin
-ALTER DEFAULT PRIVILEGES FOR ROLE database_admin IN SCHEMA public
+-- Default permissions for future objects created as postgres
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 GRANT ALL PRIVILEGES ON TABLES TO database_manager;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE database_admin IN SCHEMA public
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 GRANT ALL PRIVILEGES ON SEQUENCES TO database_manager;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE database_admin IN SCHEMA public
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 GRANT SELECT, INSERT ON TABLES TO finance_staff;
 
-ALTER DEFAULT PRIVILEGES FOR ROLE database_admin IN SCHEMA public
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 GRANT USAGE, SELECT ON SEQUENCES TO finance_staff;

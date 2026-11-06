@@ -33,6 +33,36 @@ DO UPDATE SET database_role = EXCLUDED.database_role;
 After that, a manager can assign application roles with
 `public.set_user_database_role`.
 
+## Application database roles
+
+These are Garden Database data roles, separate from Supabase organization
+invitation roles. `sql/schema_roles.sql` creates and configures them in the
+project database.
+
+- **`staff`** — Can read, add, and edit operational records. Cannot read budget
+  tables or budget-only views, or delete ordinary operational records. Can
+  edit or delete purchase requests and inventory transactions only when their
+  respective date is today. Rows with a `NULL` or older date cannot be edited
+  or deleted. Staff access to purchase-request fields remains limited to the
+  fields granted in the roles SQL.
+- **`finance_staff`** — Can read, add, and edit records, including budgeting
+  information, and can edit or delete budget records. Cannot delete ordinary
+  operational records or assign roles. Purchase requests and inventory
+  transactions can be edited or deleted only when their respective date is
+  today; `NULL` or older dates are not editable or deletable.
+- **`database_manager`** — Can read, add, edit, and delete records across the
+  public tables and views, including budget data. Can assign supported
+  application roles and can correct any purchase-request or inventory
+  transaction date.
+- **Supabase project administrators** — Manage database setup and schema
+  changes through Supabase. They use Supabase's own project access; there is no
+  separate `system_admin` or `database_admin` application role. The roles SQL
+  grants the application role-assignment function to `database_manager`.
+
+The same-day restriction is based on `request_date` or `transaction_date`, not
+the time the record was created. Inventory transaction status changes must be
+recorded as a new transaction, as enforced by the inventory trigger.
+
 ## Reusable types
 
 - `dollar`: nonnegative monetary amount with two decimal places; defined in the inventory schema.
