@@ -37,7 +37,7 @@ TABLES = {
 
 VIEWS = {
     "CropCalendar": "Crop Calendar",
-    "BedPlanting": "Bed Plantings",
+    "CurrentBedPlantings": "Current Bed Plantings",
     "GardenAssets": "Garden Assets",
     "RestockList": "Restock List",
     "PendingRequests": "Pending Requests",

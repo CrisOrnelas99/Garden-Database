@@ -56,7 +56,7 @@ Views display information collected or calculated from existing tables. They mak
 - `PendingRequests` — Pending purchase requests.
 - `SchoolSupply` — School supply information.
 - `CropCalendar` — Crop scheduling information.
-- `BedPlanting` — Garden bed and planting information.
+- `CurrentBedPlantings` — In-ground and harvested planting information with garden bed details.
 - `GardenAssets` — Garden asset information.
 - `BudgetPurchases` — Budget and purchasing information.
 - `FundingSourceSpending` — Spending by funding source.
@@ -222,7 +222,7 @@ Views organize information already stored in the database.
 - **Checking inventory:** Open `inventory_list` to review available supplies. Use `RestockList` to identify items that may need to be reordered.
 - **Reviewing school supplies:** Open `SchoolSupply` and filter by school to focus on a specific location.
 - **Reviewing purchase requests:** Open `PendingRequests` to review requests that still need attention. Open `BudgetPurchases`, `FundingSourceSpending`, or `YearlyPurchase` to review purchasing and spending information.
-- **Reviewing gardens and planting:** Open `GardenAssets` to review garden-related information. Use `BedPlanting` for planting information associated with garden beds and `CropCalendar` for crop scheduling.
+- **Reviewing gardens and planting:** Open `GardenAssets` to review garden-related information. Use `CurrentBedPlantings` for in-ground and harvested plantings, and `CropCalendar` for crop scheduling, including planned plantings.
 
 You can use these views to determine which gardening records or supplies need updating. Views are primarily for reviewing information; make changes in the underlying tables.
 

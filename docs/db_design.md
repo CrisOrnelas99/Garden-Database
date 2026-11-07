@@ -289,12 +289,12 @@ The foreign keys require group members and locations to exist. A referenced grou
 Views provide readable reports without changing the underlying records.
 
 - `RestockList`: identifies inventory items at or below their reorder point.
-- `PendingRequests`: lists purchase requests that are unordered or not yet delivered, and expands group requests to their member schools.
+- `PendingRequests`: lists purchase requests that are unordered or not yet delivered, showing the saved school or group assignment by name.
 - `SchoolSupply`: summarizes inventory and purchasing activity in separate rows for each school and each named group. Group totals stay on the group row.
 - `BudgetPurchases`: groups ordered quantities and item spending by budget and item, with budget-level totals.
 - `FundingSourceSpending`: groups ordered quantities and spending by funding source and item, with funding-source totals.
 - `YearlyPurchase`: summarizes ordered and unordered request spending by school year.
-- `BedPlanting`: shows in-ground and harvested plantings with the associated bed details and estimated harvest date.
+- `CurrentBedPlantings`: shows in-ground and harvested plantings with the associated bed details and estimated harvest date.
 - `CropCalendar`: shows planned, current, and past crop rotations with an estimated harvest date.
 - `GardenAssets`: lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.
 

@@ -23,7 +23,7 @@ WHERE il.instock_total <= il.reorder_point;
 -- ============================================================
 -- PendingRequests
 -- Purchase requests that have not been ordered or delivered
--- requesting_school_group stores the group name; assigned_locations expands it.
+-- Show the saved school or group assignment as entered on the request.
 -- ============================================================
 DROP VIEW IF EXISTS "PendingRequests";
 CREATE VIEW "PendingRequests" AS
@@ -35,14 +35,7 @@ SELECT
     END AS request_status,
     pr.item_name,
     pr.requested_by,
-    CASE
-        WHEN pr.requesting_school_group IS NOT NULL THEN (
-            SELECT STRING_AGG(lal.location_name, ', ' ORDER BY lal.location_name)
-            FROM group_members lal
-            WHERE lal.location_group_name = pr.requesting_school_group
-        )
-        ELSE pr.requesting_school
-    END AS assigned_locations,
+    COALESCE(pr.requesting_school_group, pr.requesting_school)::VARCHAR AS assigned_locations,
     pr.quantity_requested,
     pr.total_cost,
     pr.review_status,
@@ -110,8 +103,8 @@ request_totals AS (
         pr.requesting_school AS location_name,
         NULL::VARCHAR(200) AS location_group_name,
         SUM(pr.quantity_requested) FILTER (
-            WHERE NOT pr.ordered OR NOT pr.delivered_to_fns
-        ) AS items_still_requested,
+            WHERE NOT pr.delivered_to_fns
+        ) AS purchase_items_pending,
         SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
     FROM purchase_request pr
     WHERE pr.requesting_school IS NOT NULL
@@ -123,8 +116,8 @@ request_totals AS (
         NULL::VARCHAR(200) AS location_name,
         pr.requesting_school_group AS location_group_name,
         SUM(pr.quantity_requested) FILTER (
-            WHERE NOT pr.ordered OR NOT pr.delivered_to_fns
-        ) AS items_still_requested,
+            WHERE NOT pr.delivered_to_fns
+        ) AS purchase_items_pending,
         SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
     FROM purchase_request pr
     WHERE pr.requesting_school_group IS NOT NULL
@@ -134,7 +127,7 @@ SELECT
     a.assignment_type,
     COALESCE(a.location_name, a.location_group_name) AS location_name,
     COALESCE(tt.items_currently_checked_out, 0) AS items_currently_checked_out,
-    COALESCE(rt.items_still_requested, 0) AS items_still_requested,
+    COALESCE(rt.purchase_items_pending, 0) AS purchase_items_pending,
     COALESCE(rt.total_spent, 0) AS total_spent
 FROM assignments a
 LEFT JOIN transaction_totals tt
@@ -144,7 +137,10 @@ LEFT JOIN request_totals rt
     ON rt.location_name IS NOT DISTINCT FROM a.location_name
    AND rt.location_group_name IS NOT DISTINCT FROM a.location_group_name
 ORDER BY
-    a.assignment_type,
+    CASE a.assignment_type
+        WHEN 'School' THEN 0
+        WHEN 'Group' THEN 1
+    END,
     COALESCE(a.location_name, a.location_group_name);
 
 
@@ -245,13 +241,14 @@ ORDER BY school_year;
 
 
 -- ============================================================
--- BedPlanting
+-- CurrentBedPlantings
 -- In-ground and harvested plantings with bed details
 -- ============================================================
 DROP VIEW IF EXISTS "BedSummary";
 DROP VIEW IF EXISTS "BedPlantingSummary";
 DROP VIEW IF EXISTS "BedPlanting";
-CREATE VIEW "BedPlanting" AS
+DROP VIEW IF EXISTS "CurrentBedPlantings";
+CREATE VIEW "CurrentBedPlantings" AS
 SELECT
     b.location_name,
     b.bed_name,
