@@ -1,4 +1,9 @@
 $ErrorActionPreference = 'Stop'
+if (-not $PSScriptRoot) { $PSScriptRoot = $ScriptRoot }
+if (-not $PSScriptRoot) {
+    Write-Error 'Could not locate the frontend folder. Keep this launcher beside app.py.'
+    exit 1
+}
 Set-Location $PSScriptRoot
 
 if (-not (Get-Command py -ErrorAction SilentlyContinue)) {

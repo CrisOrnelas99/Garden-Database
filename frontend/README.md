@@ -107,13 +107,17 @@ stock than is available), the error message is shown in the form.
 
 ## Windows quick start
 
-From the `frontend` folder, run the launcher in PowerShell:
+The easiest option is to double-click `Run-GardenApp.exe` in the `frontend` folder. It still requires Python 3.9 or newer and an internet connection for the first dependency install. Keep the executable in the same folder as `app.py`, `requirements.txt`, and the `static` folder. It will prompt for the Supabase Session pooler URI, open the app in your browser, and leave a console window open while the app is running; close that window to stop the app.
+
+If Windows displays a security warning for the unsigned executable, only continue if the files came from the trusted class repository. The `.exe` contains the launcher code but no database credentials; users enter their own URI each time they start it.
+
+You can also run the PowerShell launcher from the `frontend` folder:
 
 ```powershell
 .\Run-GardenApp.ps1
 ```
 
-The launcher creates the virtual environment if needed, installs the requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser, and starts the server. Press `Ctrl+C` in the PowerShell window to stop it. Python 3.9 or newer must be installed.
+The PowerShell launcher creates the virtual environment if needed, installs the requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser, and starts the server. Press `Ctrl+C` in the PowerShell window to stop it. Python 3.9 or newer must be installed.
 
 If Windows says the downloaded script is not digitally signed, first make sure it came from the trusted class repository and inspect `Run-GardenApp.ps1`. Then, from the `frontend` folder, unblock only that script and run it:
 
