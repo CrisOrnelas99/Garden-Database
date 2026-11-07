@@ -48,20 +48,9 @@ CREATE TABLE location (
     garden_status lifecycle_status,
     garden_condition condition,
     bed_count nonnegative_count,
-    notes TEXT,
+    notes TEXT
 
-    CONSTRAINT chk_location_optional_garden_fields
-        CHECK (
-            (
-                bed_count IS NULL
-                AND garden_status IS NULL
-                AND garden_condition IS NULL
-            )
-            OR (
-                bed_count IS NOT NULL
-                AND garden_status IS NOT NULL
-            )
-        )
+    -- Garden fields are independent; bed_count is maintained from garden_bed rows.
 );
 
 
@@ -309,33 +298,35 @@ EXECUTE FUNCTION protect_garden_bed_count();
 -- ============================================================
 CREATE OR REPLACE FUNCTION update_garden_bed_count()
 RETURNS TRIGGER AS $$
-DECLARE
-    parent_rows_updated INT;
 BEGIN
-    IF TG_OP = 'INSERT' THEN
+    IF TG_OP = 'DELETE' THEN
         UPDATE location
-        SET bed_count = bed_count + 1
-        WHERE location_name = NEW.location_name;
-        RETURN NULL;
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE location
-        SET bed_count = bed_count - 1
+        SET bed_count = (
+            SELECT COUNT(*)::INT
+            FROM garden_bed
+            WHERE location_name = OLD.location_name
+        )
         WHERE location_name = OLD.location_name;
         RETURN NULL;
-    ELSIF OLD.location_name IS DISTINCT FROM NEW.location_name THEN
+    END IF;
+
+    UPDATE location
+    SET bed_count = (
+        SELECT COUNT(*)::INT
+        FROM garden_bed
+        WHERE location_name = NEW.location_name
+    )
+    WHERE location_name = NEW.location_name;
+
+    IF TG_OP = 'UPDATE'
+       AND OLD.location_name IS DISTINCT FROM NEW.location_name THEN
         UPDATE location
-        SET bed_count = bed_count - 1
+        SET bed_count = (
+            SELECT COUNT(*)::INT
+            FROM garden_bed
+            WHERE location_name = OLD.location_name
+        )
         WHERE location_name = OLD.location_name;
-
-        GET DIAGNOSTICS parent_rows_updated = ROW_COUNT;
-
-        -- A missing old parent means its garden name was changed and cascaded;
-        -- its bed_count already reflects the existing beds.
-        IF parent_rows_updated > 0 THEN
-            UPDATE location
-            SET bed_count = bed_count + 1
-            WHERE location_name = NEW.location_name;
-        END IF;
     END IF;
 
     RETURN NULL;
@@ -374,7 +365,8 @@ EXECUTE FUNCTION clear_removed_crop_soil_status();
 
 -- ============================================================
 -- TRIGGER 4
--- Require garden-enabled locations for beds, irrigation, compost, and rotations
+-- Require garden-enabled locations for irrigation, compost, and rotations.
+-- Garden beds can establish garden tracking; their trigger maintains bed_count.
 -- ============================================================
 CREATE OR REPLACE FUNCTION require_location_garden()
 RETURNS TRIGGER AS $$
@@ -395,12 +387,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Require an existing garden-enabled location for each bed.
-CREATE TRIGGER trg_require_garden_for_bed
-BEFORE INSERT OR UPDATE OF location_name
-ON garden_bed
-FOR EACH ROW
-EXECUTE FUNCTION require_location_garden();
+-- A bed only requires a valid location (enforced by its foreign key).
+DROP TRIGGER IF EXISTS trg_require_garden_for_bed ON garden_bed;
 
 -- Require an existing garden-enabled location for each irrigation setup.
 CREATE TRIGGER trg_require_garden_for_irrigation
@@ -465,7 +453,7 @@ FOR EACH ROW
 EXECUTE FUNCTION require_active_bed_for_rotation();
 
 
--- Reconcile any existing counts with the actual garden_bed rows.
+-- Reconcile tracked counts and ensure any location with beds has an accurate count.
 UPDATE location l
 SET bed_count = (
     SELECT COUNT(*)::INT
@@ -473,11 +461,11 @@ SET bed_count = (
     WHERE b.location_name = l.location_name
 )
 WHERE l.bed_count IS NOT NULL
-  AND l.bed_count IS DISTINCT FROM (
-      SELECT COUNT(*)::INT
+   OR EXISTS (
+      SELECT 1
       FROM garden_bed b
       WHERE b.location_name = l.location_name
-  );
+   );
 
 
 -- ============================================================

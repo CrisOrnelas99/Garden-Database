@@ -74,7 +74,7 @@ CREATE TABLE inventory_list (
 CREATE TABLE purchase_request (
     
     request_id SERIAL PRIMARY KEY,
-    request_date DATE,
+    request_date DATE DEFAULT CURRENT_DATE,
     requested_by VARCHAR(50) NOT NULL,
     requesting_school VARCHAR(200),
     requesting_school_group VARCHAR(200),

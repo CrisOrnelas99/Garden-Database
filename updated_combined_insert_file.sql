@@ -150,8 +150,8 @@ INSERT INTO group_members (location_group_name, location_name) VALUES ('Littleto
 -- Budgets from the Budgeting sheet
 -- ------------------------------------------------------------
 INSERT INTO budget (budget_name, budget_amount, remaining_budget) VALUES ('SGLT Materials', 1000, 809.8) ON CONFLICT (budget_name) DO NOTHING;
-INSERT INTO budget (budget_name, budget_amount, remaining_budget, notes) VALUES ('Grow Rack', 3200, 3200, '$3,200.00 was allocated to Grow Rack from the Garden Start-up and Maintenance budget. Remaining balance is recalculated from ordered purchase requests assigned to this budget.') ON CONFLICT (budget_name) DO NOTHING;
-INSERT INTO budget (budget_name, budget_amount, remaining_budget, notes) VALUES ('Garden Start-up and Maintenance', 36800, 36800, 'Overall budget: $40,000.00. If creating a new budget from this budget, subtract the new budget allocation from this budget and assign it to the new budget.') ON CONFLICT (budget_name) DO NOTHING;
+INSERT INTO budget (budget_name, budget_amount, remaining_budget, notes) VALUES ('Grow Rack', 3200, 3200, 'Remaining balance is recalculated from ordered purchase requests assigned to this budget.') ON CONFLICT (budget_name) DO NOTHING;
+INSERT INTO budget (budget_name, budget_amount, remaining_budget, notes) VALUES ('Garden Start-up and Maintenance', 40000, 40000, NULL) ON CONFLICT (budget_name) DO NOTHING;
 -- ------------------------------------------------------------
 -- Item catalog
 -- Includes items appearing in Inventory List, Purchase Requests,

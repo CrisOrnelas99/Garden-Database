@@ -86,7 +86,7 @@ Stores schools and program locations. Garden fields are optional, so an office o
 - `email`: contact email address.
 - `garden_status`: lifecycle of the location's garden, when one is tracked.
 - `garden_condition`: current condition of the location's garden, when one is tracked.
-- `bed_count`: number of beds at the location; maintained from garden-bed records. `NULL` means garden details are not tracked.
+- `bed_count`: number of beds at the location; automatically maintained from garden-bed records, including zero after all beds are removed. It can remain `NULL` before bed tracking begins.
 - `notes`: additional location or garden details.
 
 Locations cannot be deleted while they have garden beds, irrigation setups, or compost units. A bed cannot be deleted while crop rotations reference it, which prevents accidental loss of garden records.
@@ -149,7 +149,7 @@ Tracks current stock for catalog items. Each catalog item can have at most one i
 Records requested items, ordering and delivery state, and optional budget and funding-source details.
 
 - `request_id`: generated primary key.
-- `request_date`: date the item was requested.
+- `request_date`: date the item was requested; defaults to the current date.
 - `requested_by`: required name of the requester.
 - `requesting_school`: direct location for a single-school request; `NULL` for a group or personal request.
 - `requesting_school_group`: group name for a group request; `NULL` for a single-school or personal request.
@@ -181,7 +181,7 @@ Records inventory check-ins and check-outs. A row may be assigned to one school,
 
 ### garden_bed
 
-Stores individual beds for locations with garden details.
+Stores individual beds for locations. Adding the first bed automatically starts the bed count for that location.
 
 - `bed_id`: generated primary key.
 - `location_name`: location that owns the bed.

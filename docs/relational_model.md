@@ -45,10 +45,10 @@ Stores schools and program locations. Garden fields can be left empty when garde
 | is_hlc | BOOLEAN | NOT NULL, DEFAULT FALSE; controls membership in the built-in All HLC Gardens group |
 | garden_status | lifecycle_status | NULL; garden lifecycle status |
 | garden_condition | condition | NULL; garden condition |
-| bed_count | nonnegative_count | NULL; maintained from garden_bed rows; NULL denotes untracked garden details |
+| bed_count | nonnegative_count | NULL before bed tracking begins; afterward automatically maintained from garden_bed rows, including zero |
 | notes | TEXT | NULL; additional location or garden details |
 
-CHECK: garden_status, garden_condition, and bed_count must all be NULL, or bed_count and garden_status must be non-NULL. Locations with related beds, irrigation setups, or compost units cannot be deleted.
+Garden fields are independent. Locations with related beds, irrigation setups, or compost units cannot be deleted.
 
 ### location_group
 
@@ -118,7 +118,7 @@ Records requested items, request status, delivery, and optional budget and fundi
 | Attribute | PostgreSQL type | Constraints and business meaning |
 |---|---|---|
 | request_id | SERIAL | PK; generated identifier |
-| request_date | DATE | NULL; date requested |
+| request_date | DATE | NULL, DEFAULT CURRENT_DATE; date requested |
 | requested_by | VARCHAR(50) | NOT NULL; requester name |
 | requesting_school | VARCHAR(200) | NULL; FK to location.location_name; single-location assignment |
 | requesting_school_group | VARCHAR(200) | NULL; FK to location_group.location_group_name; group assignment |
@@ -170,7 +170,7 @@ Stores beds associated with a location's garden.
 | is_full | BOOLEAN | NOT NULL, DEFAULT FALSE; whether the bed is full |
 | notes | TEXT | NULL; additional details |
 
-UNIQUE(location_name, bed_name). A bed requires a location with garden details and cannot be deleted while crop rotations reference it. location.bed_count is maintained from bed rows.
+UNIQUE(location_name, bed_name). A bed requires an existing location and cannot be deleted while crop rotations reference it. location.bed_count is automatically maintained from bed rows.
 
 ### irrigation_setup
 
