@@ -13,6 +13,43 @@ const LABELS = {
   unit_cost_at_request: "Unit Cost at Request",
 };
 
+// Keep report columns in a predictable order even if the database view's
+// physical column order differs between Supabase projects.
+const VIEW_COLUMNS = {
+  CropCalendar: [
+    "rotation_status", "location_name", "bed_name", "plant_name", "quantity",
+    "season", "sow_date", "expected_harvest_date", "soil_health", "notes",
+  ],
+  CurrentBedPlantings: [
+    "location_name", "bed_name", "plant_name", "quantity", "bed_condition",
+    "is_full", "season", "rotation_status", "sow_date", "expected_harvest_date",
+    "soil_health", "rotation_notes",
+  ],
+  GardenAssets: [
+    "location_name", "item_type", "item_name", "lifecycle_status", "condition", "notes",
+  ],
+  RestockList: [
+    "inventory_id", "item_name", "instock_total", "reorder_point", "counted", "storage_location",
+  ],
+  PendingRequests: [
+    "request_date", "request_status", "item_name", "requested_by", "assigned_locations",
+    "quantity_requested", "total_cost", "review_status", "notes",
+  ],
+  SchoolSupply: [
+    "assignment_type", "location_name", "items_currently_checked_out",
+    "purchase_items_pending", "total_spent",
+  ],
+  BudgetPurchases: [
+    "budget_name", "item_name", "total_quantity_ordered", "total_spent", "total_budget",
+    "total_budget_spent", "remaining_budget",
+  ],
+  FundingSourceSpending: [
+    "funding_source", "item_name", "total_quantity_ordered", "total_spent",
+    "total_funding_source_spent",
+  ],
+  YearlyPurchase: ["school_year", "total_spent", "pending_spending"],
+};
+
 function label(name) {
   if (LABELS[name]) return LABELS[name];
   return name
@@ -206,7 +243,13 @@ async function showView(name) {
   content.innerHTML = '<div class="empty">Loading…</div>';
   state.rows = await api(`/views/${name}`);
   const render = () => {
-    content.innerHTML = `<div class="card">${dataTable(filterAndSort(state.rows))}</div>`;
+    const rowColumns = state.rows.length ? Object.keys(state.rows[0]) : [];
+    const preferredColumns = VIEW_COLUMNS[name] || rowColumns;
+    const columns = [
+      ...preferredColumns.filter((c) => rowColumns.includes(c)),
+      ...rowColumns.filter((c) => !preferredColumns.includes(c)),
+    ];
+    content.innerHTML = `<div class="card">${dataTable(filterAndSort(state.rows), { columns })}</div>`;
     bindTableControls(render);
   };
   render();
