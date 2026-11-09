@@ -1,4 +1,4 @@
-# Garden Database Frontend
+﻿# Garden Database Frontend
 
 A web interface for the LCSD Garden Program database. It lets staff browse,
 search, add, edit, and delete records in every table, and view the summary
@@ -107,39 +107,35 @@ stock than is available), the error message is shown in the form.
 
 ## Windows quick start
 
-The easiest option is to double-click `Run-GardenApp.exe` in the `frontend` folder. It still requires Python 3.9 or newer and an internet connection for the first dependency install. Keep the executable in the same folder as `app.py`, `requirements.txt`, and the `static` folder. It will prompt for the Supabase Session pooler URI, open the app in your browser, and leave a console window open while the app is running; close that window to stop the app.
+1. Install Python 3.9 or newer and unzip the complete GitHub repository.
+2. Keep the frontend folder together. Do not move Run-GardenApp.exe out of that folder.
+3. Double-click Run-GardenApp.exe. It checks GitHub for frontend file updates, installs the Python packages the first time, prompts for the Supabase Session pooler URI, and opens the app in a browser. Leave the console window open while using the app; close it to stop the app.
 
-If Windows displays a security warning for the unsigned executable, only continue if the files came from the trusted class repository. The `.exe` contains the launcher code but no database credentials; users enter their own URI each time they start it.
+The updater changes frontend files only; it does not run database or SQL updates. Before replacing local frontend files, it saves a backup under %LOCALAPPDATA%\GardenDatabase\frontend-backups. The executable contains no database credentials. Enter the connection URI each time the app starts.
 
-You can also run the PowerShell launcher from the `frontend` folder:
+If the executable does not work, use the PowerShell fallback from the frontend folder:
 
-```powershell
-.\Run-GardenApp.ps1
-```
+    .\scripts\Run-GardenApp.ps1
 
-The PowerShell launcher creates the virtual environment if needed, installs the requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser, and starts the server. Press `Ctrl+C` in the PowerShell window to stop it. Python 3.9 or newer must be installed.
+The fallback creates the virtual environment if needed, installs the requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser, and starts the server. Press Ctrl+C in the PowerShell window to stop it. Python 3.9 or newer must be installed.
 
-If Windows says the downloaded script is not digitally signed, first make sure it came from the trusted class repository and inspect `Run-GardenApp.ps1`. Then, from the `frontend` folder, unblock only that script and run it:
+If Windows says the downloaded script is not digitally signed, first make sure it came from the trusted class repository. Then, from the frontend folder, unblock only the fallback script and run it:
 
-```powershell
-Unblock-File .\Run-GardenApp.ps1
-.\Run-GardenApp.ps1
-```
+    Unblock-File .\scripts\Run-GardenApp.ps1
+    .\scripts\Run-GardenApp.ps1
 
-This removes the downloaded-file mark from this one script; it does not change PowerShell's execution policy.
-
-Only run this script from the project copy you downloaded from the trusted class repository. The app connects to the shared database, and its add, edit, and delete actions affect shared records immediately. Do not put the database URI in the script or commit it to GitHub.
+This removes the downloaded-file mark from this one script; it does not change PowerShell's execution policy. Only run scripts from the trusted class repository.
 
 ## macOS / Linux quick start
 
-From the `frontend` folder, open Terminal and run:
+The Windows executable and PowerShell fallback are for Windows. On macOS or Linux, use the manual setup commands from the frontend folder:
 
-```bash
-chmod +x ./run-garden-app.sh
-./run-garden-app.sh
-```
+    python3 -m venv .venv
+    .venv/bin/python -m pip install -r requirements.txt
+    export DATABASE_URL='postgresql://postgres.<project-ref>:YOUR_PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres'
+    .venv/bin/python app.py
 
-The launcher creates the virtual environment if needed, installs requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser when possible, and starts the server. Press `Ctrl+C` in Terminal to stop it. Python 3.9 or newer must be installed.
+Replace the example URI with the project's Supabase Session pooler URI. Open http://localhost:8000 in a browser and press Ctrl+C in Terminal to stop the server.
 
 ## Troubleshooting
 
@@ -153,3 +149,4 @@ The launcher creates the virtual environment if needed, installs requirements, p
 If you change the database schema, the app picks up the changes automatically
 within about five minutes (or restart the server). New tables or views need to
 be added to `TABLES` or `VIEWS` at the top of `app.py` to appear in the sidebar.
+
