@@ -4,6 +4,12 @@ This is a database project for the Lee County School District garden program tha
 
 The goal is to improve how information is stored, connected, and accessed so staff can better track available resources, locations, distribution, budgets, and other garden program data over time.
 
+## Frontend App
+
+The `frontend` folder contains a Python web app for working with the Garden Program database. The app runs locally on each user's computer and opens at `http://localhost:8000`; it is not hosted as a public website. It connects over the internet to the shared Supabase database, so changes made in the app affect the shared records.
+
+For Python installation, the Windows executable and PowerShell fallback, manual setup, and Supabase connection instructions, see the [frontend setup guide](frontend/README.md).
+
 # What We Need to Work On
 
 ### Inventory & Supplies
