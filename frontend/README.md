@@ -2,6 +2,78 @@
 
 A local web app for the LCSD Garden Program. The app runs on each user's computer at `http://localhost:8000` and connects to the shared Supabase project over the Supabase Auth and Data APIs. It is not a public website.
 
+## Project administrator: set up a new Supabase project
+
+Use this checklist when creating a replacement Supabase project for the app. The project owner performs these steps. Partners do not need Supabase organization or dashboard accounts to use the frontend; they need an invited Auth user in this project.
+
+### 1. Create the project and enable its Data API
+
+Create or select the Supabase organization, then create a project inside it. Keep the database password in the project administrator's password manager; partners do not use it.
+
+In the project dashboard, open **Integrations → Data API** (or **Project Settings → Data API**, depending on the dashboard layout). Make sure the Data API is enabled and `public` is an exposed schema. `public` is usually exposed by default. Do not expose the `private` schema; it stores role assignments for the Auth hook. Supabase documents the [Data API](https://supabase.com/docs/guides/api) and [API schema exposure](https://supabase.com/docs/guides/api/using-custom-schemas).
+
+### 2. Configure Auth email sign-in and local redirects
+
+In **Authentication → URL Configuration**, set the **Site URL** to:
+
+```text
+http://localhost:8000/
+```
+
+Add the same URL to **Redirect URLs**. The invite and password-reset links must return to the local app. In **Authentication → Sign In / Providers → Email**, keep email/password sign-in enabled and turn off **Allow new users to sign up** so accounts are invitation-only. Supabase Auth sends the invitations and reset links; its built-in email service has low sending limits, so configure custom SMTP if its limits or delivery are not sufficient. See [Auth redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls) and [inviting users](https://supabase.com/docs/guides/auth/users).
+
+### 3. Create the schema, views, and roles
+
+As the project owner, open **SQL Editor** and run each file from this repository, in order, one at a time:
+
+1. [`sql/schema_garden.sql`](../sql/schema_garden.sql)
+2. [`sql/schema_inventory.sql`](../sql/schema_inventory.sql)
+3. [`sql/summary_views.sql`](../sql/summary_views.sql)
+4. [`sql/demo_data.sql`](../sql/demo_data.sql), only if you want the prewritten starter records
+5. [`sql/schema_roles.sql`](../sql/schema_roles.sql), last
+
+The last file creates the PostgreSQL roles (`staff`, `finance_staff`, and `database_manager`), their table permissions and policies, the private role-assignment table, the `custom_access_token_hook`, and the manager role-assignment functions. Do not run `schema_roles.sql` before creating the tables and views. For a fresh project, do not run [`sql/manager_user_access.sql`](../sql/manager_user_access.sql); that is a patch for an existing installation that needs only the Users-page functions updated.
+
+### 4. Enable the Custom Access Token Hook
+
+In **Authentication → Hooks** (shown as **Hooks (Beta)** in some dashboards), add or enable a **Custom Access Token** hook. Select **Postgres**, schema **`public`**, and function **`custom_access_token_hook`**. Do not select HTTPS; the function was created by `schema_roles.sql`.
+
+Before Supabase issues a sign-in token, this hook looks up the user's role in `private.user_role_assignment` and puts that role in the token's `role` claim. Supabase then uses that role when enforcing database grants and row policies. A user without an assignment receives no Garden Program data role and cannot access app records. See Supabase's [Custom Access Token Hook guide](https://supabase.com/docs/guides/auth/auth-hooks/custom-access-token-hook).
+
+### 5. Bootstrap the first Database Manager
+
+First create the initial manager's Auth user: open **Authentication → Users → Add user → Send invitation**, enter the manager's email, and send the invitation. This creates the Auth user; it does not give them Supabase dashboard or organization membership.
+
+As the project owner, run this in SQL Editor, replacing the example email with the exact invited email:
+
+```sql
+INSERT INTO private.user_role_assignment (user_id, database_role)
+SELECT u.id, 'database_manager'
+FROM auth.users AS u
+WHERE lower(u.email) = lower('manager@example.com')
+ON CONFLICT (user_id)
+DO UPDATE SET database_role = EXCLUDED.database_role
+RETURNING user_id, database_role;
+```
+
+The query should return one row with `database_manager`. If it returns no rows, confirm that the invitation created an Auth user and that the email matches. The manager should start the local app before opening the invitation email, set their password, and sign in. Once signed in, they can assign roles from the app's **Manage Users** page; only a project owner can do the initial bootstrap.
+
+### 6. Point the frontend at the new project
+
+In the dashboard, copy the **Project URL** from **Integrations → Data API** and the **Publishable key** from **Project Settings → API Keys**. In `frontend/app.py`, replace the default values for `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` with those values. Use the project's base URL (for example, `https://<project-ref>.supabase.co`), not a `postgresql://` connection string.
+
+The project URL and publishable key are intended for app use and may be in the public repository. Never put the database password, a Supabase secret key (`sb_secret_...`), or the legacy `service_role` key in the frontend or GitHub. Each request also carries the user's signed-in Auth token, and the SQL roles and policies enforce access. See [Supabase API keys](https://supabase.com/docs/guides/api/api-keys) and [API security](https://supabase.com/docs/guides/api/securing-your-api).
+
+Commit and push the updated frontend configuration before partners download or update the app. The Windows updater gets its files from the repository's `main` branch, so leaving the new project URL/key only in a local copy will not configure copies downloaded by partners.
+
+### 7. Invite the rest of the team
+
+For each partner, go to **Authentication → Users → Add user → Send invitation** and invite their email. Do not add partners as Supabase organization or project members just so they can use the app. They open the local app, accept the invitation, set a password, and sign in. A Database Manager then selects their account and assigns `staff`, `finance_staff`, or `database_manager` on **Manage Users**. Until a role is assigned, the user cannot access app data. Supabase describes this as an [Auth user invitation](https://supabase.com/docs/guides/auth/users#inviting-users); it is separate from inviting someone to the Supabase organization.
+
+### Security model in brief
+
+The app no longer uses a shared PostgreSQL pooler URL. That connection used one database identity for every partner. Instead, each person signs in through Supabase Auth, and the app sends that user's signed token to the Supabase Data API. The custom token hook maps the Auth user to a database role; Postgres grants and policies decide what that role can do. The public publishable key identifies the project, while the signed user token and database permissions control access. Partners use the local app only; changes they make there are saved to this shared Supabase project.
+
 ## What partners need
 
 - Python 3.9 or newer

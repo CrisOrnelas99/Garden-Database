@@ -4,6 +4,34 @@ This is a database project for the Lee County School District garden program tha
 
 The goal is to improve how information is stored, connected, and accessed so staff can better track available resources, locations, distribution, budgets, and other garden program data over time.
 
+## Setting up a new Supabase project
+
+The project owner sets up the database and Auth integration. Partners do not need Supabase dashboard or organization access; they use an invited Supabase Auth account to sign in to the local app.
+
+In the new project's Supabase dashboard, open **SQL Editor**. Run each SQL file below **one at a time**, in this order:
+
+1. [`sql/schema_garden.sql`](sql/schema_garden.sql)
+2. [`sql/schema_inventory.sql`](sql/schema_inventory.sql)
+3. [`sql/summary_views.sql`](sql/summary_views.sql)
+4. [`sql/demo_data.sql`](sql/demo_data.sql) only if you want its prewritten starter records; skip it if you are loading your own data
+5. [`sql/schema_roles.sql`](sql/schema_roles.sql) last, after the tables and views exist
+
+After the SQL files, enable the **Custom Access Token** hook in Supabase Auth using the Postgres function `public.custom_access_token_hook`. Invite the first manager through **Authentication → Users → Add user → Send invitation**, then use the SQL Editor to assign the initial app role. Replace the example email with that invited user's email:
+
+```sql
+INSERT INTO private.user_role_assignment (user_id, database_role)
+SELECT u.id, 'database_manager'
+FROM auth.users AS u
+WHERE lower(u.email) = lower('manager@example.com')
+ON CONFLICT (user_id)
+DO UPDATE SET database_role = EXCLUDED.database_role
+RETURNING user_id, database_role;
+```
+
+The query should return one row with `database_manager`. The project owner must also enable the Data API for the `public` schema and configure Auth's Site URL and Redirect URLs as `http://localhost:8000/`. Update `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `frontend/app.py` with the new project's values, then commit and push that frontend configuration before partners use the GitHub updater. The publishable key may be in the public repository; never put a database password or Supabase secret/service-role key there.
+
+See the [frontend README](frontend/README.md#project-administrator-set-up-a-new-supabase-project) for the full dashboard steps, Auth hook selection, user invitations, and app setup.
+
 ## Frontend App
 
 The `frontend` folder contains a Python web app. Each partner downloads the repository ZIP from GitHub (**Code → Download ZIP**), unzips it, and runs the app locally at `http://localhost:8000`. The app is not hosted as a public website. It connects over the internet to the shared Supabase project.
@@ -26,8 +54,9 @@ Maintain up-to-date records of physical garden footprints, irrigation setups, co
 Plan planting schedules, manage crop rotations to maintain soil health, and track seasonal variations systematically while ensuring resources are prepared for the various growing cycles.
 
 
-# IMPLEMENTATION
-The garden schema is loaded first and defines shared types, locations, location groups, and garden tables. The inventory schema is loaded next and defines inventory and budget tables. Then load the summary views and demo data. Run `sql/schema_roles.sql` last in Supabase to configure database roles and access rules.
+## Implementation
+
+The garden schema defines shared types, locations, location groups, and garden tables. The inventory schema defines inventory and budget tables. The summary views report on those tables, and `schema_roles.sql` configures database roles and access rules. The new-project section above gives the exact SQL Editor order.
 
 # Current Database Schema
 

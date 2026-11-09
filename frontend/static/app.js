@@ -832,7 +832,6 @@ async function showUsers() {
     </section>
     <p class="access-note"><strong>Your own role is protected</strong> so you cannot accidentally remove your manager access.<br>
       Removing access keeps the person's account. They can be assigned a role again later.</p>
-    <p class="access-note">Role changes take effect when the person's sign-in token refreshes or expires. Ask them to sign out and sign in again to apply a change sooner.</p>
     <p class="access-note">Account invitations are still sent through Supabase by the project administrator.</p>`;
 
   const renderUsers = () => {
