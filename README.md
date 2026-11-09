@@ -8,7 +8,19 @@ The goal is to improve how information is stored, connected, and accessed so sta
 
 The `frontend` folder contains a Python web app for working with the Garden Program database. The app runs locally on each user's computer and opens at `http://localhost:8000`; it is not hosted as a public website. It connects over the internet to the shared Supabase database, so changes made in the app affect the shared records.
 
-For Python installation, the Windows executable and PowerShell fallback, manual setup, and Supabase connection instructions, see the [frontend setup guide](frontend/README.md).
+### Download and run it on Windows
+
+1. Open the [Garden-Database GitHub repository](https://github.com/CrisOrnelas99/Garden-Database). Click **Code**, then **Download ZIP**.
+2. Unzip the downloaded file. Open the extracted `Garden-Database-main` folder, then its `frontend` folder. Keep the folder together; do not move `Run-GardenApp.exe` by itself.
+3. Install Python 3.9 or newer if it is not already installed.
+4. Get the database URI from Supabase: open the project, click **Connect**, choose the **Session pooler** method, and copy the URI. The app will prompt for this URI when it starts; keep it private.
+5. To start the app, double-click `Run-GardenApp.exe`. If you prefer PowerShell or the executable does not work, open PowerShell in the `frontend` folder and run:
+
+   ```powershell
+   .\scripts\Run-GardenApp.ps1
+   ```
+
+For Python installation details, manual setup, macOS/Linux instructions, and troubleshooting, see the [frontend setup guide](frontend/README.md).
 
 # What We Need to Work On
 
