@@ -2,7 +2,6 @@ param([int]$BootstrapProcessId = 0)
 
 $ErrorActionPreference = 'Stop'
 $frontendRoot = Split-Path -Parent $PSScriptRoot
-$repoRoot = Split-Path -Parent $frontendRoot
 $repoOwner = 'CrisOrnelas99'
 $repoName = 'Garden-Database'
 $branch = 'main'

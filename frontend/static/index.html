@@ -1,51 +1,139 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#183b2d">
   <title>LCSD Garden Program</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark">🌱</span>
-      <div>
-        <div class="brand-title">LCSD Garden</div>
-        <div class="brand-sub">Program Database</div>
+  <main id="login-screen" class="login-screen">
+    <section class="login-welcome" aria-label="Garden Program">
+      <div class="login-brand">
+        <span class="login-brand-mark" aria-hidden="true">✿</span>
+        <div class="login-brand-name">LCSD Garden Program</div>
       </div>
-    </div>
-    <nav id="nav"></nav>
-  </aside>
+      <div class="login-welcome-copy">
+        <h1>Welcome back.</h1>
+        <p>Sign in to continue.</p>
+        <ul class="login-features">
+          <li><span aria-hidden="true">✓</span>Garden records and crop calendar</li>
+          <li><span aria-hidden="true">✓</span>Inventory and supply requests</li>
+          <li><span aria-hidden="true">✓</span>Program reports</li>
+        </ul>
+      </div>
+      <div class="login-footer">Lee County School District · Garden Program</div>
+    </section>
 
-  <main>
-    <header class="page-header">
-      <div>
-        <h1 id="page-title">Dashboard</h1>
-        <p id="page-sub" class="muted"></p>
+    <section class="login-form-panel" aria-labelledby="login-heading">
+      <div class="login-form-content">
+        <h2 id="login-heading">Sign in</h2>
+        <p class="login-intro" id="login-intro">Enter your account email and password.</p>
+        <form id="login-form">
+          <div class="login-field">
+            <label for="login-email">Email address</label>
+            <input id="login-email" name="email" type="email" autocomplete="username" placeholder="you@school.org" required>
+          </div>
+          <div class="login-field">
+            <label for="login-password">Password</label>
+            <div class="login-password-wrap">
+              <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+              <button class="login-show-password" type="button" id="toggle-password" aria-controls="login-password" aria-pressed="false">Show</button>
+            </div>
+          </div>
+          <button class="login-submit" type="submit" id="login-submit">Sign in</button>
+          <p class="login-message" id="login-message" aria-live="polite"></p>
+          <button class="login-help" type="button" id="forgot-password">Forgot password?</button>
+        </form>
+        <form id="forgot-form" hidden>
+          <div class="login-field"><label for="forgot-email">Email address</label><input id="forgot-email" type="email" autocomplete="username" maxlength="254" required placeholder="you@school.org"></div>
+          <button class="login-submit" type="submit" id="forgot-submit">Send reset email</button>
+          <p class="login-message" id="forgot-message" role="status" aria-live="polite"></p>
+          <button class="btn" type="button" id="forgot-cancel">Back to sign in</button>
+        </form>
+        <form id="reset-form" hidden>
+          <div class="login-field">
+            <label for="reset-password">New password</label>
+            <input id="reset-password" type="password" autocomplete="new-password" required>
+          </div>
+          <div class="login-field">
+            <label for="reset-confirm">Confirm new password</label>
+            <input id="reset-confirm" type="password" autocomplete="new-password" required>
+          </div>
+          <button class="login-submit" type="submit" id="reset-submit">Save new password</button>
+          <p class="login-message" id="reset-message" aria-live="polite"></p>
+          <button class="btn" type="button" id="reset-cancel">Back to sign in</button>
+        </form>
+        <p class="login-access-note" id="login-access-note"><strong>Need an account?</strong> Ask your Garden Program manager to invite your email.</p>
       </div>
-      <div class="page-actions" id="page-actions"></div>
-    </header>
-    <section id="content"></section>
+    </section>
   </main>
 
-  <dialog id="dialog">
-    <form id="form" method="dialog">
-      <header class="dialog-header">
-        <h2 id="dialog-title"></h2>
-        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+  <div id="app-shell" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">🌱</span>
+        <div>
+          <div class="brand-title">LCSD Garden</div>
+          <div class="brand-sub">Program Database</div>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+      <div class="account-panel">
+        <div id="account-email" class="account-email"></div>
+        <div id="account-role" class="account-role"></div>
+        <button id="sign-out" class="sign-out-btn" type="button">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="app-main">
+      <header class="page-header">
+        <div>
+          <h1 id="page-title">Dashboard</h1>
+          <p id="page-sub" class="muted"></p>
+        </div>
+        <div class="page-actions" id="page-actions"></div>
       </header>
-      <div id="form-error" class="alert" hidden></div>
-      <div id="form-fields" class="form-grid"></div>
-      <footer class="dialog-footer">
-        <button type="button" class="btn" data-close>Cancel</button>
-        <button type="submit" class="btn primary" id="form-submit">Save</button>
-      </footer>
-    </form>
-  </dialog>
+      <section id="content"></section>
+    </main>
 
-  <div id="toast" class="toast" hidden></div>
+    <dialog id="dialog">
+      <form id="form" method="dialog">
+        <header class="dialog-header">
+          <h2 id="dialog-title"></h2>
+          <button type="button" class="icon-btn" data-close aria-label="Close">×</button>
+        </header>
+        <div id="form-error" class="alert" hidden></div>
+        <div id="form-fields" class="form-grid"></div>
+        <footer class="dialog-footer">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button type="submit" class="btn primary" id="form-submit">Save</button>
+        </footer>
+      </form>
+    </dialog>
 
+    <div id="toast" class="toast" hidden></div>
+    <dialog id="role-dialog" aria-labelledby="role-dialog-title">
+      <form id="role-form">
+        <header class="dialog-header"><h2 id="role-dialog-title"></h2><button type="button" class="icon-btn" id="role-close" aria-label="Close">×</button></header>
+        <div class="dialog-copy"><p id="role-description"></p><p class="muted" id="role-detail"></p><p class="muted" id="role-session-note">Existing sessions may keep their previous permissions until the sign-in token refreshes or expires.</p></div>
+        <div class="alert" id="role-error" role="alert" hidden></div>
+        <footer class="dialog-footer"><button type="button" class="btn" id="role-cancel">Cancel</button><button type="submit" class="btn primary" id="role-confirm">Confirm</button></footer>
+      </form>
+    </dialog>
+  </div>
+
+  <div id="note-preview" class="note-preview" role="tooltip" popover="auto" hidden>
+    <strong class="note-preview-heading">Full note</strong>
+    <div id="note-preview-text"></div>
+  </div>
+  <div id="reference-preview" class="note-preview reference-preview" role="tooltip" popover="auto" hidden>
+    <strong id="reference-preview-heading" class="note-preview-heading">Related record</strong>
+    <div id="reference-preview-text" class="reference-preview-fields" aria-live="polite"></div>
+  </div>
+  <script src="/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>

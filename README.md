@@ -1,4 +1,4 @@
-# LCSD Garden Program Database
+﻿# LCSD Garden Program Database
 
 This is a database project for the Lee County School District garden program that focuses on creating a more organized and centralized way to manage garden-related data. The project is based on the program's current use of Google Sheets and will support areas such as inventory and supplies, garden sizes and components, and growing calendars and crop rotations.
 
@@ -6,22 +6,11 @@ The goal is to improve how information is stored, connected, and accessed so sta
 
 ## Frontend App
 
-The `frontend` folder contains a Python web app for working with the Garden Program database. The app runs locally on each user's computer and opens at `http://localhost:8000`; it is not hosted as a public website. It connects over the internet to the shared Supabase database, so changes made in the app affect the shared records.
+The `frontend` folder contains a Python web app. Each partner downloads the repository ZIP from GitHub (**Code → Download ZIP**), unzips it, and runs the app locally at `http://localhost:8000`. The app is not hosted as a public website. It connects over the internet to the shared Supabase project.
 
-### Download and run it on Windows
+Partners need Python 3.9 or newer, internet access, and an invited Garden Program account. They run `frontend/Run-GardenApp.exe` on Windows or use the PowerShell fallback at `frontend/scripts/Run-GardenApp.ps1`. On macOS/Linux they use the manual Python setup. The app does not need a Supabase database password or connection URI; each person signs in with their own Auth account. See [frontend/README.md](frontend/README.md) for steps.
 
-1. Open the [Garden-Database GitHub repository](https://github.com/CrisOrnelas99/Garden-Database). Click **Code**, then **Download ZIP**.
-2. Unzip the downloaded file. Open the extracted `Garden-Database-main` folder, then its `frontend` folder. Keep the folder together; do not move `Run-GardenApp.exe` by itself.
-3. Install Python 3.9 or newer if it is not already installed.
-4. Get the database URI from Supabase: open the project, click **Connect**, choose the **Session pooler** method, and copy the URI. The app will prompt for this URI when it starts; keep it private.
-5. To start the app, double-click `Run-GardenApp.exe`. If you prefer PowerShell or the executable does not work, open PowerShell in the `frontend` folder and run:
-
-   ```powershell
-   .\scripts\Run-GardenApp.ps1
-   ```
-
-For Python installation details, manual setup, macOS/Linux instructions, and troubleshooting, see the [frontend setup guide](frontend/README.md).
-
+Changes made in the app affect the shared Supabase records immediately. Requests use the signed-in person's account and Supabase role policies. Frontend updates do not apply database or SQL changes.
 # What We Need to Work On
 
 ### Inventory & Supplies
@@ -190,5 +179,4 @@ erDiagram
     }
 ```
 
-**Developer notes: We use component names as foreign key for user readability for hosted databases. If a future web UI is implemented, change back foreign key to ID for proper use.    
-> Authentication and user tracking are planned for a future stage of the project and are not currently part of the inventory schema.
+The app authenticates each partner through Supabase Auth. App roles are assigned to Auth users and enforced by the Supabase database policies; see `sql/schema_roles.sql` and the Supabase setup guides.

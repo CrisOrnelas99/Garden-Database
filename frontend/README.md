@@ -1,152 +1,121 @@
 ﻿# Garden Database Frontend
 
-A web interface for the LCSD Garden Program database. It lets staff browse,
-search, add, edit, and delete records in every table, and view the summary
-reports (restock list, pending requests, crop calendar, and more).
+A local web app for the LCSD Garden Program. The app runs on each user's computer at `http://localhost:8000` and connects to the shared Supabase project over the Supabase Auth and Data APIs. It is not a public website.
 
-The app reads the table structure (columns, types, required fields, dropdown
-options) directly from the database, so it works with the existing schema and
-never changes it.
+## What partners need
 
-> **Heads up:** this connects to the real database. Adding, editing, or
-> deleting a record in the app changes the shared Supabase data immediately.
-> Browsing is read-only.
+- Python 3.9 or newer
+- Internet access
+- A Garden Program account invited by a manager
+- The account's email and password
 
-## What's inside
+Partners do **not** need a Supabase database password or connection URI. They sign in through the app. Supabase applies each account's assigned role to its data access.
 
-```text
-frontend/
-├── app.py            # Python (Flask) server: serves the pages and talks to Postgres
-├── requirements.txt  # Python packages
-└── static/
-    ├── index.html
-    ├── app.js
-    └── styles.css
-```
+### Install Python
 
-## Requirements
-
-- Python 3.9 or newer (`python3 --version`)
-- The Supabase database connection string and password
-
-### Install Python first
-
-You need Python 3.9 or newer, an internet connection to install the app's Python packages, and a web browser. The launcher installs the packages listed in `requirements.txt` automatically. You do not need to install Git or a database server to run the app.
-
-- **Windows:** Install Python from [python.org/downloads](https://www.python.org/downloads/) and reopen PowerShell. You can also use the official Python Install Manager with `winget install 9NQ7512CXL7T`. Confirm installation with `py --version`.
-- **macOS:** Install Python 3 from [python.org/downloads](https://www.python.org/downloads/), then reopen Terminal and confirm with `python3 --version`.
-- **Linux:** Install Python 3, its `venv` support, and `pip` with your distribution's package manager. For Ubuntu or Debian, run `sudo apt update` followed by `sudo apt install python3 python3-venv python3-pip`. Confirm with `python3 --version`.
-
-Use the official Python downloads page if you are unsure which installer matches your computer. The database URI is needed when starting the app; enter it at the launcher's hidden prompt and never commit it to GitHub or share it in chat.
-
-## 1. Get the connection string from Supabase
-
-1. Open the project in Supabase and click **Connect** at the top.
-2. Choose the database connection string tab (**Direct** / **Connection string**).
-3. Keep **Type** as **URI** and set **Method** to **Session pooler**.
-   The "Direct connection" address only works on IPv6 networks and usually
-   fails on home or school internet.
-4. Copy the string. It looks like:
-
-   ```text
-   postgresql://postgres.<project-ref>:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
-   ```
-
-5. Replace `[YOUR-PASSWORD]` (including the brackets) with the database
-   password. If the password contains `@ # / ? : %`, URL-encode those
-   characters (for example `@` becomes `%40`).
-
-Never commit the connection string or password to GitHub.
-
-## 2. Install (first time only)
-
-From the `frontend` folder:
-
-```bash
-cd frontend
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-```
-
-On Windows, use `py -m venv .venv` and `.venv\Scripts\pip install -r requirements.txt`.
-
-## 3. Run
-
-macOS / Linux, from the `frontend` folder:
-
-```bash
-export DATABASE_URL='postgresql://postgres.<project-ref>:YOUR_PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres'
-.venv/bin/python app.py
-```
-
-Windows (PowerShell), from the `frontend` folder:
-
-```powershell
-$env:DATABASE_URL = 'postgresql://postgres.<project-ref>:YOUR_PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres'
-.venv\Scripts\python app.py
-```
-
-Then open <http://localhost:8000> in your browser. Stop the server with
-`Ctrl+C`. `DATABASE_URL` only lasts for that terminal window, so set it again
-in a new one. To use a different port, set `PORT` (for example `PORT=8080`).
-
-## Using the app
-
-- **Dashboard** – location and inventory counts, budget balances, items that
-  need restocking, and upcoming plantings.
-- **Tables** (sidebar) – each page supports search, column sorting, **+ Add**,
-  **Edit**, and **Delete**. Dropdowns are filled from the related tables, and
-  in Crop Rotations the bed list is filtered to the selected location.
-- **Reports** – read-only pages for each summary view.
-
-Fields the database calculates itself (`remaining_budget`, `bed_count`, and
-auto-generated IDs) are shown but not editable. In purchase requests,
-`unit_cost_at_request` and `total_cost` are filled in automatically when left
-blank. If a database rule rejects a change (for example, checking out more
-stock than is available), the error message is shown in the form.
+- **Windows:** Install Python from [python.org/downloads](https://www.python.org/downloads/) and select the Python launcher option. Reopen PowerShell and confirm with `py --version`.
+- **macOS:** Install Python 3 from [python.org/downloads](https://www.python.org/downloads/) and confirm with `python3 --version` in Terminal.
+- **Linux:** Install Python 3, `venv`, and `pip` using your distribution's package manager. For Ubuntu or Debian: `sudo apt update` then `sudo apt install python3 python3-venv python3-pip`.
 
 ## Windows quick start
 
-1. Install Python 3.9 or newer and unzip the complete GitHub repository.
-2. Keep the frontend folder together. Do not move Run-GardenApp.exe out of that folder.
-3. Double-click Run-GardenApp.exe. It checks GitHub for frontend file updates, installs the Python packages the first time, prompts for the Supabase Session pooler URI, and opens the app in a browser. Leave the console window open while using the app; close it to stop the app.
+1. Download the repository ZIP from GitHub (**Code → Download ZIP**) and unzip it.
+2. Open the extracted `Garden-Database-main` folder, then open `frontend`. Keep the folder together; do not move `Run-GardenApp.exe` by itself.
+3. Double-click `Run-GardenApp.exe`. It checks for frontend file updates, creates the Python environment and installs required packages the first time, then opens the local app in your browser. Leave its console window open while using the app.
+4. Sign in with the email and password for your invited Garden Program account.
 
-The updater changes frontend files only; it does not run database or SQL updates. Before replacing local frontend files, it saves a backup under %LOCALAPPDATA%\GardenDatabase\frontend-backups. The executable contains no database credentials. Enter the connection URI each time the app starts.
+If the executable is blocked or does not work, from PowerShell opened in `frontend`, run:
 
-If the executable does not work, use the PowerShell fallback from the frontend folder:
+```powershell
+.\scripts\Run-GardenApp.ps1
+```
 
-    .\scripts\Run-GardenApp.ps1
+If Windows reports the downloaded script is not digitally signed, confirm it came from the trusted class repository, then unblock only this script and run it:
 
-The fallback creates the virtual environment if needed, installs the requirements, prompts for the Supabase Session pooler URI with hidden input, opens the app in your browser, and starts the server. Press Ctrl+C in the PowerShell window to stop it. Python 3.9 or newer must be installed.
+```powershell
+Unblock-File .\scripts\Run-GardenApp.ps1
+.\scripts\Run-GardenApp.ps1
+```
 
-If Windows says the downloaded script is not digitally signed, first make sure it came from the trusted class repository. Then, from the frontend folder, unblock only the fallback script and run it:
-
-    Unblock-File .\scripts\Run-GardenApp.ps1
-    .\scripts\Run-GardenApp.ps1
-
-This removes the downloaded-file mark from this one script; it does not change PowerShell's execution policy. Only run scripts from the trusted class repository.
+Press Ctrl+C in the console window to stop the local server. The updater updates frontend files only; it does not apply SQL or database schema updates. It keeps a backup of previous frontend files under `%LOCALAPPDATA%\GardenDatabase\frontend-backups`.
 
 ## macOS / Linux quick start
 
-The Windows executable and PowerShell fallback are for Windows. On macOS or Linux, use the manual setup commands from the frontend folder:
+From the `frontend` directory:
 
-    python3 -m venv .venv
-    .venv/bin/python -m pip install -r requirements.txt
-    export DATABASE_URL='postgresql://postgres.<project-ref>:YOUR_PASSWORD@aws-0-us-east-1.pooler.supabase.com:5432/postgres'
-    .venv/bin/python app.py
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python app.py
+```
 
-Replace the example URI with the project's Supabase Session pooler URI. Open http://localhost:8000 in a browser and press Ctrl+C in Terminal to stop the server.
+Open <http://localhost:8000>, sign in, and press Ctrl+C in Terminal to stop the server.
+
+## Manual Windows setup
+
+From PowerShell in the `frontend` directory:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
+```
+
+Open <http://localhost:8000> and sign in. Leave the PowerShell window open while using the app; Ctrl+C stops it.
+
+## Accepting an invitation
+
+The project administrator sends new-account invitations from Supabase. Start the local app before opening the invitation email. The standard invitation link signs you in temporarily and opens **Set your password**. Enter and confirm your password, save it, and then sign in with your email and chosen password.
+
+Keep the app running at `http://localhost:8000` while opening email links. Reloading the same tab during password setup keeps the setup screen. If the invitation was already accepted or has expired, use **Forgot password?** to request a new reset link for the existing account. Invitation sending remains in the Supabase dashboard.
+
+## Resetting a password
+
+On the sign-in screen, click **Forgot password?**, enter your account email, and click **Send reset email**. The response does not reveal whether an account exists for that address. Supabase's email delivery settings and sending limits still apply.
+
+Keep the local app and its console window open before opening the reset email. The link opens the local app, where you can enter and confirm a new password. After saving it, sign in with the new password. If the link has expired or was already used, request a new reset email. If you see a connection error, start the app and reopen the email link.
+
+## Reading long notes
+
+Hover over a Notes cell to read its full text in a popup. You can also focus it with the keyboard or tap it on a touchscreen. The preview wraps text and preserves line breaks, and long notes can be scrolled inside the popup. Press Escape or click outside to close it. The table's row heights and column widths stay unchanged.
+
+## Navigation menu
+
+The sidebar groups pages under **Locations**, **Gardens**, **Inventory & Budget**, **Reports**, and **Manage** where permitted. Sections stay expanded so their links are always visible. The current page and its section are highlighted. Keyboard users can Tab directly through the links.
+
+## Unsaved changes
+
+If you change a record form, the app asks before discarding your edits through **Cancel**, the close button, **Escape**, page navigation, or sign-out. Unchanged forms close without a warning. Refreshing or closing the browser tab may display the browser's own warning; browsers control that message and cannot guarantee it in every situation, such as a forced browser shutdown. The warning does not save a draft.
+
+Unsaved role selections are preserved while searching the Users list. Refreshing that list, leaving it, or signing out asks before discarding pending role changes. Saving one person's role keeps any other pending selections. Entered new passwords also trigger a warning before leaving the password-reset form.
+
+## Permissions and data
+
+- The app's sign-in uses each person's invited Supabase Auth account. A manager must assign that account one of the app roles before it can access records.
+- Supabase enforces table and report permissions for every signed-in request. The app shows controls that match those permissions, and database policies remain the authority.
+- Changes made in this app affect the shared Supabase data immediately. The local app does not modify database schema.
+
+## Managing users
+
+Database managers have a **Users** page in the sidebar. Search for an existing account, choose **Staff**, **Finance Staff**, or **Database Manager**, and click **Save**. Use **Remove access** to remove an app role while keeping the account and its records. Changes require confirmation. You cannot change or remove your own manager role.
+
+Managers can click **Send password reset email** next to an account and confirm the recipient. Supabase sends the reset link; the manager never sees or chooses the password. The recipient must run their local app at `http://localhost:8000` before opening the link, then use the existing new-password form. Accounts without an email address cannot receive a reset email. Supabase email limits and delivery settings still apply.
+
+The project administrator should allow `http://localhost:8000/` in Supabase Auth's URL Configuration so recovery links return to the local app. This feature uses the public publishable key and the existing manager directory function; no secret key or additional SQL update is needed beyond the Users page setup below.
+
+New account invitations are still sent through Supabase by the project administrator. Users appear here once their Auth accounts exist, including accounts with no assigned role. Initial manager assignment still uses the SQL Editor as described in the database setup guide.
+
+Role changes apply when the user's token refreshes or expires. Refreshing the browser page now requests a fresh sign-in token and reloads permissions; the user can also sign out and sign in again. An already-open page does not instantly receive changes from another person's computer. The management functions also check the manager's current database assignment, so a removed manager cannot keep assigning roles using an old token.
+
+**One-time setup for an existing project:** the project owner must run the entire [`sql/manager_user_access.sql`](../sql/manager_user_access.sql) file in the Supabase SQL Editor, then restart the local app. Fresh database setups already get these functions from `sql/schema_roles.sql`; the separate file updates an existing project without rerunning the whole schema. The app and its updater never apply SQL automatically.
 
 ## Troubleshooting
 
 | Message | Fix |
 | --- | --- |
-| `could not translate host name "db.<ref>.supabase.co"` | You used the Direct connection string. Switch to **Session pooler**. |
-| `password authentication failed` | Wrong password, or special characters that need URL-encoding. |
-| `fe_sendauth: no password supplied` | `DATABASE_URL` isn't set in this terminal. Run the `export` line again. |
-| `Address already in use` | Something else is on port 8000. Run with `PORT=8080`. |
-
-If you change the database schema, the app picks up the changes automatically
-within about five minutes (or restart the server). New tables or views need to
-be added to `TABLES` or `VIEWS` at the top of `app.py` to appear in the sidebar.
+| `Python was not found` | Install Python 3.9 or newer, then reopen PowerShell or Terminal. |
+| `Could not reach Supabase Auth` / `Data API` | Check internet access and try again. |
+| `no Garden Program role` | Ask the manager to assign a role to the same email used to sign in. |
+| `Invalid login credentials` | Check the invited account's email and password. |
+| `Address already in use` | Stop the other local app instance, or start with `PORT=8080` (macOS/Linux) / `$env:PORT=8080` (PowerShell). |
 

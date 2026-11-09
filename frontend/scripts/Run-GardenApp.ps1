@@ -10,10 +10,6 @@ if (-not (Get-Command py.exe -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-$secureUrl = Read-Host 'Enter the Supabase Session Pooler connection URL' -AsSecureString
-$credential = [System.Net.NetworkCredential]::new('', $secureUrl)
-$env:DATABASE_URL = $credential.Password
-
 $venvPython = Join-Path $frontendRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $venvPython)) {
     Write-Host 'Creating the app environment...'
@@ -26,10 +22,5 @@ Write-Host 'Installing or updating the app requirements...'
 if ($LASTEXITCODE -ne 0) { throw 'Could not install app requirements.' }
 
 Write-Host 'Starting the Garden Database app...'
-try {
-    Start-Process 'http://localhost:8000'
-    & $venvPython (Join-Path $frontendRoot 'app.py')
-}
-finally {
-    Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
-}
+Start-Process 'http://localhost:8000'
+& $venvPython (Join-Path $frontendRoot 'app.py')
