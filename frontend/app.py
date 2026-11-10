@@ -5,6 +5,7 @@ import copy
 import datetime
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
 
 import requests
@@ -19,19 +20,19 @@ SUPABASE_PUBLISHABLE_KEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY", "sb_publis
 ROLES = {"staff", "finance_staff", "database_manager"}
 
 TABLES = {
-    "location": {"label": "Locations", "group": "Locations", "readonly": ["bed_count"]},
-    "location_group": {"label": "Location Groups", "group": "Locations"},
-    "group_members": {"label": "Group Members", "group": "Locations"},
-    "budget": {"label": "Budgets", "group": "Inventory & Budget", "readonly": ["remaining_budget"]},
-    "item": {"label": "Item Catalog", "group": "Inventory & Budget"},
-    "inventory_list": {"label": "Inventory", "group": "Inventory & Budget"},
-    "purchase_request": {"label": "Purchase Requests", "group": "Inventory & Budget"},
-    "inventory_transaction": {"label": "Check In / Out", "group": "Inventory & Budget"},
-    "garden_bed": {"label": "Garden Beds", "group": "Gardens"},
-    "irrigation_setup": {"label": "Irrigation", "group": "Gardens"},
-    "compost_unit": {"label": "Compost Units", "group": "Gardens"},
-    "plant": {"label": "Plants", "group": "Gardens"},
-    "crop_rotation": {"label": "Crop Rotations", "group": "Gardens"},
+    "location": {"label": "Locations", "group": "Locations", "description": "Stores schools and program locations. Garden fields are optional, so an office or a school without a tracked garden can leave them empty.", "readonly": ["bed_count"]},
+    "location_group": {"label": "Location Groups", "group": "Locations", "description": "Stores one readable row for each location group."},
+    "group_members": {"label": "Group Members", "group": "Locations", "description": "Connects groups to their member locations. Each row represents one location in one group."},
+    "budget": {"label": "Budgets", "group": "Inventory & Budget", "description": "Stores the available and remaining amount for each budget.", "readonly": ["remaining_budget"]},
+    "item": {"label": "Item Catalog", "group": "Inventory & Budget", "description": "Catalog of supplies that can be purchased or tracked in inventory."},
+    "inventory_list": {"label": "Inventory", "group": "Inventory & Budget", "description": "Tracks current stock for catalog items. Each catalog item can have at most one inventory-list row."},
+    "purchase_request": {"label": "Purchase Requests", "group": "Inventory & Budget", "description": "Records requested items, ordering and delivery state, and optional budget and funding-source details."},
+    "inventory_transaction": {"label": "Check In / Out", "group": "Inventory & Budget", "description": "Records inventory check-ins and check-outs. A row may be assigned to one school, one location group, or neither for personal use."},
+    "garden_bed": {"label": "Garden Beds", "group": "Gardens", "description": "Stores individual beds for locations. Adding the first bed automatically starts the bed count for that location."},
+    "irrigation_setup": {"label": "Irrigation", "group": "Gardens", "description": "Stores zero or more irrigation systems for each location with garden details."},
+    "compost_unit": {"label": "Compost Units", "group": "Gardens", "description": "Stores zero or more composting units for each location with garden details."},
+    "plant": {"label": "Plants", "group": "Gardens", "description": "Catalog of general information about plants. Planting-specific details are stored in crop rotations."},
+    "crop_rotation": {"label": "Crop Rotations", "group": "Gardens", "description": "Tracks plantings by bed within a location's garden."},
 }
 VIEWS = {
     "CropCalendar": "Crop Calendar", "CurrentBedPlantings": "Current Bed Plantings",
@@ -39,6 +40,17 @@ VIEWS = {
     "PendingRequests": "Pending Requests", "SchoolSupply": "School Supply",
     "BudgetPurchases": "Budget Purchases", "FundingSourceSpending": "Funding Source Spending",
     "YearlyPurchase": "Yearly Purchases",
+}
+VIEW_DESCRIPTIONS = {
+    "RestockList": "Identifies inventory items at or below their reorder point.",
+    "PendingRequests": "Lists purchase requests that are unordered or not yet delivered, showing the saved school or group assignment by name.",
+    "SchoolSupply": "Summarizes inventory and purchasing activity in separate rows for each school and each named group. Group totals stay on the group row.",
+    "BudgetPurchases": "Groups ordered quantities and item spending by budget and item, with budget-level totals.",
+    "FundingSourceSpending": "Groups ordered quantities and spending by funding source and item, with funding-source totals.",
+    "YearlyPurchase": "Summarizes ordered and unordered request spending by school year.",
+    "CurrentBedPlantings": "Shows in-ground and harvested plantings with the associated bed details and estimated harvest date.",
+    "CropCalendar": "Shows planned, current, and past crop rotations with an estimated harvest date.",
+    "GardenAssets": "Lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.",
 }
 ENUMS = {
     "condition": ["Good", "Require Maintenance", "In Maintenance"],
@@ -248,10 +260,10 @@ def disable_caching(response):
     return response
 
 # Send a data request to Supabase using the signed-in user's token and report any errors.
-def rest_request(method, resource, params=None, body=None, range_header=None, prefer=None):
+def rest_request(method, resource, params=None, body=None, range_header=None, prefer=None, token=None):
     headers = {
         "apikey": SUPABASE_PUBLISHABLE_KEY,
-        "Authorization": f"Bearer {g.access_token}",
+        "Authorization": f"Bearer {token or g.access_token}",
         "Accept-Profile": "public", "Content-Profile": "public",
     }
     if range_header:
@@ -281,13 +293,15 @@ def rest_request(method, resource, params=None, body=None, range_header=None, pr
         return []
 
 # Load records from Supabase in batches so large results can span multiple responses.
-def fetch_rows(resource, select="*", order=None, extra_params=None):
+def fetch_rows(resource, select="*", order=None, extra_params=None, token=None):
     params = list(extra_params or []) + [("select", select)]
     if order:
         params.append(("order", ",".join(f"{field}.asc" for field in order)))
     results, offset, page_size = [], 0, 1000
     while True:
-        rows = rest_request("GET", resource, params, range_header=f"{offset}-{offset + page_size - 1}")
+        rows = rest_request(
+            "GET", resource, params, range_header=f"{offset}-{offset + page_size - 1}", token=token,
+        )
         if not isinstance(rows, list):
             raise ApiError("Unexpected response from Supabase.", 502)
         results.extend(rows)
@@ -372,9 +386,9 @@ def public_config():
 # Tell the browser which tables and reports the signed-in user can see.
 @app.get("/api/meta")
 def meta():
-    tables = [{"name": name, "label": cfg["label"], "group": cfg["group"]}
+    tables = [{"name": name, "label": cfg["label"], "group": cfg["group"], "description": cfg["description"]}
               for name, cfg in TABLES.items() if not (g.role == "staff" and name == "budget")]
-    views = [{"name": name, "label": label} for name, label in VIEWS.items()
+    views = [{"name": name, "label": label, "description": VIEW_DESCRIPTIONS[name]} for name, label in VIEWS.items()
              if not (g.role == "staff" and name not in STAFF_VIEWS)]
     return jsonify({"role": g.role, "user": {"id": g.auth_user.get("id"), "email": g.auth_user.get("email")}, "tables": tables, "views": views})
 
@@ -421,7 +435,20 @@ def get_referenced_row(name):
         rows = [row for row in visible_rows if all(row.get(field) == value for field, value in key.items())]
     if not rows:
         raise ApiError("The referenced record could not be found or is not available to your role.", 404)
-    return jsonify(rows[0])
+    related = rows[0]
+    if name == "location_group":
+        group_name = related.get("location_group_name")
+        members = fetch_rows(
+            "group_members", "location_name",
+            extra_params=[("location_group_name", postgrest_equal(group_name))],
+        )
+        if not members:
+            visible_members = fetch_rows("group_members")
+            members = [member for member in visible_members if member.get("location_group_name") == group_name]
+        related["associated_schools"] = sorted({
+            member["location_name"] for member in members if member.get("location_name")
+        }, key=str.casefold)
+    return jsonify(related)
 
 # Send a new record to Supabase, where database permissions and rules decide whether to save it.
 @app.post("/api/tables/<name>")
@@ -467,26 +494,52 @@ def get_view(name):
 # Gather counts, restock alerts, upcoming plantings, and any budgets the user may view.
 @app.get("/api/dashboard")
 def dashboard():
-    locations = fetch_rows("location", "location_name,garden_status")
-    active_beds = fetch_rows("garden_bed", "bed_id", extra_params=[("lifecycle_status", "eq.Active")])
-    inventory = fetch_rows("inventory_list", "inventory_id")
-    restock = fetch_rows("RestockList", view_select("RestockList"), ["item_name"])
-    pending = fetch_rows("PendingRequests", view_select("PendingRequests"))
-    crop_rows = fetch_rows("CropCalendar", view_select("CropCalendar"))
+    token = g.access_token
+    queries = {
+        "locations": ("location", "is_hlc,garden_condition", None),
+        "inventory": ("inventory_list", "inventory_id", None),
+        "beds": ("garden_bed", "condition", None),
+        "irrigation": ("irrigation_setup", "condition", None),
+        "compost": ("compost_unit", "condition", None),
+        "restock": ("RestockList", view_select("RestockList"), ["item_name"]),
+        "pending": ("PendingRequests", view_select("PendingRequests"), None),
+        "crop_rows": ("CropCalendar", view_select("CropCalendar"), None),
+    }
+    if g.role != "staff":
+        queries["budgets"] = ("budget", "budget_name,budget_amount,remaining_budget", ["budget_name"])
+    with ThreadPoolExecutor(max_workers=len(queries)) as executor:
+        futures = {
+            name: executor.submit(fetch_rows, resource, select, order, token=token)
+            for name, (resource, select, order) in queries.items()
+        }
+        results = {name: future.result() for name, future in futures.items()}
+    locations = results["locations"]
+    inventory = results["inventory"]
+    maintenance_conditions = {"Require Maintenance", "In Maintenance"}
+    maintenance_items = sum(
+        1 for row in locations if row.get("garden_condition") in maintenance_conditions
+    ) + sum(
+        sum(1 for row in results[key] if row.get("condition") in maintenance_conditions)
+        for key in ("beds", "irrigation", "compost")
+    )
+    restock = results["restock"]
+    pending = results["pending"]
+    crop_rows = results["crop_rows"]
     today = datetime.date.today().isoformat()
     rotations = [row for row in crop_rows if
-                 (row.get("sow_date") and row["sow_date"] >= today) or row.get("rotation_status") == "Planned"]
+                 (row.get("sow_date") and row["sow_date"] >= today)
+                 or (row.get("expected_harvest_date") and row["expected_harvest_date"] >= today)
+                 or row.get("rotation_status") == "Planned"]
     rotations.sort(key=lambda row: row.get("sow_date") or "9999-12-31")
-    budgets = [] if g.role == "staff" else fetch_rows(
-        "budget", "budget_name,budget_amount,remaining_budget", ["budget_name"])
+    budgets = results.get("budgets", [])
     return jsonify({
         "counts": {
-            "locations": len(locations),
-            "gardens": sum(1 for row in locations if row.get("garden_status") is not None),
-            "active_beds": len(active_beds), "inventory_items": len(inventory),
+            "hlc_locations": sum(1 for row in locations if row.get("is_hlc") is True),
+            "inventory_items": len(inventory),
+            "maintenance_items": maintenance_items,
             "restock_needed": len(restock), "pending_requests": len(pending),
         },
-        "budgets": budgets, "restock": restock[:10], "rotations": rotations[:10],
+        "budgets": budgets, "restock": restock[:10], "rotations": rotations,
     })
 
 # Keep account management restricted to managers, including direct API requests.

@@ -131,6 +131,9 @@ let recordBaseline = null;
 let recordSaving = false;
 let currentRouteHash = null;
 const pendingRoleEdits = new Map();
+let dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let cropRotationMode = "table";
+let cropRotationMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 // Compare current field values with the values shown when the record form opened.
 function recordSnapshot() {
@@ -261,6 +264,7 @@ const LABELS = {
   is_hlc: "HLC",
   is_full: "Full",
   location_group_name: "Location Group",
+  associated_schools: "Associated Schools",
   unit_cost_at_request: "Unit Cost at Request",
 };
 
@@ -321,6 +325,15 @@ const isMoneyColumn = (name) => /cost|budget|spent|spending/.test(name) && !/qua
 function formatCell(name, value) {
   if (value === null || value === undefined || value === "") return '<span class="muted">—</span>';
   if (typeof value === "boolean") return `<span class="pill ${value ? "yes" : "no"}">${value ? "Yes" : "No"}</span>`;
+  if (/(status|condition)/i.test(name)) {
+    const status = String(value).trim().toLowerCase();
+    let tone = "neutral";
+    if (["good", "active", "in-ground", "checked in", "approved", "harvested", "complete", "completed", "delivered", "ordered"].includes(status)) tone = "green";
+    else if (["planned", "pending", "awaiting", "fair", "scheduled", "needs review"].includes(status)) tone = "yellow";
+    else if (["in maintenance", "require maintenance", "checked out", "in progress"].includes(status)) tone = status === "require maintenance" ? "red" : "orange";
+    else if (["inactive", "removed", "rejected", "denied", "cancelled", "canceled", "overdue", "needs replacement"].includes(status)) tone = "red";
+    return `<span class="pill status-pill status-${tone}">${escapeHtml(value)}</span>`;
+  }
   if (typeof value === "number" && isMoneyColumn(name)) return money.format(value);
   if (name === "link" && /^https?:\/\//.test(value)) {
     return `<a href="${escapeHtml(value)}" target="_blank" rel="noopener">Link</a>`;
@@ -328,12 +341,21 @@ function formatCell(name, value) {
   return escapeHtml(value);
 }
 
+// Show the member locations as an escaped list in location-group previews.
+function formatReferenceCell(name, value) {
+  if (name === "associated_schools" && Array.isArray(value)) {
+    if (!value.length) return '<span class="muted">No schools are assigned to this group.</span>';
+    return `<ul class="reference-list">${value.map((school) => `<li>${escapeHtml(school)}</li>`).join("")}</ul>`;
+  }
+  return formatCell(name, value);
+}
+
 // Show the related row above its foreign-key value using the signed-in user's permissions.
 async function showReferencePreview(anchor, column, row, foreignKey) {
   hideNotePreview();
   clearTimeout(referenceHideTimer);
   const target = foreignKey.ref_table;
-  const key = { [foreignKey.ref_column]: row[column] };
+  const key = { [foreignKey.ref_column]: row[foreignKey.value_column || column] };
   for (const [localColumn, referencedColumn] of Object.entries(foreignKey.depends_on || {})) {
     key[referencedColumn] = row[localColumn];
   }
@@ -352,7 +374,7 @@ async function showReferencePreview(anchor, column, row, foreignKey) {
     const related = await api(`/tables/${encodeURIComponent(target)}/reference`, { method: "POST", body: { key } });
     if (requestId !== referenceRequestId || previewedReference !== anchor) return;
     $("#reference-preview-text").innerHTML = `<dl>${Object.entries(related).map(([name, value]) =>
-      `<div class="reference-field"><dt>${escapeHtml(label(name))}</dt><dd>${formatCell(name, value)}</dd></div>`
+      `<div class="reference-field"><dt>${escapeHtml(label(name))}</dt><dd>${formatReferenceCell(name, value)}</dd></div>`
     ).join("")}</dl>`;
     positionPreview(referencePreview, anchor);
   } catch (error) {
@@ -410,7 +432,49 @@ function setHeader(title, sub = "", actions = "", scrollTable = false) {
   $("#page-title").textContent = title;
   $("#page-sub").textContent = sub;
   $("#page-actions").innerHTML = actions;
+  $("#print-page")?.addEventListener("click", downloadTablePdf);
   document.title = `${title} · LCSD Garden`;
+}
+
+const printButton = '<button type="button" class="btn print-btn" id="print-page" aria-label="Download PDF" title="Download as PDF">' +
+  '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4"/></svg></button>';
+
+// Print a lightweight copy of the table so the browser does not reflow the whole app.
+function downloadTablePdf() {
+  const table = content.querySelector(".data-table");
+  if (!table) {
+    toast("Switch to Table mode before downloading this report.");
+    return;
+  }
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    toast("Allow pop-ups to download this table as a PDF.");
+    return;
+  }
+  const printableTable = table.cloneNode(true);
+  printableTable.querySelectorAll("th.notes, td.notes, td.actions, th:last-child:empty").forEach((cell) => cell.remove());
+  printableTable.querySelectorAll(".reference-link").forEach((link) => link.replaceWith(document.createTextNode(link.textContent)));
+  const title = $("#page-title").textContent;
+  const count = content.querySelector(":scope > p")?.textContent || `${table.tBodies[0]?.rows.length || 0} records`;
+  printWindow.addEventListener("load", () => {
+    printWindow.focus();
+    printWindow.print();
+  }, { once: true });
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+    <style>
+      @page { size: landscape; margin: 12mm; }
+      body { color: #111; font: 11px Arial, sans-serif; }
+      h1 { margin: 0 0 4px; font-size: 20px; }
+      p { margin: 0 0 12px; color: #555; font-size: 11px; }
+      table { width: 100%; border-collapse: collapse; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+      th, td { padding: 5px 7px; border: 1px solid #bbb; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+      th { color: #222; background: #eee; font-size: 9px; }
+      td { font-size: 9px; }
+    </style></head><body><h1>${escapeHtml(title)}</h1><p>${escapeHtml(count)}</p>${printableTable.outerHTML}</body></html>`);
+  printWindow.document.close();
 }
 
 function renderNav() {
@@ -446,7 +510,8 @@ function dataTable(rows, { columns, actions = false, foreignKeys = {} } = {}) {
   const head = cols
     .map((c) => {
       const sorted = state.sort && state.sort.col === c;
-      return `<th data-sort="${escapeHtml(c)}" class="${sorted ? "sorted" : ""} ${sorted && state.sort.desc ? "desc" : ""}">${escapeHtml(label(c))}</th>`;
+      const isNote = c === "notes" || c.endsWith("_notes");
+      return `<th data-sort="${escapeHtml(c)}" class="${isNote ? "notes" : ""} ${sorted ? "sorted" : ""} ${sorted && state.sort.desc ? "desc" : ""}">${escapeHtml(label(c))}</th>`;
     })
     .join("");
   const body = rows
@@ -514,15 +579,185 @@ function bindTableControls(rerender) {
   });
 }
 
+function parseCalendarDate(value) {
+  const match = String(value || "").slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+}
+
+function calendarDateKey(date) {
+  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" +
+    String(date.getDate()).padStart(2, "0");
+}
+
+function buildDashboardCalendar(rows, month) {
+  const events = [];
+  const byDate = new Map();
+  const undated = [];
+  for (const row of rows) {
+    let hasDate = false;
+    for (const [kind, field] of [["Sowing", "sow_date"], ["Expected harvest", "expected_harvest_date"]]) {
+      const date = parseCalendarDate(row[field]);
+      if (!date) continue;
+      hasDate = true;
+      const event = { row, kind, date: calendarDateKey(date) };
+      const index = events.push(event) - 1;
+      const entries = byDate.get(event.date) || [];
+      entries.push(index);
+      byDate.set(event.date, entries);
+    }
+    if (!hasDate) undated.push(events.push({ row, kind: "Undated planting", date: null }) - 1);
+  }
+
+  const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
+  const gridStart = new Date(month.getFullYear(), month.getMonth(), 1 - monthStart.getDay());
+  const today = calendarDateKey(new Date());
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    .map(day => '<div class="crop-calendar-weekday">' + day + "</div>").join("");
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+    const key = calendarDateKey(date);
+    const inMonth = date.getMonth() === month.getMonth();
+    const classes = ["crop-calendar-day", inMonth ? "" : "outside-month", key === today ? "today" : ""].filter(Boolean).join(" ");
+    const dayEvents = (byDate.get(key) || []).map(eventIndex => {
+      const event = events[eventIndex];
+      const plant = event.row.plant_name || "Planting";
+      const place = [event.row.location_name, event.row.bed_name].filter(Boolean).join(" · ");
+      const kind = event.kind === "Sowing" ? "sowing" : "harvest";
+      const aria = event.kind + ": " + plant + (place ? " at " + place : "") + " on " + key;
+      return '<button type="button" class="crop-calendar-event ' + kind + '" data-crop-event="' + eventIndex +
+        '" aria-label="' + escapeHtml(aria) + '"><strong>' + (event.kind === "Sowing" ? "Sow" : "Harvest") +
+        " · " + escapeHtml(plant) + "</strong>" + (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>";
+    }).join("");
+    return '<div class="' + classes + '" data-date="' + key + '"><span class="crop-calendar-day-number">' +
+      date.getDate() + '</span><div class="crop-calendar-day-events">' + dayEvents + "</div></div>";
+  }).join("");
+  const undatedMarkup = undated.length
+    ? '<section class="crop-calendar-undated"><strong>Undated plantings</strong><div>' + undated.map(index => {
+      const row = events[index].row;
+      const place = [row.location_name, row.bed_name].filter(Boolean).join(" · ");
+      return '<button type="button" class="crop-calendar-event sowing" data-crop-event="' + index + '">' +
+        "<strong>" + escapeHtml(row.plant_name || "Planting") + "</strong>" +
+        (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>";
+    }).join("") + "</div></section>"
+    : "";
+  return {
+    events,
+    markup: '<div class="crop-calendar-weekdays">' + weekdays + '</div><div class="crop-calendar-grid">' +
+      days + "</div>" + undatedMarkup,
+  };
+}
+
+function showCropCalendarEvent(event) {
+  if (!event) return;
+  const dialog = $("#crop-event-dialog");
+  const row = event.row;
+  $("#crop-event-title").textContent = event.kind + " · " + (row.plant_name || "Planting");
+  const fields = [
+    ["Calendar event", escapeHtml(event.kind)],
+    ["Date", escapeHtml(event.date ? formatCalendarDate(event.date) : "Not scheduled")],
+  ];
+  for (const name of VIEW_COLUMNS.CropCalendar) {
+    if (Object.hasOwn(row, name)) fields.push([label(name), formatCell(name, row[name])]);
+  }
+  $("#crop-event-fields").innerHTML = "<dl>" + fields.map(([name, value]) =>
+    '<div class="reference-field"><dt>' + escapeHtml(name) + "</dt><dd>" + value + "</dd></div>"
+  ).join("") + "</dl>";
+  if (!dialog.open) dialog.showModal();
+}
+
+// Show every field from a crop-rotation row in the shared read-only hover popup.
+function showCropRotationPreview(anchor, row) {
+  hideNotePreview();
+  clearTimeout(referenceHideTimer);
+  if (previewedReference && previewedReference !== anchor) previewedReference.removeAttribute("aria-describedby");
+  previewedReference = anchor;
+  previewedReferenceKey = `crop_rotation:${row.rotation_id}`;
+  anchor.setAttribute("aria-describedby", "reference-preview");
+  $("#reference-preview-heading").textContent = "Crop Rotation Details";
+  $("#reference-preview-text").innerHTML = `<dl>${Object.entries(row).map(([name, value]) =>
+    `<div class="reference-field"><dt>${escapeHtml(label(name))}</dt><dd>${formatCell(name, value)}</dd></div>`
+  ).join("")}</dl>`;
+  positionPreview(referencePreview, anchor);
+}
+
+function formatCalendarDate(value) {
+  const date = parseCalendarDate(value);
+  return date ? new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric", year: "numeric" }).format(date) : String(value || "");
+}
+
+function renderDashboardCalendar(rows) {
+  const calendar = buildDashboardCalendar(rows, dashboardCalendarMonth);
+  $("#dashboard-calendar-month").textContent = new Intl.DateTimeFormat(undefined, {
+    month: "long", year: "numeric",
+  }).format(dashboardCalendarMonth);
+  $("#dashboard-calendar-content").innerHTML = calendar.markup;
+  $("#dashboard-calendar-content").querySelectorAll("[data-crop-event]").forEach(button => {
+    button.onclick = () => showCropCalendarEvent(calendar.events[Number(button.dataset.cropEvent)]);
+  });
+}
+
+function buildCropRotationCalendar(rows, month) {
+  const byDate = new Map();
+  const undated = [];
+  rows.forEach((row, index) => {
+    const date = parseCalendarDate(row.sow_date);
+    if (!date) {
+      undated.push(index);
+      return;
+    }
+    const key = calendarDateKey(date);
+    const entries = byDate.get(key) || [];
+    entries.push(index);
+    byDate.set(key, entries);
+  });
+
+  const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
+  const gridStart = new Date(month.getFullYear(), month.getMonth(), 1 - monthStart.getDay());
+  const today = calendarDateKey(new Date());
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    .map(day => '<div class="crop-calendar-weekday">' + day + "</div>").join("");
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+    const key = calendarDateKey(date);
+    const classes = [
+      "crop-calendar-day", date.getMonth() === month.getMonth() ? "" : "outside-month",
+      key === today ? "today" : "",
+    ].filter(Boolean).join(" ");
+    const entries = (byDate.get(key) || []).map(rowIndex => {
+      const row = rows[rowIndex];
+      const place = [row.location_name, row.bed_name].filter(Boolean).join(" · ");
+      return '<button type="button" class="crop-calendar-event sowing" data-rotation-index="' + rowIndex +
+        '" aria-label="Edit ' + escapeHtml(row.plant_name || "planting") + (place ? " at " + escapeHtml(place) : "") + '">' +
+        "<strong>" + escapeHtml(row.plant_name || "Planting") + "</strong>" +
+        (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>";
+    }).join("");
+    return '<div class="' + classes + '"><button type="button" class="rotation-day-add" data-rotation-date="' + key +
+      '" aria-label="Add crop rotation for ' + escapeHtml(formatCalendarDate(key)) + '"><span class="crop-calendar-day-number">' +
+      date.getDate() + '</span><span class="rotation-add-mark" aria-hidden="true">+</span></button>' +
+      '<div class="crop-calendar-day-events">' + entries + "</div></div>";
+  }).join("");
+  const undatedMarkup = undated.length
+    ? '<section class="crop-calendar-undated"><strong>Undated rotations</strong><div>' + undated.map(index => {
+      const row = rows[index];
+      const place = [row.location_name, row.bed_name].filter(Boolean).join(" · ");
+      return '<button type="button" class="crop-calendar-event sowing" data-rotation-index="' + index +
+        '"><strong>' + escapeHtml(row.plant_name || "Planting") + "</strong>" +
+        (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>";
+    }).join("") + "</div></section>"
+    : "";
+  return '<div class="crop-calendar-weekdays">' + weekdays + '</div><div class="crop-calendar-grid">' +
+    days + "</div>" + undatedMarkup;
+}
+
 /* ---------- Dashboard ---------- */
 
 async function showDashboard() {
-  setHeader("Dashboard", "Overview of inventory, budgets, and upcoming plantings");
+  setHeader("Dashboard", "Garden program overview");
   content.innerHTML = '<div class="empty">Loading…</div>';
   const data = await api("/dashboard");
   const c = data.counts;
-  const stat = (value, text, warn = false) =>
-    `<div class="card stat ${warn && value > 0 ? "alert-stat" : ""}"><div class="stat-value">${value}</div><div class="stat-label">${text}</div></div>`;
+  const stat = (value, text, href, warn = false) =>
+    `<div class="card stat ${warn && value > 0 ? "alert-stat" : ""}"><a class="stat-value stat-link" href="${href}" aria-label="View ${text}">${value}</a><div class="stat-label">${text}</div></div>`;
 
   const budgets = data.budgets.length
     ? data.budgets
@@ -539,21 +774,43 @@ async function showDashboard() {
 
   content.innerHTML = `
     <div class="stats">
-      ${stat(c.locations, "Locations")}
-      ${stat(c.gardens, "Locations with gardens")}
-      ${stat(c.active_beds, "Active beds")}
-      ${stat(c.inventory_items, "Inventory items")}
-      ${stat(c.restock_needed, "Items to restock", true)}
-      ${stat(c.pending_requests, "Pending requests", true)}
+      ${stat(c.hlc_locations, "HLC locations", "#/table/location")}
+      ${stat(c.inventory_items, "Inventory items", "#/table/inventory_list")}
+      ${stat(c.maintenance_items, "Garden items needing maintenance", "#/view/GardenAssets", true)}
+      ${stat(c.restock_needed, "Items to restock", "#/view/RestockList", true)}
+      ${stat(c.pending_requests, "Pending requests", "#/view/PendingRequests", true)}
     </div>
     <div class="grid-2">
       ${state.role === "staff" ? "" : `<div class="card"><div class="card-header">Budgets remaining <a href="#/table/budget" class="muted">Manage</a></div><div class="card-body">${budgets}</div></div>`}
       <div class="card"><div class="card-header">Restock needed <a href="#/view/RestockList" class="muted">View all</a></div>
         ${dataTable(data.restock, { columns: ["item_name", "instock_total", "reorder_point", "storage_location"] })}</div>
     </div>
-    <div class="card"><div class="card-header">Upcoming plantings <a href="#/view/CropCalendar" class="muted">Crop calendar</a></div>
-      ${dataTable(data.rotations, { columns: ["sow_date", "location_name", "bed_name", "plant_name", "season", "rotation_status"] })}</div>
+    <section class="card crop-calendar-card" aria-label="Upcoming crop calendar">
+      <div class="card-header crop-calendar-heading">
+        <strong>Upcoming plantings</strong>
+        <div class="crop-calendar-controls">
+          <button type="button" class="btn small" id="dashboard-calendar-prev" aria-label="Previous month">‹</button>
+          <strong id="dashboard-calendar-month"></strong>
+          <button type="button" class="btn small" id="dashboard-calendar-next" aria-label="Next month">›</button>
+          <button type="button" class="btn small" id="dashboard-calendar-today">Today</button>
+          <a href="#/view/CropCalendar" class="muted">Table</a>
+        </div>
+      </div>
+      <div id="dashboard-calendar-content"></div>
+    </section>
   `;
+  const shiftCalendarMonth = amount => {
+    dashboardCalendarMonth = new Date(dashboardCalendarMonth.getFullYear(), dashboardCalendarMonth.getMonth() + amount, 1);
+    renderDashboardCalendar(data.rotations);
+  };
+  $("#dashboard-calendar-prev").onclick = () => shiftCalendarMonth(-1);
+  $("#dashboard-calendar-next").onclick = () => shiftCalendarMonth(1);
+  $("#dashboard-calendar-today").onclick = () => {
+    dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    renderDashboardCalendar(data.rotations);
+  };
+  $("#crop-event-close").onclick = () => $("#crop-event-dialog").close();
+  renderDashboardCalendar(data.rotations);
 }
 
 /* ---------- Report views ---------- */
@@ -571,7 +828,7 @@ function renderRecordContent(html) {
 async function showView(name) {
   const view = state.meta.views.find((v) => v.name === name);
   if (!view) return showError(new Error(`Unknown report: ${name}`));
-  setHeader(view.label, "Read-only report", '<input id="search" class="search" type="search" placeholder="Search…">', true);
+  setHeader(view.label, view.description || "", printButton + '<input id="search" class="search" type="search" placeholder="Search…">', true);
   content.innerHTML = '<div class="empty">Loading…</div>';
   state.rows = await api(`/views/${name}`);
   const render = () => {
@@ -581,7 +838,8 @@ async function showView(name) {
       ...preferredColumns.filter((c) => rowColumns.includes(c)),
       ...rowColumns.filter((c) => !preferredColumns.includes(c)),
     ];
-    renderRecordContent(`<div class="card">${dataTable(filterAndSort(state.rows), { columns })}</div>`);
+    const visible = filterAndSort(state.rows);
+    renderRecordContent(`<div class="card">${dataTable(visible, { columns })}</div><p class="muted">${visible.length} of ${state.rows.length} records</p>`);
     bindTableControls(render);
   };
   render();
@@ -592,10 +850,15 @@ async function showView(name) {
 async function showTable(name) {
   const table = state.meta.tables.find((t) => t.name === name);
   if (!table) return showError(new Error(`Unknown table: ${name}`));
+  const cropModeControls = name === "crop_rotation"
+    ? '<div class="view-mode-toggle" role="group" aria-label="Crop rotation display">' +
+      '<button type="button" class="btn small" id="crop-rotation-table-mode">Table</button>' +
+      '<button type="button" class="btn small" id="crop-rotation-calendar-mode">Calendar</button></div>'
+    : "";
   setHeader(
     table.label,
-    table.group,
-    '<input id="search" class="search" type="search" placeholder="Search…"><button class="btn primary" id="add-btn">+ Add</button>',
+    table.description || "",
+    printButton + cropModeControls + '<input id="search" class="search" type="search" placeholder="Search…"><button class="btn primary" id="add-btn">+ Add</button>',
     true
   );
   content.innerHTML = '<div class="empty">Loading…</div>';
@@ -605,12 +868,57 @@ async function showTable(name) {
 
   const render = () => {
     const visible = filterAndSort(state.rows);
-    renderRecordContent(`<div class="card">${dataTable(visible, {
-      columns: schema.columns.map((c) => c.name),
-      foreignKeys: Object.fromEntries(schema.columns.filter((c) => c.foreign_key).map((c) => [c.name, c.foreign_key])),
-      actions: (row) => ({ edit: canEdit(name, row), delete: canDelete(name, row) }),
-    })}</div><p class="muted">${visible.length} of ${state.rows.length} records</p>`);
+    const foreignKeys = Object.fromEntries(schema.columns.filter((c) => c.foreign_key).map((c) => [c.name, c.foreign_key]));
+    if (name === "location_group") {
+      foreignKeys.location_group_name = {
+        ref_table: "location_group", ref_column: "location_group_id", value_column: "location_group_id",
+      };
+    }
+    const page = name === "crop_rotation" && cropRotationMode === "calendar"
+      ? '<div class="card crop-rotation-calendar-card"><div class="card-header crop-rotation-calendar-heading">' +
+        '<div><strong>Sow dates</strong><div class="muted">Click a day to add a rotation; click a planting to edit it.</div></div>' +
+        '<div class="crop-calendar-controls"><button type="button" class="btn small" id="crop-rotation-prev" aria-label="Previous month">‹</button>' +
+        '<strong id="crop-rotation-month"></strong><button type="button" class="btn small" id="crop-rotation-next" aria-label="Next month">›</button>' +
+        '<button type="button" class="btn small" id="crop-rotation-today">Today</button></div></div>' +
+        buildCropRotationCalendar(visible, cropRotationMonth) + '</div><p class="muted">' +
+        visible.length + " of " + state.rows.length + " rotations</p>"
+      : '<div class="card">' + dataTable(visible, {
+        columns: schema.columns.map((c) => c.name),
+        foreignKeys,
+        actions: (row) => ({ edit: canEdit(name, row), delete: canDelete(name, row) }),
+      }) + '</div><p class="muted">' + visible.length + " of " + state.rows.length + " records</p>";
+    renderRecordContent(page);
     bindTableControls(render);
+    if (name === "crop_rotation" && cropRotationMode === "calendar") {
+      $("#crop-rotation-month").textContent = new Intl.DateTimeFormat(undefined, {
+        month: "long", year: "numeric",
+      }).format(cropRotationMonth);
+      $("#crop-rotation-prev").onclick = () => {
+        cropRotationMonth = new Date(cropRotationMonth.getFullYear(), cropRotationMonth.getMonth() - 1, 1);
+        render();
+      };
+      $("#crop-rotation-next").onclick = () => {
+        cropRotationMonth = new Date(cropRotationMonth.getFullYear(), cropRotationMonth.getMonth() + 1, 1);
+        render();
+      };
+      $("#crop-rotation-today").onclick = () => {
+        cropRotationMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        render();
+      };
+      content.querySelectorAll("[data-rotation-index]").forEach(button => {
+        const row = visible[Number(button.dataset.rotationIndex)];
+        button.onpointerenter = event => { if (event.pointerType !== "touch" && row) showCropRotationPreview(button, row); };
+        button.onpointerleave = event => {
+          if (!referencePreview.contains(event.relatedTarget)) scheduleReferenceHide();
+        };
+        button.onfocus = () => { if (row) showCropRotationPreview(button, row); };
+        button.onblur = event => { if (!referencePreview.contains(event.relatedTarget)) scheduleReferenceHide(); };
+        button.onclick = () => openForm(visible[Number(button.dataset.rotationIndex)]);
+      });
+      content.querySelectorAll("[data-rotation-date]").forEach(button => {
+        button.onclick = () => openForm(null, { sow_date: button.dataset.rotationDate });
+      });
+    }
     content.querySelectorAll("[data-reference]").forEach((button) => {
       const showPreview = () => {
         const row = visible[Number(button.dataset.reference)];
@@ -630,6 +938,23 @@ async function showTable(name) {
     content.querySelectorAll("[data-delete]").forEach((b) => (b.onclick = () => deleteRow(visible[b.dataset.delete])));
   };
   render();
+  if (name === "crop_rotation") {
+    const setMode = mode => {
+      cropRotationMode = mode;
+      for (const [id, selected] of [
+        ["crop-rotation-table-mode", mode === "table"],
+        ["crop-rotation-calendar-mode", mode === "calendar"],
+      ]) {
+        const button = $("#" + id);
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      }
+      render();
+    };
+    $("#crop-rotation-table-mode").onclick = () => setMode("table");
+    $("#crop-rotation-calendar-mode").onclick = () => setMode("calendar");
+    setMode(cropRotationMode);
+  }
   const addButton = $("#add-btn");
   if (addButton) addButton.onclick = () => openForm(null);
 }
@@ -743,7 +1068,7 @@ function fillForeignKeySelects(record) {
   }
 }
 
-async function openForm(record) {
+async function openForm(record, initialValues = {}) {
   hideNotePreview();
   hideReferencePreview();
   const schema = state.schema;
@@ -752,14 +1077,16 @@ async function openForm(record) {
   $("#form-error").hidden = true;
 
   const editable = schema.columns.filter((c) => !c.readonly);
-  $("#form-fields").innerHTML = editable.map((c) => inputFor(c, record ? record[c.name] : null, !record)).join("");
+  $("#form-fields").innerHTML = editable
+    .map((c) => inputFor(c, record ? record[c.name] : (initialValues[c.name] ?? null), !record))
+    .join("");
 
   try {
     state.options = await api(`/tables/${schema.name}/options`);
   } catch (err) {
     state.options = {};
   }
-  fillForeignKeySelects(record);
+  fillForeignKeySelects(record || initialValues);
   recordBaseline = recordSnapshot();
 
   for (const col of editable) {
