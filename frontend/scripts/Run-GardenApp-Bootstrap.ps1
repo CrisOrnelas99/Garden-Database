@@ -3,7 +3,11 @@ param([int]$BootstrapProcessId = $PID)
 $ErrorActionPreference = 'Stop'
 $bootstrapLocation = $PSScriptRoot
 if (-not $bootstrapLocation) {
-    $bootstrapLocation = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $bootstrapPath = $MyInvocation.MyCommand.Path
+    if (-not $bootstrapPath) {
+        $bootstrapPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+    }
+    if ($bootstrapPath) { $bootstrapLocation = Split-Path -Parent $bootstrapPath }
 }
 $frontendRoot = $bootstrapLocation
 while ($frontendRoot -and -not (Test-Path -LiteralPath (Join-Path $frontendRoot 'app.py'))) {
@@ -25,9 +29,9 @@ if (-not (Get-Command py.exe -ErrorAction SilentlyContinue)) {
 }
 
 if (Test-Path -LiteralPath $updater) {
-    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $updater + '"'), '-BootstrapProcessId', $BootstrapProcessId)
-    Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WorkingDirectory $frontendRoot -NoNewWindow
+    $arguments = '-NoProfile -NoExit -ExecutionPolicy Bypass -File "{0}" -BootstrapProcessId {1}' -f $updater, $BootstrapProcessId
+    Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WorkingDirectory $frontendRoot
 } else {
-    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $launcher + '"'))
-    Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WorkingDirectory $frontendRoot -NoNewWindow
+    $arguments = '-NoProfile -NoExit -ExecutionPolicy Bypass -File "{0}"' -f $launcher
+    Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WorkingDirectory $frontendRoot
 }

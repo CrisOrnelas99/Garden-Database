@@ -57,4 +57,4 @@ $launcher = Join-Path $PSScriptRoot 'Run-GardenApp.ps1'
 if (-not (Test-Path -LiteralPath $launcher)) {
     throw "The local launcher was not found: $launcher"
 }
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $launcher
+& $launcher
