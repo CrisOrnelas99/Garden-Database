@@ -34,11 +34,57 @@ See the [frontend README](frontend/README.md#project-administrator-set-up-a-new-
 
 ## Frontend App
 
-The `frontend` folder contains a Python web app. Each partner downloads the repository ZIP from GitHub (**Code → Download ZIP**), unzips it, and runs the app locally at `http://localhost:8000`. The app is not hosted as a public website. It connects over the internet to the shared Supabase project.
+The `frontend` folder contains a Python web app that runs on each user's computer at `http://localhost:8000`. It is not a public website; it connects over the internet to the shared Supabase project. Partners need Python 3.9 or newer, internet access, and an invited Garden Program account with an app role assigned by a database manager.
 
-Partners need Python 3.9 or newer, internet access, and an invited Garden Program account. They run `frontend/Run-GardenApp.exe` on Windows or use the PowerShell fallback at `frontend/scripts/Run-GardenApp.ps1`. On macOS/Linux they use the manual Python setup. The app does not need a Supabase database password or connection URI; each person signs in with their own Auth account. See [frontend/README.md](frontend/README.md) for steps.
+### Windows
 
-Changes made in the app affect the shared Supabase records immediately. Requests use the signed-in person's account and Supabase role policies. Frontend updates do not apply database or SQL changes.
+Install Python 3.9 or newer from [python.org/downloads](https://www.python.org/downloads/). Enable the Python launcher during installation, reopen PowerShell, and confirm with `py --version`. Python itself must be installed first; the app launcher creates the virtual environment and installs its packages.
+
+1. Download this repository from GitHub using **Code → Download ZIP**, then unzip it.
+2. Open the extracted `Garden-Database-main` folder and then `frontend`. Keep the folder together; do not move `Run-GardenApp.exe` by itself.
+3. Double-click `Run-GardenApp.exe`. It checks GitHub for frontend file updates, prepares Python and the required packages on first use, and starts the app in your browser. Leave its console window open while using the app.
+4. If the executable does not work, open PowerShell in `frontend` and run `.\scripts\Run-GardenApp.ps1`.
+
+To set up and run the app manually on Windows, open PowerShell in `frontend` and run:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
+```
+
+Open `http://localhost:8000` in a browser. Leave PowerShell open while using the app; press **Ctrl+C** to stop it.
+
+### macOS and Linux (including Kali)
+
+1. Download the repository ZIP from GitHub using **Code → Download ZIP**, then unzip it.
+2. Install Python 3.9 or newer if needed. On macOS, install Python 3 from [python.org/downloads](https://www.python.org/downloads/) and verify it with `python3 --version`. On Kali or another Debian-based Linux, install Python and virtual environment support using `sudo apt update` followed by `sudo apt install python3 python3-venv python3-pip`. Then open Terminal in the extracted `Garden-Database-main/frontend` folder.
+3. Create the environment, install packages, and start the app:
+
+   ```bash
+   python3 -m venv .venv
+   .venv/bin/python -m pip install -r requirements.txt
+   .venv/bin/python app.py
+   ```
+
+4. Open `http://localhost:8000` in a browser. Leave Terminal open while using the app; press **Ctrl+C** to stop it.
+
+The Windows launcher and updater do not run on macOS/Linux. To get frontend updates on those systems, download and unzip the updated repository from GitHub, then run the commands above in its `frontend` folder.
+
+Users do not need a Supabase dashboard account, database password, or connection URI. Each person signs in with their own invited Supabase Auth account; a manager must assign their app role before they can access records. Changes made in the app update the shared Supabase data. The app's updater only changes frontend files and never applies SQL or database schema changes. See [frontend/README.md](frontend/README.md) for complete setup and troubleshooting steps.
+
+### Accounts and passwords
+
+- The project administrator sends invitations through Supabase Auth. The app does not have public self-sign-up.
+- Start the local app before opening an invitation or password-reset link. The link returns to `http://localhost:8000`, where the user can set a password.
+- A manager assigns each invited account its app role from **Manage Users**. Until a role is assigned, the account cannot access program records. Managers can request password-reset emails from that page; invitations for new accounts still come from Supabase Auth.
+
+### Common fixes
+
+- **Python was not found:** Install Python 3.9 or newer, reopen PowerShell or Terminal, and check it with `py --version` on Windows or `python3 --version` on macOS/Linux.
+- **No Garden Program role:** Ask a database manager to assign a role to the account used to sign in.
+- **Cannot reach Supabase Auth or Data API:** Check that the computer has internet access.
+- **Port 8000 is already in use:** Stop another running copy of the app before starting this one.
 # What We Need to Work On
 
 ### Inventory & Supplies
