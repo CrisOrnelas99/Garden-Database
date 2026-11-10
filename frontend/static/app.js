@@ -1379,6 +1379,11 @@ $("#reset-form").onsubmit = async (event) => {
   const isInvite = passwordSetupFlow === "invite";
   const password = $("#reset-password").value;
   const message = $("#reset-message");
+  const hasSymbol = [...password].some((character) => "!@#$%^&*()_+-=[]{};':\"|<>?,./`~\\".includes(character));
+  if (password.length < 8 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !hasSymbol) {
+    message.textContent = "Use at least 8 characters, including lowercase and uppercase letters, a number, and a symbol.";
+    return;
+  }
   if (password !== $("#reset-confirm").value) {
     message.textContent = "The passwords do not match.";
     return;

@@ -55,7 +55,8 @@
         <form id="reset-form" hidden>
           <div class="login-field">
             <label for="reset-password">New password</label>
-            <input id="reset-password" type="password" autocomplete="new-password" required>
+            <input id="reset-password" type="password" autocomplete="new-password" minlength="8" required>
+            <small class="password-requirements">Use at least 8 characters, including lowercase and uppercase letters, a number, and a symbol.</small>
           </div>
           <div class="login-field">
             <label for="reset-confirm">Confirm new password</label>

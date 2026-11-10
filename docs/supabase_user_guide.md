@@ -248,33 +248,53 @@ Use the AI Assistant with caution and only when needed. Use it to help view and 
 
 If the AI Assistant generates SQL, make sure it is a read-only `SELECT` query before running it. Never execute commands such as `DROP`, `DELETE`, `TRUNCATE`, `ALTER`, or `UPDATE` through the AI Assistant without approval. If you are unsure what a query does, do not run it.
 
-## 13. Inviting Additional Members
+## 13. Accounts, Invitations, and Application Roles
 
-Authorized team members can invite others to access Supabase.
+There are two different kinds of Supabase accounts. They provide different levels of access and should not be confused.
 
-### How to Invite Someone
+### Supabase organization or project members
 
-1. Open the Supabase dashboard.
-2. Go to the organization or team settings using the settings gear icon.
-3. Select **Team** or **Members**.
-4. Click **Invite members**.
-5. Enter the person's email address, select the appropriate role, and send the invitation.
+Organization/project members can sign in to the Supabase dashboard. Their Supabase organization role controls access to project settings and development tools and may provide powerful database access. Keep membership limited to project administrators and technical maintainers who need dashboard access. Regular service-learning partners do **not** need to be invited to the Supabase organization or added as project members.
 
-The person will receive an invitation to join the organization.
+### Supabase Auth users for the local app
 
-### Understanding the Roles
+Partners receive an Auth user invitation so they can sign in to the local Garden Database app. This does not grant Supabase dashboard access.
 
-| Role | Purpose | Recommendation |
-|---|---|---|
-| Owner | Full control of the organization, including sensitive administrative settings | Reserved for the primary owner |
-| Administrator | Can manage organization settings and members | Only for someone responsible for managing access |
-| Developer | Can work with the project's database and development features | Recommended for regular database users |
+1. In the project dashboard, go to **Authentication → Users → Add user → Send invitation** and enter the partner's email.
+2. The partner starts the local app at `http://localhost:8000` before opening the invitation link. The link returns to the local app so they can set their password.
+3. A database manager assigns `staff`, `finance_staff`, or `database_manager` from the app's **Manage Users** page. An invited Auth user without an assigned app role cannot access garden records.
 
-**Recommended role:** Developer. Most users who need to work with the gardening database should receive Developer access. Administrator access should be limited to trusted members who need to manage users and organization settings. Owner access should remain restricted.
+New invitations are sent from Supabase Auth. Managers can assign or remove app roles and request password-reset emails in the frontend; they do not need to make each partner a Supabase organization member.
 
-**Note:** These are Supabase organization roles, not separate read-only and editing permissions for individual tables. Developer access can include powerful database capabilities, so only invite trusted users.
+### Custom Access Token Hook (one-time project setup)
 
-**Garden Database roles are separate:** `staff`, `finance_staff`, and `database_manager` are application data roles. They are not Supabase organization roles and will not appear in this invitation menu. Supabase organization access controls who can enter and manage the Supabase dashboard; Garden Database roles control access to garden records through the application's role setup.
+The project's Custom Access Token Hook attaches the app role to the Auth user's signed token at sign-in. Supabase then uses that role for database permissions and policies.
+
+1. The project owner runs the repository's SQL setup files in order, with `schema_roles.sql` last. That file creates `public.custom_access_token_hook` and the private role-assignment table.
+2. In the Supabase dashboard, open **Authentication → Hooks** (sometimes labeled **Hooks (Beta)**) and add a **Custom Access Token** hook.
+3. Select **Postgres**, schema **`public`**, and function **`custom_access_token_hook`**. Do not select HTTPS.
+
+The hook reads the app role from `private.user_role_assignment`. The `staff`, `finance_staff`, and `database_manager` roles are PostgreSQL data roles used by the application. They are distinct from Supabase organization roles such as Owner or Administrator.
+
+### Email password requirements
+
+To review the password rules enforced by Supabase Auth, open **Authentication → Sign In / Providers → Email** in the project dashboard. Check the minimum password length and required character types. Supabase Auth enforces these requirements when users set or change passwords, including through the local app's invitation and password-reset forms. These rules are configured in Supabase; the frontend only checks that the two password entries match. Supabase recommends a minimum length of at least 8 characters and supports requiring digits, lowercase and uppercase letters, and symbols. Leaked-password protection is available on Pro and higher plans. See [Supabase password security](https://supabase.com/docs/guides/auth/password-security).
+
+### Assigning the first database manager
+
+The first manager must be assigned by the project owner because there is not yet an app manager who can assign roles. First invite that person through **Authentication → Users → Add user → Send invitation**, then run this in the Supabase **SQL Editor**, replacing the example email with the exact invited email:
+
+```sql
+INSERT INTO private.user_role_assignment (user_id, database_role)
+SELECT u.id, 'database_manager'
+FROM auth.users AS u
+WHERE lower(u.email) = lower('manager@example.com')
+ON CONFLICT (user_id)
+DO UPDATE SET database_role = EXCLUDED.database_role
+RETURNING user_id, database_role;
+```
+
+The query should return one row with `database_manager`. After the manager signs in, they can assign app roles to other Auth users through **Manage Users**.
 
 ## 14. What Areas of Supabase Should You Use?
 
@@ -284,7 +304,7 @@ For regular database activities, primarily use:
 
 This is where you can review school and garden information; add, update, search, filter, and sort records; review inventory and purchasing information; and delete records when necessary.
 
-Other Supabase sections, including SQL Editor, Database configuration, Authentication, API settings, and infrastructure settings, should generally be left alone unless technical changes have been discussed and approved. These areas may become relevant later if the project introduces a separate website or application, additional security requirements, or changes to the Supabase subscription.
+For ordinary partner work, use the local app; partners do not need the Supabase dashboard. Project administrators use **Authentication → Users** to send app invitations and **Manage Users** in the frontend to assign roles. The SQL Editor, Auth Hooks, Data API settings, database configuration, and infrastructure settings are for project setup and maintenance and should only be changed by authorized project administrators.
 
 ## 15. Quick Troubleshooting
 
