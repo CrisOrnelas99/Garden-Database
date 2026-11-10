@@ -10,6 +10,7 @@ let previewedReference = null;
 let referenceHideTimer = null;
 let referenceRequestId = 0;
 let previewedReferenceKey = null;
+let expandedNavGroup = null;
 
 function hideNotePreview() {
   clearTimeout(noteHideTimer);
@@ -320,7 +321,7 @@ function escapeHtml(value) {
 }
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-const isMoneyColumn = (name) => /cost|budget|spent|spending/.test(name) && !/quantity|items_/.test(name);
+const isMoneyColumn = (name) => /cost|budget|spent|spending/.test(name) && !/quantity|items_|_id$/.test(name);
 
 function formatCell(name, value) {
   if (value === null || value === undefined || value === "") return '<span class="muted">—</span>';
@@ -483,25 +484,51 @@ function renderNav() {
   groups.Reports = state.meta.views.map((v) => ({ ...v, href: `#/view/${v.name}` }));
   if (state.role === "database_manager") groups.Manage = [{label: "Users", href: "#/users"}];
 
-  const current = location.hash || "#/dashboard";
-  let html = `<a class="nav-link ${current === "#/dashboard" ? "active" : ""}" ${current === "#/dashboard" ? 'aria-current="page"' : ""} href="#/dashboard">Dashboard</a>`;
-  const preferredOrder = ["Locations", "Gardens", "Inventory & Budget", "Reports", "Manage"];
+  const preferredOrder = ["Inventory & Budget", "Gardens", "Locations", "Reports", "Manage"];
   const orderedGroups = [...preferredOrder.filter(name => groups[name]), ...Object.keys(groups).filter(name => !preferredOrder.includes(name))];
+  const current = location.hash || "#/dashboard";
+  const hoverGroups = new Set(["Locations", "Reports", "Manage"]);
+  const currentGroup = orderedGroups.find(group => groups[group].some(link => link.href === current));
+  expandedNavGroup = hoverGroups.has(currentGroup) ? currentGroup : null;
+  let html = `<a class="nav-link ${current === "#/dashboard" ? "active" : ""}" ${current === "#/dashboard" ? 'aria-current="page"' : ""} href="#/dashboard">Dashboard</a>`;
   let sectionIndex = 0;
   for (const group of orderedGroups) {
     const links = groups[group];
     if (!links.length) continue;
     const active = links.some(link => link.href === current);
     const headingId = `nav-section-${sectionIndex++}`;
-    html += `<section class="nav-group ${active ? "has-active" : ""}" aria-labelledby="${headingId}">
-      <h2 class="nav-group-heading" id="${headingId}">${escapeHtml(group)}</h2>
+    const hoverGroup = hoverGroups.has(group);
+    const heading = group === "Inventory & Budget" && state.role === "staff" ? "Inventory" : group;
+    html += `<section class="nav-group ${active ? "has-active" : ""} ${hoverGroup ? "hover-nav-group" : ""} ${expandedNavGroup === group ? "expanded-nav-group" : ""}" data-nav-group="${escapeHtml(group)}" aria-labelledby="${headingId}">
+      ${hoverGroup
+        ? `<button type="button" class="nav-group-heading" id="${headingId}" aria-expanded="${expandedNavGroup === group}">${escapeHtml(heading)}</button>`
+        : `<h2 class="nav-group-heading" id="${headingId}">${escapeHtml(heading)}</h2>`}
       <div class="nav-group-links">`;
     for (const link of links) {
       html += `<a class="nav-link ${current === link.href ? "active" : ""}" ${current === link.href ? 'aria-current="page"' : ""} href="${link.href}">${escapeHtml(link.label)}</a>`;
     }
     html += "</div></section>";
   }
-  $("#nav").innerHTML = html;
+  const nav = $("#nav");
+  nav.innerHTML = html;
+  nav.querySelectorAll(".hover-nav-group").forEach(section => {
+    const headingButton = section.querySelector(".nav-group-heading");
+    headingButton.onclick = () => {
+      const shouldExpand = !section.classList.contains("expanded-nav-group");
+      nav.querySelectorAll(".expanded-nav-group").forEach(item => {
+        item.classList.remove("expanded-nav-group");
+        item.querySelector(".nav-group-heading")?.setAttribute("aria-expanded", "false");
+      });
+      if (shouldExpand) {
+        section.classList.add("expanded-nav-group");
+        expandedNavGroup = section.dataset.navGroup;
+        headingButton.setAttribute("aria-expanded", "true");
+      } else {
+        expandedNavGroup = null;
+        headingButton.blur();
+      }
+    };
+  });
 }
 
 function dataTable(rows, { columns, actions = false, foreignKeys = {} } = {}) {
@@ -726,10 +753,13 @@ function buildCropRotationCalendar(rows, month) {
     const entries = (byDate.get(key) || []).map(rowIndex => {
       const row = rows[rowIndex];
       const place = [row.location_name, row.bed_name].filter(Boolean).join(" · ");
-      return '<button type="button" class="crop-calendar-event sowing" data-rotation-index="' + rowIndex +
+      const deleteButton = canDelete("crop_rotation", row)
+        ? '<button type="button" class="crop-calendar-delete" data-rotation-delete="' + rowIndex + '" aria-label="Delete ' + escapeHtml(row.plant_name || "crop rotation") + '">×</button>'
+        : "";
+      return '<div class="crop-calendar-entry"><button type="button" class="crop-calendar-event sowing" data-rotation-index="' + rowIndex +
         '" aria-label="Edit ' + escapeHtml(row.plant_name || "planting") + (place ? " at " + escapeHtml(place) : "") + '">' +
         "<strong>" + escapeHtml(row.plant_name || "Planting") + "</strong>" +
-        (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>";
+        (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>" + deleteButton + "</div>";
     }).join("");
     return '<div class="' + classes + '"><button type="button" class="rotation-day-add" data-rotation-date="' + key +
       '" aria-label="Add crop rotation for ' + escapeHtml(formatCalendarDate(key)) + '"><span class="crop-calendar-day-number">' +
@@ -740,9 +770,12 @@ function buildCropRotationCalendar(rows, month) {
     ? '<section class="crop-calendar-undated"><strong>Undated rotations</strong><div>' + undated.map(index => {
       const row = rows[index];
       const place = [row.location_name, row.bed_name].filter(Boolean).join(" · ");
-      return '<button type="button" class="crop-calendar-event sowing" data-rotation-index="' + index +
+      const deleteButton = canDelete("crop_rotation", row)
+        ? '<button type="button" class="crop-calendar-delete" data-rotation-delete="' + index + '" aria-label="Delete ' + escapeHtml(row.plant_name || "crop rotation") + '">×</button>'
+        : "";
+      return '<div class="crop-calendar-entry"><button type="button" class="crop-calendar-event sowing" data-rotation-index="' + index +
         '"><strong>' + escapeHtml(row.plant_name || "Planting") + "</strong>" +
-        (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>";
+        (place ? "<span>" + escapeHtml(place) + "</span>" : "") + "</button>" + deleteButton + "</div>";
     }).join("") + "</div></section>"
     : "";
   return '<div class="crop-calendar-weekdays">' + weekdays + '</div><div class="crop-calendar-grid">' +
@@ -914,6 +947,13 @@ async function showTable(name) {
         button.onfocus = () => { if (row) showCropRotationPreview(button, row); };
         button.onblur = event => { if (!referencePreview.contains(event.relatedTarget)) scheduleReferenceHide(); };
         button.onclick = () => openForm(visible[Number(button.dataset.rotationIndex)]);
+      });
+      content.querySelectorAll("[data-rotation-delete]").forEach(button => {
+        button.onclick = event => {
+          event.stopPropagation();
+          const row = visible[Number(button.dataset.rotationDelete)];
+          if (row && canDelete("crop_rotation", row)) deleteRow(row);
+        };
       });
       content.querySelectorAll("[data-rotation-date]").forEach(button => {
         button.onclick = () => openForm(null, { sow_date: button.dataset.rotationDate });
@@ -1159,7 +1199,7 @@ async function showUsers() {
     </section>
     <p class="access-note"><strong>Your own role is protected</strong> so you cannot accidentally remove your manager access.<br>
       Removing access keeps the person's account. They can be assigned a role again later.</p>
-    <p class="access-note">Account invitations are still sent through Supabase by the project administrator.</p>`;
+    <p class="access-note invitation-note">A Supabase organization administrator sends account invitations through Supabase Auth.</p>`;
 
   const renderUsers = () => {
     users.sort((a, b) => (a.email || a.user_id).localeCompare(b.email || b.user_id));

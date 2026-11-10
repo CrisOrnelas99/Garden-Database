@@ -40,9 +40,15 @@ body { margin: 0; display: flex; min-height: 100vh; min-height: 100dvh; }
   padding: 11px 10px; border-radius: 7px; color: #dfeee3;
   font-size: 14px; font-weight: 600; background: rgba(255,255,255,.08);
 }
+.nav-group-heading:is(button) { display: block; width: 100%; border: 0; font-family: inherit; text-align: left; cursor: pointer; }
 .nav-group.has-active > .nav-group-heading { background: rgba(74,154,99,.23); color: #fff; }
 .nav-group-links { padding: 5px 0 5px 10px; margin: 2px 0 5px 10px; border-left: 1px solid rgba(255,255,255,.17); }
 .nav-group-links .nav-link { font-size: 13px; }
+.hover-nav-group > .nav-group-heading::after { content: "⌄"; float: right; font-size: 17px; line-height: 1; transition: transform .35s ease; }
+.hover-nav-group:hover > .nav-group-heading::after, .hover-nav-group:focus-within > .nav-group-heading::after, .hover-nav-group.expanded-nav-group > .nav-group-heading::after { transform: rotate(180deg); }
+.hover-nav-group > .nav-group-links { max-height: 0; overflow: hidden; margin-top: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border-left-color: transparent; transition: max-height .35s ease, padding .35s ease, margin .35s ease; }
+.hover-nav-group:hover > .nav-group-links, .hover-nav-group:focus-within > .nav-group-links, .hover-nav-group.expanded-nav-group > .nav-group-links { max-height: 360px; margin-top: 2px; margin-bottom: 5px; padding-top: 5px; padding-bottom: 5px; border-left-color: rgba(255,255,255,.17); }
+@media (hover: none) { .hover-nav-group > .nav-group-links { max-height: 360px; margin-top: 2px; margin-bottom: 5px; padding-top: 5px; padding-bottom: 5px; border-left-color: rgba(255,255,255,.17); } }
 .nav-link:focus-visible { outline: 2px solid #a9cc93; outline-offset: 2px; }
 .nav-link {
   display: block; padding: 8px 10px; border-radius: 7px;
@@ -182,6 +188,10 @@ td.num { font-variant-numeric: tabular-nums; }
   border: 0; border-left: 3px solid var(--green-500); border-radius: 5px;
   color: #294632; background: #eaf3e7; text-align: left; font: inherit; cursor: pointer;
 }
+.crop-calendar-entry { display: flex; min-width: 0; align-items: stretch; gap: 2px; }
+.crop-calendar-entry .crop-calendar-event { flex: 1; width: auto; }
+.crop-calendar-delete { flex: 0 0 24px; align-self: stretch; padding: 0; border: 0; border-radius: 5px; color: #8a302a; background: #f8e3e1; font: inherit; cursor: pointer; }
+.crop-calendar-delete:hover, .crop-calendar-delete:focus-visible { color: #fff; background: var(--danger); outline: 2px solid var(--danger); outline-offset: 1px; }
 .crop-calendar-event.harvest { border-left-color: #b7791f; color: #694a1a; background: #f8f0df; }
 .crop-calendar-event:hover, .crop-calendar-event:focus-visible { filter: brightness(.96); outline: 2px solid var(--green-500); outline-offset: 1px; }
 .crop-calendar-event strong, .crop-calendar-event span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -411,6 +421,7 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
 .user-notice { padding: 14px 16px; margin-bottom: 20px; border: 1px solid #d8e5d5; border-radius: 9px; background: #edf4e9; color: #3f6248; font-size: 13px; line-height: 1.6; }
 .user-actions-heading { text-align: right; }
 .access-note { font-size: 13px; color: var(--muted); line-height: 1.7; margin-top: 18px; }
+.access-note.invitation-note { color: var(--danger); }
 .access-note strong { color: var(--text); font-weight: 600; }
 .dialog-copy { padding: 22px; line-height: 1.7; font-size: 14px; }
 .dialog-copy p { margin: 0 0 12px; }
