@@ -63,6 +63,15 @@ main { flex: 1; padding: 28px 32px; min-width: 0; }
 .page-header p { margin: 4px 0 0; }
 .page-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%; }
 .muted { color: var(--muted); font-size: 14px; }
+.data-export-reminder {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  margin: 0 0 16px; padding: 12px 14px; border: 1px solid #e5c98e;
+  border-radius: 9px; background: #fff8e8; color: #59451c;
+}
+.data-export-reminder-copy { min-width: 0; }
+.data-export-reminder-copy strong { font-size: 13px; }
+.data-export-reminder-copy p { margin: 3px 0 0; color: #6d5b34; font-size: 12px; line-height: 1.5; }
+.data-export-reminder-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 .btn {
   border: 1px solid var(--border); background: var(--card); color: var(--text);
@@ -225,6 +234,11 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
 .dialog-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--border); }
 .dialog-header h2 { margin: 0; font-size: 18px; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px; border-top: 1px solid var(--border); }
+.invite-login-dialog { width: min(460px, 94vw); }
+.invite-login-content { padding: 20px 22px 22px; }
+.invite-login-content > p { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.invite-login-content .login-field { margin-bottom: 16px; }
+.invite-login-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; padding: 18px 22px; max-height: 65vh; overflow-y: auto; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field.wide { grid-column: 1 / -1; }
@@ -247,6 +261,8 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
   .app-shell { flex-direction: column; }
   .sidebar { width: 100%; height: auto; max-height: 35vh; max-height: 35dvh; position: static; }
   main { padding: 20px 16px; }
+  .data-export-reminder { align-items: flex-start; flex-direction: column; }
+  .data-export-reminder-actions { flex-wrap: wrap; }
   .form-grid { grid-template-columns: 1fr; }
   input.search { width: 160px; }
   .crop-calendar-heading { flex-wrap: wrap; }
@@ -384,6 +400,7 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
 }
 .login-message { min-height: 20px; margin: 12px 0 0; color: var(--danger); font-size: 12px; line-height: 1.5; }
 .login-message.success { color: var(--green-700); }
+.login-message.info { color: var(--muted); }
 .login-help { border: 0; padding: 8px 0; background: transparent; color: var(--green-700); font: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .login-help:focus-visible { outline: 3px solid #a9cc93; outline-offset: 3px; }
 .login-access-note {
@@ -421,6 +438,15 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
 .role-pill.none { background: #f0f1ee; color: #72786e; }
 .user-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .user-notice { padding: 14px 16px; margin-bottom: 20px; border: 1px solid #d8e5d5; border-radius: 9px; background: #edf4e9; color: #3f6248; font-size: 13px; line-height: 1.6; }
+.data-export-card { max-width: 900px; margin-bottom: 16px; }
+.data-export-card .card-body > p:first-child { margin-top: 0; }
+.data-export-settings { display: grid; gap: 10px; }
+.data-export-settings > label { font-size: 13px; font-weight: 650; }
+.data-export-settings select { width: min(100%, 280px); padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font: inherit; }
+.data-export-settings > p { margin: 0; line-height: 1.6; }
+.data-export-storage-note { padding: 13px 14px; border: 1px solid #e5d7bf; border-radius: 8px; background: #faf7f1; color: #5e5140; font-size: 13px; }
+.data-export-status { min-height: 1.4em; margin: 10px 0 0; color: var(--green-700); font-size: 13px; }
+.data-export-status.error { color: var(--danger); }
 .user-actions-heading { text-align: right; }
 .access-note { font-size: 13px; color: var(--muted); line-height: 1.7; margin-top: 18px; }
 .access-note.invitation-note { color: var(--danger); }

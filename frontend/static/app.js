@@ -1,4 +1,5 @@
 const state = { meta: null, schema: null, rows: [], options: {}, sort: null, search: "", role: null };
+let dataExportReminderDismissed = false;
 
 const $ = (sel) => document.querySelector(sel);
 const content = $("#content");
@@ -178,7 +179,7 @@ window.addEventListener("beforeunload", event => {
   event.returnValue = "";
 });
 
-function showLogin(message = "") {
+function showLogin(message = "", messageTone = "error") {
   hideNotePreview();
   hideReferencePreview();
   discardRecordDraft();
@@ -193,7 +194,10 @@ function showLogin(message = "") {
   $("#login-access-note").hidden = false;
   $("#login-heading").textContent = "Sign in";
   $("#login-intro").textContent = "Enter your account email and password.";
-  $("#login-message").textContent = message;
+  const loginMessage = $("#login-message");
+  loginMessage.textContent = message;
+  loginMessage.classList.toggle("success", messageTone === "success");
+  loginMessage.classList.toggle("info", messageTone === "info");
   $("#login-submit").disabled = false;
   $("#login-submit").textContent = "Sign in";
   appStarted = false;
@@ -227,10 +231,21 @@ function clearPasswordSetup() {
   $("#login-password").value = "";
 }
 
+// Ask an invited user to sign in after they finish setting their password.
+function showInviteLogin() {
+  $("#invite-login-password").value = "";
+  const message = $("#invite-login-message");
+  message.textContent = "";
+  message.classList.remove("success", "info");
+  const dialog = $("#invite-login-dialog");
+  if (!dialog.open) dialog.showModal();
+  requestAnimationFrame(() => $("#invite-login-password").focus());
+}
+
 async function openApp(session) {
   if (settingPassword) return showPasswordSetup();
   if (!session?.access_token) return showLogin();
-  if (appStarted) return;
+  if (appStarted) return true;
   appStarted = true;
   $("#login-screen").hidden = true;
   $("#app-shell").hidden = false;
@@ -240,9 +255,11 @@ async function openApp(session) {
     state.meta = await api("/meta");
     state.role = state.meta.role;
     $("#account-role").textContent = ROLE_LABELS[state.role] || state.role;
+    updateDataExportReminder();
     window.addEventListener("hashchange", route);
     if (!location.hash) location.hash = "#/dashboard";
     await route();
+    return true;
   } catch (err) {
     appStarted = false;
     state.meta = null;
@@ -250,11 +267,12 @@ async function openApp(session) {
     if (err.message.includes("no Garden Program role")) {
       await supabaseClient.auth.signOut();
       showLogin("Your account is signed in but has no Garden Program role yet. Ask a manager to assign one.");
-      return;
+      return false;
     }
     content.innerHTML = `<div class="banner"><strong>Could not load the app.</strong> ${escapeHtml(err.message)}</div>
       <button class="btn primary" id="retry-startup">Try again</button>`;
     $("#retry-startup").onclick = () => openApp(session);
+    return false;
   }
 }
 
@@ -419,6 +437,132 @@ function toast(message) {
   toast.timer = setTimeout(() => (el.hidden = true), 2600);
 }
 
+// Keep each manager's reminder schedule and download acknowledgment in this browser only.
+function dataExportReminderKey() {
+  const userId = state.meta?.user?.id;
+  return userId ? `garden-data-export-reminder:${userId}` : null;
+}
+
+// Load a validated local reminder schedule, falling back to reminders being off.
+function readDataExportReminder() {
+  const key = dataExportReminderKey();
+  if (!key) return { intervalDays: 0, lastDownloadAt: null };
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || "{}");
+    const intervalDays = [0, 7, 14, 30].includes(Number(saved.intervalDays)) ? Number(saved.intervalDays) : 0;
+    const timestamp = Date.parse(saved.lastDownloadAt || "");
+    return { intervalDays, lastDownloadAt: Number.isNaN(timestamp) ? null : new Date(timestamp).toISOString() };
+  } catch {
+    return { intervalDays: 0, lastDownloadAt: null };
+  }
+}
+
+// Save reminder settings and the most recent download date on this computer.
+function writeDataExportReminder(settings) {
+  const key = dataExportReminderKey();
+  if (!key) return false;
+  try {
+    localStorage.setItem(key, JSON.stringify(settings));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Display the reminder on every app page while an export is due.
+function updateDataExportReminder() {
+  const banner = $("#data-export-reminder");
+  if (!banner) return;
+  if (state.role !== "database_manager") {
+    banner.hidden = true;
+    return;
+  }
+  const settings = readDataExportReminder();
+  if (!settings.intervalDays) {
+    banner.hidden = true;
+    return;
+  }
+  const lastDownload = settings.lastDownloadAt ? Date.parse(settings.lastDownloadAt) : NaN;
+  const due = Number.isNaN(lastDownload) || Date.now() - lastDownload >= settings.intervalDays * 24 * 60 * 60 * 1000;
+  if (!due || dataExportReminderDismissed) {
+    banner.hidden = true;
+    return;
+  }
+  $("#data-export-reminder-text").textContent = Number.isNaN(lastDownload)
+    ? "No export has been downloaded yet. Download the latest table row data."
+    : `Your scheduled export is due. The last download was ${new Intl.DateTimeFormat(undefined, {dateStyle: "medium"}).format(new Date(lastDownload))}.`;
+  banner.hidden = false;
+}
+
+// Fetch the manager-only SQL data file, start a browser download, then acknowledge it locally.
+async function downloadAllTableData(button) {
+  if (state.role !== "database_manager") throw new Error("Only a database manager can download all table data.");
+  const originalText = button?.textContent;
+  if (button) {
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = "Preparing download…";
+  }
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session?.access_token) throw new Error("Your session expired. Sign in again and retry the download.");
+    const response = await fetch("/api/manage-data/export", {
+      headers: {Authorization: `Bearer ${session.access_token}`},
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Download failed (${response.status}).`);
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `garden-program-data-${new Date().toISOString().slice(0, 10)}.sql`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+
+    const settings = readDataExportReminder();
+    settings.lastDownloadAt = new Date().toISOString();
+    if (!writeDataExportReminder(settings)) {
+      toast("Download started. Reminder status could not be saved on this computer.");
+      return;
+    }
+    dataExportReminderDismissed = false;
+    updateDataExportReminder();
+    const lastDownloadLabel = $("#data-export-last-download");
+    if (lastDownloadLabel) {
+      lastDownloadLabel.textContent = new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short"}).format(new Date(settings.lastDownloadAt));
+    }
+    const status = $("#data-export-status");
+    if (status) {
+      status.classList.remove("error");
+      status.textContent = "Download started.";
+    }
+    toast("Data download started.");
+  } catch (error) {
+    const status = $("#data-export-status");
+    if (status) {
+      status.textContent = error.message;
+      status.classList.add("error");
+    } else {
+      toast(error.message);
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+}
+
+$("#data-export-reminder-settings").onclick = () => { location.hash = "#/manage-data"; };
+window.setInterval(updateDataExportReminder, 60 * 60 * 1000);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) updateDataExportReminder();
+});
+
 function showError(err) {
   hideNotePreview();
   hideReferencePreview();
@@ -482,7 +626,10 @@ function renderNav() {
   const groups = {};
   for (const t of state.meta.tables) (groups[t.group] ||= []).push({ ...t, href: `#/table/${t.name}` });
   groups.Reports = state.meta.views.map((v) => ({ ...v, href: `#/view/${v.name}` }));
-  if (state.role === "database_manager") groups.Manage = [{label: "Users", href: "#/users"}];
+  if (state.role === "database_manager") groups.Manage = [
+    {label: "Users", href: "#/users"},
+    {label: "Data", href: "#/manage-data"},
+  ];
 
   const preferredOrder = ["Inventory & Budget", "Gardens", "Locations", "Reports", "Manage"];
   const orderedGroups = [...preferredOrder.filter(name => groups[name]), ...Object.keys(groups).filter(name => !preferredOrder.includes(name))];
@@ -1396,6 +1543,59 @@ async function showUsers() {
   renderUsers();
 }
 
+// Let database managers download an archive and configure this computer's reminder.
+async function showManageData() {
+  if (state.role !== "database_manager") throw new Error("Only a database manager can manage data downloads.");
+  setHeader("Data", "Download a local snapshot of the Garden Program table rows.");
+  const settings = readDataExportReminder();
+  const lastDownload = settings.lastDownloadAt
+    ? new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short"}).format(new Date(settings.lastDownloadAt))
+    : "No export has been downloaded on this computer yet.";
+  content.innerHTML = `
+    <section class="card data-export-card">
+      <div class="card-header">Download program data</div>
+      <div class="card-body">
+        <p>Download all Garden Program table rows as one insertable SQL file.</p>
+        <p class="muted">This is a copy of the table row data in the database.</p>
+        <p class="muted">Last download recorded on this computer: <strong id="data-export-last-download">${escapeHtml(lastDownload)}</strong></p>
+        <button class="btn primary" type="button" id="data-export-download">Download all table data</button>
+        <p class="data-export-status" id="data-export-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <section class="card data-export-card">
+      <div class="card-header">Download reminder</div>
+      <div class="card-body data-export-settings">
+        <label for="data-export-frequency">Remind me to download</label>
+        <select id="data-export-frequency">
+          <option value="0">Off</option>
+          <option value="7">Every week</option>
+          <option value="14">Every two weeks</option>
+          <option value="30">Every month</option>
+        </select>
+        <p class="muted">The reminder appears while the app is open. If dismissed without downloading, it returns the next time the app is opened.</p>
+      </div>
+    </section>`;
+  $("#data-export-frequency").value = String(settings.intervalDays);
+  $("#data-export-frequency").onchange = event => {
+    const updated = {...readDataExportReminder(), intervalDays: Number(event.target.value)};
+    const status = $("#data-export-status");
+    status.classList.remove("error");
+    if (!writeDataExportReminder(updated)) {
+      status.textContent = "Could not save reminder settings in this browser.";
+      status.classList.add("error");
+      event.target.value = String(settings.intervalDays);
+      return;
+    }
+    settings.intervalDays = updated.intervalDays;
+    dataExportReminderDismissed = false;
+    status.textContent = updated.intervalDays
+      ? updated.lastDownloadAt ? "Reminder schedule saved on this computer." : "Reminder schedule saved. A download is due because no previous export is recorded."
+      : "Reminders are off on this computer.";
+    updateDataExportReminder();
+  };
+  $("#data-export-download").onclick = event => downloadAllTableData(event.currentTarget);
+}
+
 /* ---------- Router ---------- */
 
 async function route() {
@@ -1413,11 +1613,13 @@ async function route() {
   state.search = "";
   state.sort = null;
   renderNav();
+  updateDataExportReminder();
   const [, kind, name] = (location.hash || "#/dashboard").split("/");
   try {
     if (kind === "table") await showTable(decodeURIComponent(name));
     else if (kind === "view") await showView(decodeURIComponent(name));
     else if (kind === "users") await showUsers();
+    else if (kind === "manage-data") await showManageData();
     else await showDashboard();
   } catch (err) {
     showError(err);
@@ -1437,6 +1639,35 @@ $("#login-form").onsubmit = async (event) => {
   });
   if (error) return showLogin(error.message);
   await openApp(data.session);
+};
+
+$("#invite-login-form").onsubmit = async event => {
+  event.preventDefault();
+  const submit = $("#invite-login-submit");
+  const message = $("#invite-login-message");
+  submit.disabled = true;
+  submit.textContent = "Signing in…";
+  message.textContent = "";
+  message.classList.remove("success", "info");
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: $("#invite-login-email").value.trim(),
+      password: $("#invite-login-password").value,
+    });
+    if (error) throw error;
+    $("#invite-login-dialog").close();
+    await openApp(data.session);
+  } catch (error) {
+    message.textContent = error.message || "Could not sign in. Check your email and password.";
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Sign in";
+  }
+};
+
+$("#invite-login-cancel").onclick = () => {
+  $("#invite-login-dialog").close();
+  showLogin();
 };
 
 $("#forgot-password").onclick = () => {
@@ -1521,7 +1752,12 @@ $("#reset-form").onsubmit = async (event) => {
     const { error: signOutError } = await supabaseClient.auth.signOut({ scope: "local" });
     if (signOutError) throw new Error("Your password was saved. Please reload the app to sign in.");
     clearPasswordSetup();
-    showLogin(isInvite ? "Your password is saved. Sign in to your Garden Program account." : "Password updated. Sign in with your new password.");
+    if (isInvite) {
+      showLogin();
+      showInviteLogin();
+    } else {
+      showLogin("Password updated. Sign in with your new password.", "success");
+    }
   } catch (err) {
     message.textContent = err.message;
   } finally {

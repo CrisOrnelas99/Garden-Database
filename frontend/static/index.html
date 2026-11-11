@@ -96,6 +96,15 @@
         </div>
         <div class="page-actions" id="page-actions"></div>
       </header>
+      <aside id="data-export-reminder" class="data-export-reminder" role="status" aria-live="polite" hidden>
+        <div class="data-export-reminder-copy">
+          <strong>Garden data download reminder</strong>
+          <p id="data-export-reminder-text"></p>
+        </div>
+        <div class="data-export-reminder-actions">
+          <button class="btn primary small" type="button" id="data-export-reminder-settings">Manage Data</button>
+        </div>
+      </aside>
       <section id="content"></section>
     </main>
 
@@ -132,6 +141,28 @@
       </form>
     </dialog>
   </div>
+
+  <dialog id="invite-login-dialog" class="invite-login-dialog" aria-labelledby="invite-login-title">
+    <div class="dialog-header"><h2 id="invite-login-title">Sign in</h2></div>
+    <div class="invite-login-content">
+      <p>Your password is set. Sign in with your email and the password you just created.</p>
+      <form id="invite-login-form">
+        <div class="login-field">
+          <label for="invite-login-email">Email address</label>
+          <input id="invite-login-email" name="email" type="email" autocomplete="username" required>
+        </div>
+        <div class="login-field">
+          <label for="invite-login-password">Password</label>
+          <input id="invite-login-password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <p class="login-message" id="invite-login-message" role="status" aria-live="polite"></p>
+        <div class="invite-login-actions">
+          <button class="btn" type="button" id="invite-login-cancel">Back</button>
+          <button class="btn primary" type="submit" id="invite-login-submit">Sign in</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
 
   <div id="note-preview" class="note-preview" role="tooltip" popover="auto" hidden>
     <strong class="note-preview-heading">Full note</strong>
