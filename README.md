@@ -77,7 +77,7 @@ Users do not need a Supabase dashboard account, database password, or connection
 
 - The project administrator sends invitations through Supabase Auth. The app does not have public self-sign-up.
 - Start the local app before opening an invitation or password-reset link. The link returns to `http://localhost:8000`, where the user can set a password.
-- A manager assigns each invited account its app role from **Manage Users**. Until a role is assigned, the account cannot access program records. Managers can request password-reset emails from that page; invitations for new accounts still come from Supabase Auth.
+- A manager assigns each invited account its app role from **Manage Users**. Managers can request password-reset emails from that page; invitations for new accounts still come from Supabase Auth.
 
 ### Common fixes
 
@@ -85,7 +85,7 @@ Users do not need a Supabase dashboard account, database password, or connection
 - **No Garden Program role:** Ask a database manager to assign a role to the account used to sign in.
 - **Cannot reach Supabase Auth or Data API:** Check that the computer has internet access.
 - **Port 8000 is already in use:** Stop another running copy of the app before starting this one.
-# What We Need to Work On
+# Project
 
 ### Inventory & Supplies
 
