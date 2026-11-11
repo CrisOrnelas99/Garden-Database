@@ -587,16 +587,11 @@ function setHeader(title, sub = "", actions = "", scrollTable = false) {
 const printButton = '<button type="button" class="btn print-btn" id="print-page" aria-label="Download PDF" title="Download as PDF">' +
   '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4"/></svg></button>';
 
-// Print a lightweight copy of the table so the browser does not reflow the whole app.
+// Download the currently visible table as a PDF file.
 function downloadTablePdf() {
   const table = content.querySelector(".data-table");
   if (!table) {
     toast("Switch to Table mode before downloading this report.");
-    return;
-  }
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) {
-    toast("Allow pop-ups to download this table as a PDF.");
     return;
   }
   const printableTable = table.cloneNode(true);
@@ -605,25 +600,75 @@ function downloadTablePdf() {
   printableTable.querySelectorAll(".reference-link").forEach((link) => link.replaceWith(document.createTextNode(link.textContent)));
   const title = $("#page-title").textContent;
   const count = content.querySelector(":scope > p")?.textContent || `${table.tBodies[0]?.rows.length || 0} records`;
-  printWindow.addEventListener("load", () => {
-    printWindow.focus();
-    printWindow.print();
-  }, { once: true });
-  printWindow.document.open();
-  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
-    <style>
-      @page { size: landscape; margin: 12mm; }
-      body { color: #111; font: 11px Arial, sans-serif; }
-      h1 { margin: 0 0 4px; font-size: 20px; }
-      p { margin: 0 0 12px; color: #555; font-size: 11px; }
-      table { width: 100%; border-collapse: collapse; }
-      thead { display: table-header-group; }
-      tr { break-inside: avoid; }
-      th, td { padding: 5px 7px; border: 1px solid #bbb; text-align: left; vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
-      th { color: #222; background: #eee; font-size: 9px; }
-      td { font-size: 9px; }
-    </style></head><body><h1>${escapeHtml(title)}</h1><p>${escapeHtml(count)}</p>${printableTable.outerHTML}</body></html>`);
-  printWindow.document.close();
+  const headers = [...printableTable.querySelectorAll("thead th")].map(cell => cell.innerText.trim());
+  const rows = [...printableTable.querySelectorAll("tbody tr")].map(row =>
+    [...row.cells].map(cell => cell.innerText.replace(/\s+/g, " ").trim())
+  );
+  const clean = value => String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[–—]/g, "-").replace(/[^\x20-\x7E]/g, " ");
+  const pageW = 842, pageH = 595, margin = 28, font = 7;
+  const colW = (pageW - margin * 2) / Math.max(headers.length, 1);
+  const maxChars = Math.max(5, Math.floor((colW - 8) / (font * .52)));
+  const wrap = value => {
+    const result = [];
+    let line = "";
+    for (const word of clean(value).split(/\s+/).filter(Boolean)) {
+      if (line && line.length + word.length + 1 > maxChars) { result.push(line); line = ""; }
+      if (!line && word.length > maxChars) {
+        for (let i = 0; i < word.length; i += maxChars) result.push(word.slice(i, i + maxChars));
+      } else line += (line ? " " : "") + word;
+    }
+    if (line) result.push(line);
+    return result.length ? result : [""];
+  };
+  const esc = value => value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  const pages = [];
+  let ops, y;
+  const cell = (x, top, height, lines, isHeader = false) => {
+    const bottom = top - height;
+    if (isHeader) ops.push(`0.91 g ${x} ${bottom} ${colW} ${height} re f 0 g`);
+    ops.push(`0.65 G ${x} ${bottom} ${colW} ${height} re S 0 G`);
+    lines.forEach((line, i) => ops.push(`BT /F1 ${isHeader ? 7 : font} Tf ${x + 4} ${top - 10 - i * 9} Td (${esc(line)}) Tj ET`));
+  };
+  const newPage = () => {
+    if (ops) pages.push(ops.join("\n"));
+    ops = [`BT /F1 15 Tf ${margin} ${pageH - margin - 15} Td (${esc(clean(title))}) Tj ET`,
+      `BT /F1 8 Tf ${margin} ${pageH - margin - 30} Td (${esc(clean(count))}) Tj ET`];
+    y = pageH - margin - 42;
+    headers.forEach((header, i) => cell(margin + i * colW, y, 22, wrap(header), true));
+    y -= 22;
+  };
+  newPage();
+  for (const row of rows) {
+    const lines = headers.map((_, i) => wrap(row[i] || ""));
+    const height = Math.max(18, ...lines.map(cellLines => 7 + cellLines.length * 9));
+    if (y - height < margin) newPage();
+    lines.forEach((cellLines, i) => cell(margin + i * colW, y, height, cellLines));
+    y -= height;
+  }
+  pages.push(ops.join("\n"));
+  const objects = ["<< /Type /Catalog /Pages 2 0 R >>",
+    `<< /Type /Pages /Kids [${pages.map((_, i) => `${4 + i * 2} 0 R`).join(" ")}] /Count ${pages.length} >>`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"];
+  pages.forEach((page, i) => {
+    const pageId = 4 + i * 2;
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${pageId + 1} 0 R >>`);
+    objects.push(`<< /Length ${page.length} >>\nstream\n${page}\nendstream`);
+  });
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${object}\nendobj\n`; });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach(offset => { pdf += `${String(offset).padStart(10, "0")} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([pdf], { type: "application/pdf" }));
+  link.download = `${clean(title).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "garden-table"}.pdf`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 function renderNav() {
