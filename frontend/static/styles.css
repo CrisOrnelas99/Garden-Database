@@ -84,6 +84,8 @@ input.search, .field input, .field select, .field textarea {
 }
 input.search { width: 240px; }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--green-100); border-color: var(--green-500); }
+.field input[readonly] { background: #f4f6f1; color: var(--text); cursor: default; }
+.field select:disabled { background: #f4f6f1; color: var(--muted); cursor: not-allowed; }
 
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
 .card-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; }

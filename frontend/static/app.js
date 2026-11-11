@@ -1072,7 +1072,10 @@ function inputFor(col, value, isNew = false) {
   }
 
   let control;
-  if (col.foreign_key) {
+  if (col.readonly) {
+    const displayValue = value == null || value === "" ? "" : money.format(Number(value));
+    control = `<input type="text" id="${id}" name="${col.name}" value="${escapeHtml(displayValue)}" readonly aria-readonly="true">`;
+  } else if (col.foreign_key) {
     control = `<select id="${id}" name="${col.name}" ${required}></select>`;
   } else if (col.enum) {
     const opts = col.enum.map((e) => `<option ${e === v ? "selected" : ""}>${escapeHtml(e)}</option>`).join("");
@@ -1091,7 +1094,9 @@ function inputFor(col, value, isNew = false) {
     control = `<input type="${type}" id="${id}" name="${col.name}" value="${escapeHtml(v)}" ${max} ${required}>`;
   }
 
-  const hint = col.foreign_key ? `<span class="hint">From ${escapeHtml(label(col.foreign_key.ref_table))}</span>` : "";
+  let hint = col.foreign_key ? `<span class="hint">From ${escapeHtml(label(col.foreign_key.ref_table))}</span>` : "";
+  if (col.name === "unit_cost_at_request") hint = '<span class="hint">Saved price snapshot; new requests use the item catalog price.</span>';
+  if (col.name === "total_cost") hint = '<span class="hint">Calculated from the quantity and saved unit price.</span>';
   const wide = col.data_type === "text" ? "wide" : "";
   return `<div class="field ${wide}"><label for="${id}">${escapeHtml(label(col.name))}${col.required ? ' <span class="req">*</span>' : ""}</label>${control}${hint}</div>`;
 }
@@ -1108,10 +1113,76 @@ function fillForeignKeySelects(record) {
       if (parent && parent.value) options = options.filter((o) => String(o[refCol]) === parent.value);
     }
     const values = [...new Set(options.map((o) => o[fk.ref_column]))];
+    const assignmentField = ["requesting_school", "requesting_school_group", "for_school", "for_school_group"].includes(col.name);
     select.innerHTML =
-      `<option value="">${col.required ? "Select…" : "None"}</option>` +
+      `<option value="">${assignmentField ? "Unassigned" : (col.required ? "Select…" : "None")}</option>` +
       values.map((val) => `<option value="${escapeHtml(val)}" ${String(val) === String(current) ? "selected" : ""}>${escapeHtml(val)}</option>`).join("");
   }
+}
+
+function setupExclusiveLocationAssignment(tableName) {
+  const pairs = {
+    purchase_request: ["#f_requesting_school", "#f_requesting_school_group"],
+    inventory_transaction: ["#f_for_school", "#f_for_school_group"],
+  };
+  const selectors = pairs[tableName];
+  if (!selectors) return;
+  const [school, group] = selectors.map((selector) => $(selector));
+  if (!school || !group) return;
+
+  const sync = () => {
+    group.disabled = Boolean(school.value);
+    school.disabled = Boolean(group.value);
+  };
+  school.addEventListener("change", sync);
+  group.addEventListener("change", sync);
+  sync();
+}
+
+function setupPurchaseRequestCostPreview(record) {
+  const itemSelect = $("#f_item_name");
+  const unitCost = $("#f_unit_cost_at_request");
+  const quantity = $("#f_quantity_requested");
+  const totalCost = $("#f_total_cost");
+  if (!itemSelect || !unitCost || !quantity || !totalCost) return;
+
+  const update = () => {
+    const itemName = itemSelect.value;
+    const selectedItem = (state.options.item_name || []).find((item) => String(item.item_name) === String(itemName));
+    const sameRecordItem = Boolean(record && itemName === record.item_name);
+    const price = sameRecordItem ? record.unit_cost_at_request : (selectedItem?.unit_cost ?? null);
+
+    if (!itemName) {
+      unitCost.value = "Select an item";
+      totalCost.value = "Select an item";
+      return;
+    }
+    if (price === null || price === undefined || price === "") {
+      unitCost.value = sameRecordItem ? "No saved price snapshot" : "No catalog price set";
+      totalCost.value = sameRecordItem
+        ? (record.total_cost == null ? "Not calculated" : money.format(Number(record.total_cost)))
+        : "Price not available";
+      return;
+    }
+
+    const priceNumber = Number(price);
+    unitCost.value = Number.isFinite(priceNumber) ? money.format(priceNumber) : "No catalog price set";
+    const quantityText = quantity.value.trim();
+    if (!quantityText) {
+      totalCost.value = record && itemName === record.item_name
+        ? (record.total_cost == null ? "Enter a quantity" : money.format(Number(record.total_cost)))
+        : "Enter a quantity";
+      return;
+    }
+    const quantityNumber = Number(quantityText);
+    totalCost.value = Number.isFinite(quantityNumber) && quantityNumber > 0
+      ? money.format(quantityNumber * priceNumber)
+      : "Enter a quantity greater than zero";
+  };
+
+  itemSelect.addEventListener("change", update);
+  quantity.addEventListener("input", update);
+  update();
 }
 
 async function openForm(record, initialValues = {}) {
@@ -1123,7 +1194,8 @@ async function openForm(record, initialValues = {}) {
   $("#form-error").hidden = true;
 
   const editable = schema.columns.filter((c) => !c.readonly);
-  $("#form-fields").innerHTML = editable
+  const visible = schema.columns.filter((c) => !c.readonly || c.show_readonly);
+  $("#form-fields").innerHTML = visible
     .map((c) => inputFor(c, record ? record[c.name] : (initialValues[c.name] ?? null), !record))
     .join("");
 
@@ -1133,6 +1205,8 @@ async function openForm(record, initialValues = {}) {
     state.options = {};
   }
   fillForeignKeySelects(record || initialValues);
+  setupExclusiveLocationAssignment(schema.name);
+  if (schema.name === "purchase_request") setupPurchaseRequestCostPreview(record);
   recordBaseline = recordSnapshot();
 
   for (const col of editable) {

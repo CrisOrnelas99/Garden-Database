@@ -58,6 +58,41 @@ RETURNING user_id, database_role;
 
 The query should return one row with `database_manager`. If it returns no rows, confirm that the invitation created an Auth user and that the email matches. The manager should start the local app before opening the invitation email, set their password, and sign in. Once signed in, they can assign roles from the app's **Manage Users** page; only a project owner can do the initial bootstrap.
 
+#### Emergency app-role recovery (project owner only)
+
+Use these commands in the Supabase SQL Editor as the project owner. They change app-role assignments only; they do not delete Auth accounts or program records.
+
+To revoke one person's app access while keeping their Auth account, replace the example email:
+
+```sql
+DELETE FROM private.user_role_assignment AS assignment
+USING auth.users AS account
+WHERE assignment.user_id = account.id
+  AND lower(account.email) = lower('person@example.com')
+RETURNING assignment.user_id, assignment.database_role;
+```
+
+To revoke every app role (this removes app access for everyone and leaves no manager who can restore access through the app):
+
+```sql
+DELETE FROM private.user_role_assignment
+RETURNING user_id, database_role;
+```
+
+To restore a Database Manager or bootstrap a replacement, replace the example email with an existing Auth user's email:
+
+```sql
+INSERT INTO private.user_role_assignment (user_id, database_role)
+SELECT u.id, 'database_manager'
+FROM auth.users AS u
+WHERE lower(u.email) = lower('manager@example.com')
+ON CONFLICT (user_id)
+DO UPDATE SET database_role = EXCLUDED.database_role
+RETURNING user_id, database_role;
+```
+
+Role changes take effect when affected users receive a refreshed sign-in token. If all roles were removed, only the project owner can restore a manager with the SQL above.
+
 ### 6. Point the frontend at the new project
 
 In the dashboard, copy the **Project URL** from **Integrations → Data API** and the **Publishable key** from **Project Settings → API Keys**. In `frontend/app.py`, replace the default values for `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` with those values. Use the project's base URL (for example, `https://<project-ref>.supabase.co`), not a `postgresql://` connection string.

@@ -26,7 +26,7 @@ TABLES = {
     "budget": {"label": "Budgets", "group": "Inventory & Budget", "description": "Stores the available and remaining amount for each budget.", "readonly": ["remaining_budget"]},
     "item": {"label": "Item Catalog", "group": "Inventory & Budget", "description": "Catalog of supplies that can be purchased or tracked in inventory."},
     "inventory_list": {"label": "Inventory", "group": "Inventory & Budget", "description": "Tracks current stock for catalog items. Each catalog item can have at most one inventory-list row."},
-    "purchase_request": {"label": "Purchase Requests", "group": "Inventory & Budget", "description": "Records requested items, ordering and delivery state, and optional budget and funding-source details."},
+    "purchase_request": {"label": "Purchase Requests", "group": "Inventory & Budget", "description": "Records requested items, ordering and delivery state, and optional budget and funding-source details.", "readonly": ["unit_cost_at_request", "total_cost"], "readonly_display": ["unit_cost_at_request", "total_cost"]},
     "inventory_transaction": {"label": "Check In / Out", "group": "Inventory & Budget", "description": "Records inventory check-ins and check-outs. A row may be assigned to one school, one location group, or neither for personal use."},
     "garden_bed": {"label": "Garden Beds", "group": "Gardens", "description": "Stores individual beds for locations. Adding the first bed automatically starts the bed count for that location."},
     "irrigation_setup": {"label": "Irrigation", "group": "Gardens", "description": "Stores zero or more irrigation systems for each location with garden details."},
@@ -109,10 +109,12 @@ def enum(name, type_name, nullable=True, default=None):
 # Combine a table's field descriptions and mark calculated fields as read-only.
 def table(name, pk, columns):
     readonly_names = set(TABLES[name].get("readonly", []))
+    display_names = set(TABLES[name].get("readonly_display", []))
     for item in columns:
         if item["name"] in readonly_names:
             item["readonly"] = True
             item["required"] = False
+        item["show_readonly"] = item["name"] in display_names
     return {"name": name, **TABLES[name], "pk": pk, "columns": columns}
 
 SCHEMAS = {
@@ -406,6 +408,10 @@ def get_table_options(name):
         if not foreign_key:
             continue
         fields = list(dict.fromkeys([foreign_key["ref_column"], *foreign_key["depends_on"].values()]))
+        # Include the selected catalog item's current price for the
+        # purchase-request read-only price and total preview.
+        if name == "purchase_request" and item["name"] == "item_name":
+            fields.append("unit_cost")
         options[item["name"]] = fetch_rows(
             foreign_key["ref_table"], ",".join(fields), [foreign_key["ref_column"]],
         )

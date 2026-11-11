@@ -30,6 +30,41 @@ RETURNING user_id, database_role;
 
 The query should return one row with `database_manager`. The project owner must also enable the Data API for the `public` schema and configure Auth's Site URL and Redirect URLs as `http://localhost:8000/`. Update `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `frontend/app.py` with the new project's values, then commit and push that frontend configuration before partners use the GitHub updater. The publishable key may be in the public repository; never put a database password or Supabase secret/service-role key there.
 
+### Emergency app-role recovery (project owner only)
+
+Use these commands in the Supabase SQL Editor as the project owner. They change app-role assignments only; they do not delete Auth accounts or program records.
+
+To revoke one person's app access while keeping their Auth account, replace the example email:
+
+```sql
+DELETE FROM private.user_role_assignment AS assignment
+USING auth.users AS account
+WHERE assignment.user_id = account.id
+  AND lower(account.email) = lower('person@example.com')
+RETURNING assignment.user_id, assignment.database_role;
+```
+
+To revoke every app role (this removes app access for everyone and leaves no manager who can restore access through the app):
+
+```sql
+DELETE FROM private.user_role_assignment
+RETURNING user_id, database_role;
+```
+
+To restore a Database Manager or bootstrap a replacement, replace the example email with an existing Auth user's email:
+
+```sql
+INSERT INTO private.user_role_assignment (user_id, database_role)
+SELECT u.id, 'database_manager'
+FROM auth.users AS u
+WHERE lower(u.email) = lower('manager@example.com')
+ON CONFLICT (user_id)
+DO UPDATE SET database_role = EXCLUDED.database_role
+RETURNING user_id, database_role;
+```
+
+Role changes take effect when affected users receive a refreshed sign-in token. If all roles were removed, only the project owner can restore a manager with the SQL above.
+
 See the [frontend README](frontend/README.md#project-administrator-set-up-a-new-supabase-project) for the full dashboard steps, Auth hook selection, user invitations, and app setup.
 
 ## Frontend App
