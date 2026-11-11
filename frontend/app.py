@@ -462,7 +462,12 @@ def get_referenced_row(name):
 def create_row(name):
     ensure_table(name)
     info = schema_for_role(name)
-    values = editable_values(info, (request.get_json(silent=True) or {}).get("values"), for_insert=True)
+    submitted = (request.get_json(silent=True) or {}).get("values")
+    if name in {"purchase_request", "inventory_transaction"} and isinstance(submitted, dict):
+        display_name = rest_request("GET", "rpc/get_my_display_name")
+        actor_field = "requested_by" if name == "purchase_request" else "taken_by"
+        submitted = {**submitted, actor_field: display_name or g.auth_user.get("email")}
+    values = editable_values(info, submitted, for_insert=True)
     rows = rest_request("POST", name, [("select", table_select(name))], values, prefer="return=representation")
     return jsonify(rows[0] if rows else {}), 201
 
@@ -599,6 +604,7 @@ def export_all_table_data():
     ])
     sql_buffer = io.BytesIO("\n".join(sql_lines).encode("utf-8"))
     filename = f"garden-program-data-{datetime.date.today().isoformat()}.sql"
+    rest_request("POST", "rpc/record_app_event", body={"p_event_type": "BACKUP_DOWNLOAD", "p_details": {"filename": filename}})
     return send_file(
         sql_buffer, mimetype="application/sql", as_attachment=True,
         download_name=filename, max_age=0,
@@ -631,7 +637,62 @@ def list_app_users():
         if error.status == 404:
             raise ApiError("User management needs a database setup update. Contact the project administrator.", 503)
         raise
+    profiles = fetch_rows("rpc/list_user_profiles", "user_id,display_name", ["user_id"])
+    names = {profile["user_id"]: profile.get("display_name") for profile in profiles}
+    for user in users:
+        user["display_name"] = names.get(user["user_id"])
     return jsonify(users)
+
+# Save a manager-controlled name; the database function also updates exact email matches.
+@app.put("/api/users/<uuid:user_id>/display-name")
+def set_user_display_name(user_id):
+    ensure_manager()
+    body = request.get_json(silent=True) or {}
+    display_name = body.get("display_name")
+    if display_name is not None and not isinstance(display_name, str):
+        raise ApiError("Display name must be text.")
+    if display_name is not None and len(display_name.strip()) > 100:
+        raise ApiError("Display name must be 100 characters or fewer.")
+    users = fetch_rows("rpc/list_app_users", "user_id,email,database_role")
+    target_user = next((user for user in users if user.get("user_id") == str(user_id)), None)
+    if not target_user:
+        raise ApiError("This account no longer exists.", 404)
+    profiles = fetch_rows("rpc/list_user_profiles", "user_id,display_name")
+    old_profile = next((profile for profile in profiles if profile.get("user_id") == str(user_id)), None)
+    old_name = old_profile.get("display_name") if old_profile else None
+    rest_request("POST", "rpc/set_user_display_name", body={
+        "p_user_id": str(user_id), "p_display_name": display_name,
+    })
+    rest_request("POST", "rpc/record_app_event", body={"p_event_type": "DISPLAY_NAME_CHANGED", "p_details": {
+        "target_user_id": str(user_id), "target_email": target_user.get("email"),
+        "old_display_name": old_name, "new_display_name": display_name.strip() if display_name else None,
+    }})
+    return jsonify({"saved": True})
+
+# Return recent row-change history; database policy is checked again in SQL.
+@app.get("/api/audit-log")
+def get_audit_log():
+    ensure_manager()
+    return jsonify(fetch_rows("rpc/list_audit_log", "audit_id,changed_at,actor_user_id,actor_email,action,table_name,row_key,old_data,new_data", extra_params=[("limit", "500")]))
+
+@app.get("/api/app-events")
+def get_app_events():
+    ensure_manager()
+    return jsonify(fetch_rows("rpc/list_application_events", "event_id,occurred_at,actor_user_id,actor_email,event_type,details", extra_params=[("limit", "500")]))
+
+# Record a small allow-listed account/app event; the database validates manager-only events too.
+@app.post("/api/events")
+def record_app_event():
+    body = request.get_json(silent=True) or {}
+    event_type = body.get("event_type")
+    allowed = {"BACKUP_DOWNLOAD", "PASSWORD_RESET_REQUEST", "ROLE_CHANGED", "ROLE_REMOVED", "DISPLAY_NAME_CHANGED"}
+    if event_type not in allowed:
+        raise ApiError("Unsupported app event.")
+    rest_request("POST", "rpc/record_app_event", body={
+        "p_event_type": event_type,
+        "p_details": body.get("details") if isinstance(body.get("details"), dict) else {},
+    })
+    return jsonify({"recorded": True})
 
 # Change another user's app role; Supabase also checks the manager's current assignment.
 @app.put("/api/users/<uuid:user_id>/role")
@@ -643,9 +704,17 @@ def assign_app_role(user_id):
     role = body.get("role") if isinstance(body, dict) else None
     if not isinstance(role, str) or role not in ROLES:
         raise ApiError("Choose a valid app role.")
+    users = fetch_rows("rpc/list_app_users", "user_id,email,database_role")
+    target_user = next((user for user in users if user.get("user_id") == str(user_id)), None)
+    if not target_user:
+        raise ApiError("This account no longer exists.", 404)
+    old_role = target_user.get("database_role")
     rest_request("POST", "rpc/set_user_database_role", body={
         "p_user_id": str(user_id), "p_database_role": role,
     })
+    rest_request("POST", "rpc/record_app_event", body={"p_event_type": "ROLE_CHANGED", "p_details": {
+        "target_user_id": str(user_id), "target_email": target_user.get("email"), "old_role": old_role, "new_role": role,
+    }})
     return jsonify({"saved": True})
 
 # Remove another user's role without deleting their sign-in account or records.
@@ -654,7 +723,14 @@ def remove_app_role(user_id):
     ensure_manager()
     if str(user_id) == g.auth_user.get("id"):
         raise ApiError("You cannot remove your own manager access.", 403)
+    users = fetch_rows("rpc/list_app_users", "user_id,email,database_role")
+    target_user = next((user for user in users if user.get("user_id") == str(user_id)), None)
+    if not target_user:
+        raise ApiError("This account no longer exists.", 404)
     rest_request("POST", "rpc/remove_user_database_role", body={"p_user_id": str(user_id)})
+    rest_request("POST", "rpc/record_app_event", body={"p_event_type": "ROLE_REMOVED", "p_details": {
+        "target_user_id": str(user_id), "target_email": target_user.get("email"), "old_role": target_user.get("database_role"), "new_role": None,
+    }})
     return jsonify({"removed": True})
 
 # Email a reset link for an existing account without revealing or changing its password.
@@ -662,12 +738,11 @@ def remove_app_role(user_id):
 def request_user_password_reset(user_id):
     ensure_manager()
     # The directory function checks that this manager still has their assigned role.
-    users = fetch_rows("rpc/list_app_users", "user_id,email", extra_params=[
-        ("user_id", postgrest_equal(str(user_id))),
-    ])
-    if not users:
+    users = fetch_rows("rpc/list_app_users", "user_id,email")
+    target_user = next((user for user in users if user.get("user_id") == str(user_id)), None)
+    if not target_user:
         raise ApiError("This account no longer exists.", 404)
-    email = users[0].get("email")
+    email = target_user.get("email")
     if not email:
         raise ApiError("This account has no email address for password recovery.")
     try:
@@ -688,6 +763,9 @@ def request_user_password_reset(user_id):
             error = {}
         detail = error.get("msg") or error.get("message") or error.get("error_description")
         raise ApiError("Supabase could not request the reset email. Please try again later.", 502, detail)
+    rest_request("POST", "rpc/record_app_event", body={"p_event_type": "PASSWORD_RESET_REQUEST", "p_details": {
+        "target_user_id": str(user_id), "target_email": email,
+    }})
     return jsonify({"requested": True})
 
 if __name__ == "__main__":

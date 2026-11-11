@@ -30,13 +30,13 @@ As the project owner, open **SQL Editor** and run each file from this repository
 2. [`sql/schema_inventory.sql`](../sql/schema_inventory.sql)
 3. [`sql/summary_views.sql`](../sql/summary_views.sql)
 4. [`sql/demo_data.sql`](../sql/demo_data.sql), only if you want the prewritten starter records
-5. [`sql/schema_roles.sql`](../sql/schema_roles.sql), last
+5. [`sql/roles_and_permissions.sql`](../sql/roles_and_permissions.sql), last
 
-The last file creates the PostgreSQL roles (`staff`, `finance_staff`, and `database_manager`), their table permissions and policies, the private role-assignment table, the `custom_access_token_hook`, and the manager role-assignment functions. Do not run `schema_roles.sql` before creating the tables and views. For a fresh project, do not run [`sql/manager_user_access.sql`](../sql/manager_user_access.sql); that is a patch for an existing installation that needs only the Users-page functions updated.
+The last file creates the PostgreSQL roles, permissions and policies, the private role-assignment table, the access-token hook, manager functions, display-name profiles, and private audit logging. Do not run it before creating the tables and views. For an existing project, review project-specific SQL changes before rerunning this consolidated setup file.
 
 ### 4. Enable the Custom Access Token Hook
 
-In **Authentication → Hooks** (shown as **Hooks (Beta)** in some dashboards), add or enable a **Custom Access Token** hook. Select **Postgres**, schema **`public`**, and function **`custom_access_token_hook`**. Do not select HTTPS; the function was created by `schema_roles.sql`.
+In **Authentication → Hooks** (shown as **Hooks (Beta)** in some dashboards), add or enable a **Custom Access Token** hook. Select **Postgres**, schema **`public`**, and function **`custom_access_token_hook`**. Do not select HTTPS; the function was created by `roles_and_permissions.sql`.
 
 Before Supabase issues a sign-in token, this hook looks up the user's role in `private.user_role_assignment` and puts that role in the token's `role` claim. Supabase then uses that role when enforcing database grants and row policies. A user without an assignment receives no Garden Program data role and cannot access app records. See Supabase's [Custom Access Token Hook guide](https://supabase.com/docs/guides/auth/auth-hooks/custom-access-token-hook).
 
@@ -214,7 +214,7 @@ New account invitations are still sent through Supabase by the project administr
 
 Role changes apply when the user's token refreshes or expires. Refreshing the browser page now requests a fresh sign-in token and reloads permissions; the user can also sign out and sign in again. An already-open page does not instantly receive changes from another person's computer. The management functions also check the manager's current database assignment, so a removed manager cannot keep assigning roles using an old token.
 
-**One-time setup for an existing project:** the project owner must run the entire [`sql/manager_user_access.sql`](../sql/manager_user_access.sql) file in the Supabase SQL Editor, then restart the local app. Fresh database setups already get these functions from `sql/schema_roles.sql`; the separate file updates an existing project without rerunning the whole schema. The app and its updater never apply SQL automatically.
+For an existing project that already has the row-change audit log, run [`sql/application_event_log.sql`](../sql/application_event_log.sql) once in Supabase SQL Editor to add account/app events. Fresh projects get both audit streams from [`sql/roles_and_permissions.sql`](../sql/roles_and_permissions.sql). The app and its updater never apply SQL automatically.
 
 ## Troubleshooting
 

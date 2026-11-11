@@ -133,6 +133,7 @@ let recordBaseline = null;
 let recordSaving = false;
 let currentRouteHash = null;
 const pendingRoleEdits = new Map();
+const pendingDisplayNameEdits = new Map();
 let dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let cropRotationMode = "table";
 let cropRotationMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -149,7 +150,7 @@ function hasUnsavedRecord() {
 }
 
 function hasUnsavedChanges() {
-  return hasUnsavedRecord() || pendingRoleEdits.size > 0 ||
+  return hasUnsavedRecord() || pendingRoleEdits.size > 0 || pendingDisplayNameEdits.size > 0 ||
     (settingPassword && Boolean($("#reset-password").value || $("#reset-confirm").value));
 }
 
@@ -184,6 +185,7 @@ function showLogin(message = "", messageTone = "error") {
   hideReferencePreview();
   discardRecordDraft();
   pendingRoleEdits.clear();
+  pendingDisplayNameEdits.clear();
   currentRouteHash = null;
   if ($("#role-dialog").open) $("#role-dialog").close();
   $("#app-shell").hidden = true;
@@ -574,6 +576,7 @@ function setHeader(title, sub = "", actions = "", scrollTable = false) {
   hideReferencePreview();
   content.scrollTop = 0;
   content.classList.toggle("records-page", scrollTable);
+  content.classList.toggle("log-page", title === "Log");
   $("#page-title").textContent = title;
   $("#page-sub").textContent = sub;
   $("#page-actions").innerHTML = actions;
@@ -597,6 +600,7 @@ function downloadTablePdf() {
     return;
   }
   const printableTable = table.cloneNode(true);
+  printableTable.querySelectorAll("details").forEach(detail => { detail.open = true; });
   printableTable.querySelectorAll("th.notes, td.notes, td.actions, th:last-child:empty").forEach((cell) => cell.remove());
   printableTable.querySelectorAll(".reference-link").forEach((link) => link.replaceWith(document.createTextNode(link.textContent)));
   const title = $("#page-title").textContent;
@@ -629,6 +633,7 @@ function renderNav() {
   if (state.role === "database_manager") groups.Manage = [
     {label: "Users", href: "#/users"},
     {label: "Data", href: "#/manage-data"},
+    {label: "Log", href: "#/audit-log"},
   ];
 
   const preferredOrder = ["Inventory & Budget", "Gardens", "Locations", "Reports", "Manage"];
@@ -717,10 +722,12 @@ function dataTable(rows, { columns, actions = false, foreignKeys = {} } = {}) {
 
 function filterAndSort(rows) {
   let out = rows;
-  if (state.search) {
-    const q = state.search.toLowerCase();
-    out = out.filter((r) => Object.values(r).some((v) => String(v ?? "").toLowerCase().includes(q)));
-  }
+  const terms = [$("#search")?.value, ...[...document.querySelectorAll("[data-record-search]")].map(input => input.value)]
+    .map(value => String(value || "").trim().toLowerCase()).filter(Boolean);
+  if (terms.length) out = out.filter(row => {
+    const text = Object.values(row).map(value => String(value ?? "")).join(" ").toLowerCase();
+    return terms.every(term => text.includes(term));
+  });
   if (state.sort) {
     const { col, desc } = state.sort;
     out = [...out].sort((a, b) => {
@@ -744,6 +751,30 @@ function bindTableControls(rerender) {
       rerender();
     };
   }
+  const downloadButton = $("#print-page");
+  if (downloadButton) downloadButton.onclick = downloadTablePdf;
+  const extraContainer = $("#record-extra-searches");
+  const addButton = $("#record-add-search");
+  const updateAddButtons = () => {
+    const rows = [...(extraContainer?.querySelectorAll(".record-extra-search") || [])];
+    const buttons = [addButton, ...rows.map(row => row.querySelector(".record-add-search"))].filter(Boolean);
+    buttons.forEach((button, index) => { button.hidden = rows.length >= 2 || index < rows.length; });
+  };
+  const addSearch = () => {
+    if (!extraContainer || extraContainer.querySelectorAll("[data-record-search]").length >= 2) return;
+    const row = document.createElement("div");
+    row.className = "record-extra-search";
+    row.innerHTML = '<button class="btn small audit-remove-filter" type="button" aria-label="Remove search box">×</button><input class="search" type="search" data-record-search placeholder="Search another term" aria-label="Additional search term"><button class="btn small audit-add-filter record-add-search" type="button" aria-label="Add another search box">+</button>';
+    const input = row.querySelector("input");
+    input.oninput = rerender;
+    row.querySelector(".audit-remove-filter").onclick = () => { row.remove(); updateAddButtons(); rerender(); };
+    row.querySelector(".record-add-search").onclick = addSearch;
+    extraContainer.append(row);
+    input.focus();
+    updateAddButtons();
+  };
+  if (addButton) addButton.onclick = addSearch;
+  updateAddButtons();
   content.querySelectorAll("th[data-sort]").forEach((th) => {
     th.onclick = () => {
       const col = th.dataset.sort;
@@ -751,6 +782,11 @@ function bindTableControls(rerender) {
       rerender();
     };
   });
+}
+
+function multiSearchControls(includeAdd = false) {
+  const addButton = includeAdd ? '<button class="btn primary" id="add-btn" type="button">+ Add</button>' : "";
+  return '<div class="record-search-controls"><span class="record-search-inputs"><input id="search" class="search" type="search" placeholder="Search…" aria-label="Search records"><button class="btn small audit-add-filter" id="record-add-search" type="button" aria-label="Add another search box" title="Add another search box">+</button><span id="record-extra-searches" class="record-extra-searches"></span></span><span class="record-search-actions">' + printButton + addButton + '</span></div>';
 }
 
 function parseCalendarDate(value) {
@@ -1000,7 +1036,28 @@ function renderRecordContent(html) {
   hideNotePreview();
   hideReferencePreview();
   const left = content.querySelector(".table-wrap")?.scrollLeft || 0;
+  const searchControls = content.querySelector(".record-search-controls");
+  const activeSearch = searchControls?.contains(document.activeElement) ? document.activeElement : null;
+  const activeExtraIndex = activeSearch?.matches("[data-record-search]")
+    ? [...searchControls.querySelectorAll("[data-record-search]")].indexOf(activeSearch)
+    : -1;
+  const selectionStart = activeSearch?.selectionStart;
+  const selectionEnd = activeSearch?.selectionEnd;
+  if (searchControls) {
+    searchControls.remove();
+    html = html.replace(/^<div class="record-search-controls">[\s\S]*?<\/div>/, "");
+  }
   content.innerHTML = html;
+  if (searchControls) {
+    content.prepend(searchControls);
+    const nextActive = activeExtraIndex >= 0
+      ? searchControls.querySelectorAll("[data-record-search]")[activeExtraIndex]
+      : activeSearch?.id === "search" ? searchControls.querySelector("#search") : null;
+    if (nextActive) {
+      nextActive.focus({ preventScroll: true });
+      if (selectionStart !== null && selectionStart !== undefined) nextActive.setSelectionRange(selectionStart, selectionEnd);
+    }
+  }
   const wrapper = content.querySelector(".table-wrap");
   if (wrapper) wrapper.scrollLeft = left;
 }
@@ -1008,7 +1065,7 @@ function renderRecordContent(html) {
 async function showView(name) {
   const view = state.meta.views.find((v) => v.name === name);
   if (!view) return showError(new Error(`Unknown report: ${name}`));
-  setHeader(view.label, view.description || "", printButton + '<input id="search" class="search" type="search" placeholder="Search…">', true);
+  setHeader(view.label, view.description || "", "", true);
   content.innerHTML = '<div class="empty">Loading…</div>';
   state.rows = await api(`/views/${name}`);
   const render = () => {
@@ -1019,7 +1076,7 @@ async function showView(name) {
       ...rowColumns.filter((c) => !preferredColumns.includes(c)),
     ];
     const visible = filterAndSort(state.rows);
-    renderRecordContent(`<div class="card">${dataTable(visible, { columns })}</div><p class="muted">${visible.length} of ${state.rows.length} records</p>`);
+    renderRecordContent(`${multiSearchControls()}<div class="card">${dataTable(visible, { columns })}</div><p class="muted">${visible.length} of ${state.rows.length} records</p>`);
     bindTableControls(render);
   };
   render();
@@ -1038,7 +1095,7 @@ async function showTable(name) {
   setHeader(
     table.label,
     table.description || "",
-    printButton + cropModeControls + '<input id="search" class="search" type="search" placeholder="Search…"><button class="btn primary" id="add-btn">+ Add</button>',
+    cropModeControls,
     true
   );
   content.innerHTML = '<div class="empty">Loading…</div>';
@@ -1067,7 +1124,7 @@ async function showTable(name) {
         foreignKeys,
         actions: (row) => ({ edit: canEdit(name, row), delete: canDelete(name, row) }),
       }) + '</div><p class="muted">' + visible.length + " of " + state.rows.length + " records</p>";
-    renderRecordContent(page);
+    renderRecordContent(multiSearchControls(true) + page);
     bindTableControls(render);
     if (name === "crop_rotation" && cropRotationMode === "calendar") {
       $("#crop-rotation-month").textContent = new Intl.DateTimeFormat(undefined, {
@@ -1219,7 +1276,11 @@ function inputFor(col, value, isNew = false) {
   }
 
   let control;
-  if (col.readonly) {
+  const actorField = isNew && ((state.schema?.name === "purchase_request" && col.name === "requested_by")
+    || (state.schema?.name === "inventory_transaction" && col.name === "taken_by"));
+  if (actorField) {
+    control = `<input type="text" id="${id}" name="${col.name}" value="${escapeHtml(v)}" readonly aria-readonly="true" title="Filled from your account">`;
+  } else if (col.readonly) {
     const displayValue = value == null || value === "" ? "" : money.format(Number(value));
     control = `<input type="text" id="${id}" name="${col.name}" value="${escapeHtml(displayValue)}" readonly aria-readonly="true">`;
   } else if (col.foreign_key) {
@@ -1336,6 +1397,12 @@ async function openForm(record, initialValues = {}) {
   hideNotePreview();
   hideReferencePreview();
   const schema = state.schema;
+  if (!record && ["purchase_request", "inventory_transaction"].includes(schema.name)) {
+    const { data: displayName, error } = await supabaseClient.rpc("get_my_display_name");
+    if (error) console.warn("Could not load account display name; using email.", error.message);
+    const actorField = schema.name === "purchase_request" ? "requested_by" : "taken_by";
+    initialValues = { ...initialValues, [actorField]: displayName?.trim() || state.meta.user.email || "" };
+  }
   const tableLabel = state.meta.tables.find((t) => t.name === schema.name).label;
   $("#dialog-title").textContent = record ? `Edit ${tableLabel}` : `Add to ${tableLabel}`;
   $("#form-error").hidden = true;
@@ -1421,12 +1488,32 @@ async function showUsers() {
     <section class="card">
       <div class="users-heading"><div><h2>People &amp; roles</h2><p>Choose a role, then save your change.</p></div>
         <input class="search" id="search-users" type="search" placeholder="Search accounts…" aria-label="Search accounts"></div>
-      <div class="table-wrap"><table><thead><tr><th>Account</th><th>Current access</th><th>Role</th><th class="user-actions-heading">Actions</th></tr></thead><tbody id="users-body"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Account</th><th>Display name</th><th>Role</th><th class="user-actions-heading">Actions</th></tr></thead><tbody id="users-body"></tbody></table></div>
       <div class="empty" id="users-empty" hidden>No matching accounts.</div>
     </section>
     <p class="access-note"><strong>Your own role is protected</strong> so you cannot accidentally remove your manager access.<br>
       Removing access keeps the person's account. They can be assigned a role again later.</p>
     <p class="access-note invitation-note">A Supabase organization administrator sends account invitations through Supabase Auth.</p>`;
+
+  const updateUserSaveButton = index => {
+    const user = users[index];
+    const button = content.querySelector(`[data-user-save="${index}"]`);
+    if (button) button.disabled = !pendingRoleEdits.has(user.user_id) && !pendingDisplayNameEdits.has(user.user_id);
+  };
+  const saveDisplayName = async (user, value, button) => {
+    if (!pendingDisplayNameEdits.has(user.user_id)) return;
+    button.disabled = true;
+    try {
+      await api(`/users/${encodeURIComponent(user.user_id)}/display-name`, {method: "PUT", body: {display_name: value || null}});
+      user.display_name = value || null;
+      pendingDisplayNameEdits.delete(user.user_id);
+      toast("User information saved");
+      renderUsers();
+    } catch (err) {
+      toast(err.message);
+      button.disabled = false;
+    }
+  };
 
   const renderUsers = () => {
     users.sort((a, b) => (a.email || a.user_id).localeCompare(b.email || b.user_id));
@@ -1442,26 +1529,43 @@ async function showUsers() {
       const email = user.email || "Account without email";
       return `<tr><td><div class="user-name"><span class="user-avatar" aria-hidden="true">${escapeHtml(email.slice(0, 2).toUpperCase())}</span>
         <div><strong>${escapeHtml(email)}${self ? ' <span class="muted">(you)</span>' : ""}</strong><small>${escapeHtml(user.user_id)}</small></div></div></td>
-        <td><span class="role-pill ${role ? "" : "none"}">${escapeHtml(ROLE_LABELS[role] || "No app access")}</span></td>
+        <td><input class="display-name-input" maxlength="100" aria-label="Display name for ${escapeHtml(email)}" data-display-name="${index}" value="${escapeHtml(pendingDisplayNameEdits.get(user.user_id) ?? user.display_name ?? user.email ?? "")}" placeholder="Display name"></td>
         <td><select class="role-select" aria-label="Role for ${escapeHtml(email)}" data-user-role="${index}" ${self ? "disabled" : ""}>
           <option value="" ${!selectedRole ? "selected" : ""} disabled>Choose a role</option>
           ${Object.entries(ROLE_LABELS).map(([key, name]) => `<option value="${key}" ${key === selectedRole ? "selected" : ""}>${name}</option>`).join("")}</select></td>
-        <td><div class="user-actions"><button class="btn small primary" data-user-save="${index}" ${self || !pendingRoleEdits.has(user.user_id) ? "disabled" : ""}>Save</button>
-          <button class="btn small" data-user-reset="${index}" ${!user.email ? 'disabled title="This account has no email address"' : ""}>Send password reset email</button>
+        <td><div class="user-actions"><button class="btn small primary" data-user-save="${index}" disabled>Save</button>
+          <button class="btn small reset-password-btn" data-user-reset="${index}" ${!user.email ? 'disabled title="This account has no email address"' : ""}>Reset password</button>
           <button class="btn small danger" data-user-remove="${index}" ${self || !role ? "disabled" : ""}>Remove access</button></div></td></tr>`;
     }).join("");
     $("#users-body").innerHTML = rows;
     $("#users-empty").hidden = Boolean(rows);
+    content.querySelectorAll("[data-display-name]").forEach(input => {
+      input.oninput = () => {
+        const user = users[input.dataset.displayName];
+        const value = input.value.trim();
+        const baseline = user.display_name || user.email || "";
+        if (value === baseline) pendingDisplayNameEdits.delete(user.user_id);
+        else pendingDisplayNameEdits.set(user.user_id, value);
+        updateUserSaveButton(input.dataset.displayName);
+      };
+    });
     content.querySelectorAll("[data-user-role]").forEach(select => {
       select.onchange = () => {
         const user = users[select.dataset.userRole];
         if (select.value && select.value !== user.database_role) pendingRoleEdits.set(user.user_id, select.value);
         else pendingRoleEdits.delete(user.user_id);
-        content.querySelector(`[data-user-save="${select.dataset.userRole}"]`).disabled = !select.value || select.value === user.database_role;
+        updateUserSaveButton(select.dataset.userRole);
       };
     });
     content.querySelectorAll("[data-user-save]").forEach(button => {
-      button.onclick = () => confirmUserAction(users[button.dataset.userSave], {role: content.querySelector(`[data-user-role="${button.dataset.userSave}"]`).value});
+      button.onclick = async () => {
+        const user = users[button.dataset.userSave];
+        const role = pendingRoleEdits.get(user.user_id);
+        const displayName = pendingDisplayNameEdits.get(user.user_id);
+        if (role) confirmUserAction(user, {role, displayName});
+        else await saveDisplayName(user, displayName, button);
+      };
+      updateUserSaveButton(button.dataset.userSave);
     });
     content.querySelectorAll("[data-user-remove]").forEach(button => {
       button.onclick = () => confirmUserAction(users[button.dataset.userRemove]);
@@ -1471,12 +1575,12 @@ async function showUsers() {
     });
   };
 
-  const confirmUserAction = (user, {role = null, resetPassword = false} = {}) => {
+  const confirmUserAction = (user, {role = null, resetPassword = false, displayName = undefined} = {}) => {
     if (resetPassword ? !user.email : user.user_id === state.meta.user.id) return;
     const dialog = $("#role-dialog");
     const confirm = $("#role-confirm");
     const confirmLabel = resetPassword ? "Send reset email" : "Confirm";
-    $("#role-dialog-title").textContent = resetPassword ? "Send password reset email?" : role ? "Change app role?" : "Remove app access?";
+    $("#role-dialog-title").textContent = resetPassword ? "Send password reset email?" : role ? "Save user changes?" : "Remove app access?";
     $("#role-description").textContent = resetPassword ? `Request a password reset email for ${user.email}.` : role
       ? `${user.email || user.user_id} will have the ${ROLE_LABELS[role]} role.`
       : `${user.email || user.user_id} will no longer have an assigned app role.`;
@@ -1501,9 +1605,16 @@ async function showUsers() {
         if (resetPassword) {
           await api(`/users/${encodeURIComponent(user.user_id)}/password-reset`, {method: "POST"});
         } else {
+          if (displayName !== undefined) {
+            await api(`/users/${encodeURIComponent(user.user_id)}/display-name`, {method: "PUT", body: {display_name: displayName || null}});
+            user.display_name = displayName || null;
+            pendingDisplayNameEdits.delete(user.user_id);
+          }
           await api(`/users/${encodeURIComponent(user.user_id)}/role`, role
             ? { method: "PUT", body: { role } }
             : { method: "DELETE" });
+          user.database_role = role;
+          pendingRoleEdits.delete(user.user_id);
         }
       } catch (error) {
         $("#role-error").textContent = error.detail ? `${error.message} ${error.detail}` : error.message;
@@ -1519,6 +1630,10 @@ async function showUsers() {
           $("#users-notice").hidden = false;
         }
         toast("Password reset email requested");
+        return;
+      }
+      if (role) {
+        renderUsers();
         return;
       }
       toast(role ? "App role saved" : "App access removed");
@@ -1596,6 +1711,75 @@ async function showManageData() {
   $("#data-export-download").onclick = event => downloadAllTableData(event.currentTarget);
 }
 
+async function showAuditLog() {
+  if (state.role !== "database_manager") throw new Error("Only a database manager can view the audit log.");
+  setHeader("Log", "Recent data changes and account/app events.");
+  content.innerHTML = '<div class="empty">Loading audit history…</div>';
+  const [entries, appEvents, accounts] = await Promise.all([api("/audit-log"), api("/app-events"), api("/users")]);
+  const emailByUserId = Object.fromEntries(accounts.map(account => [account.user_id, account.email]));
+  const combined = [
+    ...entries.map(entry => ({...entry, source: "data", timestamp: entry.changed_at, event: entry.action, area: String(entry.table_name || "").split(".").pop(), details: {row_key: entry.row_key, old: entry.old_data, new: entry.new_data}})),
+    ...appEvents.map(entry => ({...entry, source: "app", timestamp: entry.occurred_at, event: entry.event_type.replaceAll("_", " "), area: "Account / App", details: entry.details || {}})),
+  ].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+  content.innerHTML = `<div class="audit-toolbar"><div class="audit-search-row"><input id="audit-search" class="search" type="search" placeholder="Search…" aria-label="Search log"><button class="btn small audit-add-filter" id="audit-add-filter" type="button" aria-label="Add another search box" title="Add another search box">+</button><span id="audit-extra-filters" class="audit-filter-inline"></span></div><div class="audit-toolbar-actions">${printButton}<label class="audit-date-filter">From <input id="audit-from" type="datetime-local" aria-label="Filter from date and time"></label><label class="audit-date-filter">To <input id="audit-to" type="datetime-local" aria-label="Filter through date and time"></label></div></div><section class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th>When</th><th>User</th><th>Event</th><th>Table / Area</th><th>Details</th></tr></thead><tbody id="audit-rows"></tbody></table></div><div class="empty" id="audit-empty" hidden>No matching entries.</div><p class="muted" id="audit-count"></p></section>`;
+  $("#print-page").onclick = downloadTablePdf;
+  let filteredEntries = [];
+  const render = () => {
+    const queries = [$("#audit-search").value, ...[...content.querySelectorAll("[data-audit-extra-filter]")].map(input => input.value)]
+      .map(value => value.trim().toLowerCase()).filter(Boolean);
+    const from = $("#audit-from").value ? new Date($("#audit-from").value).getTime() : -Infinity;
+    const to = $("#audit-to").value ? new Date($("#audit-to").value).getTime() : Infinity;
+    filteredEntries = combined.filter(entry => {
+      const stamp = Date.parse(entry.timestamp);
+      const when = new Intl.DateTimeFormat(undefined, {dateStyle:"medium",timeStyle:"short"}).format(new Date(stamp));
+      const searchable = `${when} ${entry.timestamp} ${entry.actor_email || ""} ${entry.actor_user_id || ""} ${entry.event} ${entry.area} ${entry.details?.target_email || emailByUserId[entry.details?.target_user_id] || ""} ${JSON.stringify(entry.details)}`;
+      const haystack = searchable.toLowerCase();
+      return stamp >= from && stamp <= to && queries.every(query => haystack.includes(query));
+    });
+    $("#audit-rows").innerHTML = filteredEntries.map(entry => {
+      let details = entry.details;
+      if (details?.target_user_id && !details.target_email && emailByUserId[details.target_user_id]) {
+        details = {...details, target_email: emailByUserId[details.target_user_id]};
+      }
+      if (entry.source === "data") {
+        if (entry.action === "UPDATE") {
+          const before = entry.old_data || {};
+          const after = entry.new_data || {};
+          const changed = Object.keys(after).filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]));
+          details = {row_key: entry.row_key, changed: Object.fromEntries(changed.map(key => [key, {from: before[key] ?? null, to: after[key] ?? null}]))};
+        } else if (entry.action === "INSERT") details = {row_key: entry.row_key, created: entry.new_data};
+        else if (entry.action === "DELETE") details = {row_key: entry.row_key, deleted: entry.old_data};
+      }
+      return `<tr><td>${escapeHtml(new Intl.DateTimeFormat(undefined, {dateStyle:"medium",timeStyle:"short"}).format(new Date(entry.timestamp)))}</td><td>${escapeHtml(entry.actor_email || entry.actor_user_id || "System / SQL Editor")}</td><td>${escapeHtml(entry.event)}</td><td>${escapeHtml(entry.area)}</td><td><details><summary>View details</summary><pre>${escapeHtml(JSON.stringify(details,null,2))}</pre></details></td></tr>`;
+    }).join("");
+    $("#audit-empty").hidden = filteredEntries.length > 0;
+    $("#audit-count").textContent = `${filteredEntries.length} of ${combined.length} log entries`;
+  };
+  $("#audit-search").oninput = render;
+  const addExtraFilter = () => {
+    if (document.querySelectorAll("[data-audit-extra-filter]").length >= 2) return;
+    const row = document.createElement("div");
+    row.className = "audit-filter-entry";
+    row.innerHTML = `<button class="btn small audit-remove-filter" type="button" aria-label="Remove this search box" title="Remove this search box">×</button><input class="search" type="search" data-audit-extra-filter aria-label="Additional log search term" placeholder="Search another term"><button class="btn small audit-add-filter" type="button" aria-label="Add another search box" title="Add another search box">+</button>`;
+    row.querySelector("input").oninput = render;
+    $("#audit-extra-filters").append(row);
+    row.querySelector(".audit-remove-filter").onclick = () => { row.remove(); updateAddFilterButtons(); render(); };
+    row.querySelector(".audit-add-filter").onclick = addExtraFilter;
+    row.querySelector("input").focus();
+    updateAddFilterButtons();
+  };
+  const updateAddFilterButtons = () => {
+    const extraButtons = [...document.querySelectorAll("#audit-extra-filters .audit-add-filter")];
+    const extraCount = extraButtons.length;
+    const buttons = [$("#audit-add-filter"), ...extraButtons];
+    buttons.forEach((button, index) => { button.hidden = extraCount >= 2 || index < extraCount; });
+  };
+  $("#audit-add-filter").onclick = addExtraFilter;
+  $("#audit-from").onchange = render;
+  $("#audit-to").onchange = render;
+  render();
+}
+
 /* ---------- Router ---------- */
 
 async function route() {
@@ -1620,6 +1804,7 @@ async function route() {
     else if (kind === "view") await showView(decodeURIComponent(name));
     else if (kind === "users") await showUsers();
     else if (kind === "manage-data") await showManageData();
+    else if (kind === "audit-log") await showAuditLog();
     else await showDashboard();
   } catch (err) {
     showError(err);

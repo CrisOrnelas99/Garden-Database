@@ -431,7 +431,29 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
 .user-avatar { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; color: #33593e; background: #e9f0e5; font-size: 12px; font-weight: 700; }
 .user-name strong { display: block; font-size: 13px; font-weight: 600; }
 .user-name small { display: block; font-size: 11px; color: var(--muted); margin-top: 5px; }
-.role-select { min-width: 170px; padding: 9px 28px 9px 11px; border: 1px solid var(--border); border-radius: 7px; background: #fff; color: var(--text); font: inherit; font-size: 13px; }
+.role-select { min-width: 170px; padding: 8px 28px 8px 13px; border: 1px solid #d4dfce; border-radius: 999px; background: #eef3e9; color: #496340; font: inherit; font-size: 13px; }
+.display-name-input { width: 150px; max-width: 100%; padding: 8px 9px; border: 1px solid var(--border); border-radius: 7px; font: inherit; font-size: 13px; }
+.reset-password-btn { color: #c66a1b; }
+.audit-date-filter { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.audit-date-filter input { width: 190px; padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; font: inherit; color: var(--text); }
+.audit-toolbar, .audit-search-row, .audit-toolbar-actions, .audit-filter-inline, .audit-filter-entry { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.audit-toolbar { justify-content: space-between; margin-bottom: 10px; }
+.audit-search-row { justify-content: flex-start; min-width: 0; }
+.audit-toolbar-actions { margin-left: auto; }
+#content.log-page { margin-top: -14px; }
+.audit-search-row > .search, .audit-filter-entry > .search { width: 190px; }
+.audit-filter-inline { gap: 6px; margin: 0; }
+.record-search-controls, .record-search-inputs, .record-search-actions, .record-extra-searches, .record-extra-search { display: flex; align-items: center; gap: 6px; }
+.record-search-controls { justify-content: space-between; flex-shrink: 0; margin-bottom: 10px; }
+.record-search-actions { margin-left: auto; }
+.page-header:has(+ #content.records-page) { margin-bottom: 2px; }
+.record-search-inputs > .search, .record-extra-search > .search { width: 190px; }
+.record-extra-searches { gap: 6px; }
+.audit-add-filter, .audit-remove-filter { min-width: 32px; padding-inline: 9px; background: transparent; }
+.audit-add-filter { color: #50764b; border: 1px solid #789a70; }
+.audit-add-filter:hover { color: #345b35; border-color: #50764b; background: #f2f7ef; }
+.audit-remove-filter { color: #b64a43; border: 1px solid #d58a84; }
+.audit-remove-filter:hover { color: #923b35; border-color: #b64a43; background: #fff4f2; }
 .role-select:disabled { color: #617064; background: #f5f7f3; }
 .btn:disabled { opacity: .45; cursor: default; }
 .role-pill { display: inline-block; font-size: 12px; padding: 5px 9px; border-radius: 6px; background: #eef3e9; color: #496340; }

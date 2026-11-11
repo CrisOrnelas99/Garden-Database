@@ -14,7 +14,7 @@ In the new project's Supabase dashboard, open **SQL Editor**. Run each SQL file 
 2. [`sql/schema_inventory.sql`](sql/schema_inventory.sql)
 3. [`sql/summary_views.sql`](sql/summary_views.sql)
 4. [`sql/demo_data.sql`](sql/demo_data.sql) only if you want its prewritten starter records; skip it if you are loading your own data
-5. [`sql/schema_roles.sql`](sql/schema_roles.sql) last, after the tables and views exist
+5. [`sql/roles_and_permissions.sql`](sql/roles_and_permissions.sql) last, after the tables and views exist
 
 After the SQL files, enable the **Custom Access Token** hook in Supabase Auth using the Postgres function `public.custom_access_token_hook`. Invite the first manager through **Authentication → Users → Add user → Send invitation**, then use the SQL Editor to assign the initial app role. Replace the example email with that invited user's email:
 
@@ -137,7 +137,7 @@ Plan planting schedules, manage crop rotations to maintain soil health, and trac
 
 ## Implementation
 
-The garden schema defines shared types, locations, location groups, and garden tables. The inventory schema defines inventory and budget tables. The summary views report on those tables, and `schema_roles.sql` configures database roles and access rules. The new-project section above gives the exact SQL Editor order.
+The garden schema defines shared types, locations, location groups, and garden tables. The inventory schema defines inventory and budget tables. The summary views report on those tables, and `roles_and_permissions.sql` configures roles, permissions, user display names, and audit logging. The new-project section above gives the exact SQL Editor order.
 
 # Current Database Schema
 
@@ -289,4 +289,4 @@ erDiagram
     }
 ```
 
-The app authenticates each partner through Supabase Auth. App roles are assigned to Auth users and enforced by the Supabase database policies; see `sql/schema_roles.sql` and the Supabase setup guides.
+The app authenticates each partner through Supabase Auth. App roles are assigned to Auth users and enforced by the Supabase database policies; see `sql/roles_and_permissions.sql` and the Supabase setup guides.
