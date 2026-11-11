@@ -355,8 +355,17 @@ SET search_path = public, pg_temp;
 -- staff additionally has full budget-table access. Both roles can edit
 -- all columns on permitted operational tables and cannot delete unrelated
 -- operational rows.
--- database_manager can access all rows; Supabase postgres owns objects and
--- remains responsible for schema administration.
+-- database_manager can access all rows except purchase requests and inventory
+-- transactions, which are limited to rows dated today for edit/delete.
+-- Supabase postgres owns objects and remains responsible for schema administration.
+DROP POLICY IF EXISTS database_manager_read_rows ON public.purchase_request;
+DROP POLICY IF EXISTS database_manager_insert_rows ON public.purchase_request;
+DROP POLICY IF EXISTS database_manager_recent_purchase_request_update ON public.purchase_request;
+DROP POLICY IF EXISTS database_manager_recent_purchase_request_delete ON public.purchase_request;
+DROP POLICY IF EXISTS database_manager_read_rows ON public.inventory_transaction;
+DROP POLICY IF EXISTS database_manager_insert_rows ON public.inventory_transaction;
+DROP POLICY IF EXISTS database_manager_recent_inventory_transaction_update ON public.inventory_transaction;
+DROP POLICY IF EXISTS database_manager_recent_inventory_transaction_delete ON public.inventory_transaction;
 DO $$
 DECLARE obj RECORD;
 BEGIN
@@ -397,10 +406,21 @@ BEGIN
                 obj.tablename
             );
         ELSE
-            EXECUTE format(
-                'CREATE POLICY database_manager_all_rows ON public.%I FOR ALL TO database_manager USING (true) WITH CHECK (true)',
-                obj.tablename
-            );
+            IF obj.tablename IN ('purchase_request', 'inventory_transaction') THEN
+                EXECUTE format(
+                    'CREATE POLICY database_manager_read_rows ON public.%I FOR SELECT TO database_manager USING (true)',
+                    obj.tablename
+                );
+                EXECUTE format(
+                    'CREATE POLICY database_manager_insert_rows ON public.%I FOR INSERT TO database_manager WITH CHECK (true)',
+                    obj.tablename
+                );
+            ELSE
+                EXECUTE format(
+                    'CREATE POLICY database_manager_all_rows ON public.%I FOR ALL TO database_manager USING (true) WITH CHECK (true)',
+                    obj.tablename
+                );
+            END IF;
             EXECUTE format(
                 'CREATE POLICY data_roles_read_rows ON public.%I FOR SELECT TO staff USING (true)',
                 obj.tablename
@@ -430,8 +450,27 @@ BEGIN
     END LOOP;
 END $$;
 
+-- Database managers can correct/delete only purchase requests and inventory
+-- transactions dated today, matching staff and finance_staff. NULL and older
+-- dates are blocked. INSERT and SELECT remain available without a date limit.
+CREATE POLICY database_manager_recent_purchase_request_update
+    ON public.purchase_request FOR UPDATE TO database_manager
+    USING (request_date = CURRENT_DATE)
+    WITH CHECK (request_date = CURRENT_DATE);
+CREATE POLICY database_manager_recent_purchase_request_delete
+    ON public.purchase_request FOR DELETE TO database_manager
+    USING (request_date = CURRENT_DATE);
+
+CREATE POLICY database_manager_recent_inventory_transaction_update
+    ON public.inventory_transaction FOR UPDATE TO database_manager
+    USING (transaction_date = CURRENT_DATE)
+    WITH CHECK (transaction_date = CURRENT_DATE);
+CREATE POLICY database_manager_recent_inventory_transaction_delete
+    ON public.inventory_transaction FOR DELETE TO database_manager
+    USING (transaction_date = CURRENT_DATE);
+
 -- Edit/delete is limited to rows whose business date is today. Rows with a
--- NULL date are not editable or deletable by staff or finance_staff.
+-- NULL date are not editable or deletable by any of the three app roles.
 CREATE POLICY staff_recent_purchase_request_update
     ON public.purchase_request FOR UPDATE TO staff
     USING (request_date = CURRENT_DATE)
@@ -510,7 +549,7 @@ REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA private TO supabase_auth_admin;
 
 -- Prevent a role from changing the date to restart the correction window.
--- Staff and finance_staff may only edit rows dated today; NULL dates are blocked.
+-- All three data roles may only edit rows dated today; NULL dates are blocked.
 CREATE OR REPLACE FUNCTION private.guard_recent_record_date_edit()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -523,7 +562,7 @@ DECLARE
     old_date DATE;
     new_date DATE;
 BEGIN
-    IF current_user NOT IN ('staff', 'finance_staff') THEN
+    IF current_user NOT IN ('staff', 'finance_staff', 'database_manager') THEN
         RETURN NEW;
     END IF;
 
@@ -537,9 +576,9 @@ BEGIN
     new_date := (new_row ->> date_column)::DATE;
 
     IF old_date IS NULL THEN
-        RAISE EXCEPTION 'Rows with a NULL date cannot be edited by staff or finance_staff.';
+        RAISE EXCEPTION 'Rows with a NULL date cannot be edited by staff, finance_staff, or database_manager.';
     ELSIF old_date IS DISTINCT FROM CURRENT_DATE THEN
-        RAISE EXCEPTION 'Only rows dated today can be edited by staff or finance_staff.';
+        RAISE EXCEPTION 'Only rows dated today can be edited by staff, finance_staff, or database_manager.';
     ELSIF new_date IS DISTINCT FROM old_date THEN
         RAISE EXCEPTION 'The record date cannot be changed during the correction window.';
     END IF;

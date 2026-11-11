@@ -1011,13 +1011,19 @@ function sameDayRow(name, row) {
 }
 
 function canEdit(name, row) {
-  if (state.role === "database_manager") return true;
+  if (state.role === "database_manager") {
+    if (["purchase_request", "inventory_transaction"].includes(name)) return sameDayRow(name, row);
+    return true;
+  }
   if (["purchase_request", "inventory_transaction"].includes(name)) return sameDayRow(name, row);
   return true;
 }
 
 function canDelete(name, row) {
-  if (state.role === "database_manager") return true;
+  if (state.role === "database_manager") {
+    if (["purchase_request", "inventory_transaction"].includes(name)) return sameDayRow(name, row);
+    return true;
+  }
   if (state.role === "finance_staff" && name === "budget") return true;
   if (["purchase_request", "inventory_transaction"].includes(name)) return sameDayRow(name, row);
   return false;
