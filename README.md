@@ -6,17 +6,31 @@ The goal is to improve how information is stored, connected, and accessed so sta
 
 ## Setting up a new Supabase project
 
-The project owner sets up the database and Auth integration. Partners do not need Supabase dashboard or organization access; they use an invited Supabase Auth account to sign in to the local app.
+The project owner sets up the database and Auth integration. Users do not need Supabase dashboard or organization access; they use an invited Supabase Auth account to sign in to the local app.
+
+If you are a regular app user and your project manager is handling the Supabase setup, skip this section and go to the [frontend README](frontend/README.md) for instructions on installing and using the app.
+
+Open the [Supabase dashboard](https://supabase.com/dashboard) to create or select the organization and project.
+
+Regular app users should **not** be added to the Supabase organization. A manager invites them through Supabase Auth, and they use the app; the head Garden Program manager oversees Supabase.
+
+In **Organization Settings → Team**, invite only people who manage or develop the Supabase project. Keep an organization-controlled account as **Owner** for long-term ownership and recovery. Give the head manager **Administrator** and database or frontend developers **Developer**. Owners have full access; Administrators can manage projects but cannot change organization settings, transfer projects, or add Owners; Developers can change project content, including database content, but not project settings. See Supabase's [access control documentation](https://supabase.com/docs/guides/platform/access-control).
+
+Before configuring the Auth hook, set the password requirements in **Authentication → Sign In / Providers → Email**: require at least 8 characters, including lowercase and uppercase letters, a number, and a symbol.
 
 In the new project's Supabase dashboard, open **SQL Editor**. Run each SQL file below **one at a time**, in this order:
 
 1. [`sql/schema_garden.sql`](sql/schema_garden.sql)
 2. [`sql/schema_inventory.sql`](sql/schema_inventory.sql)
 3. [`sql/summary_views.sql`](sql/summary_views.sql)
-4. [`sql/demo_data.sql`](sql/demo_data.sql) only if you want its prewritten starter records; skip it if you are loading your own data
+4. [`sql/demo_data.sql`](sql/demo_data.sql) for demo purposes if you want to try the app with sample records; skip it if you plan to import your own data
 5. [`sql/roles_and_permissions.sql`](sql/roles_and_permissions.sql) last, after the tables and views exist
 
-After the SQL files, enable the **Custom Access Token** hook in Supabase Auth using the Postgres function `public.custom_access_token_hook`. Invite the first manager through **Authentication → Users → Add user → Send invitation**, then use the SQL Editor to assign the initial app role. Replace the example email with that invited user's email:
+If you are setting up a different Supabase project yourself, copy its **Project URL** from **Project Settings → Integrations → Data API** and its **Publishable key** from **Project Settings → API Keys**. Put the base Project URL (for example, `https://<project-ref>.supabase.co`, without `/rest/v1/`) in `SUPABASE_URL` and the Publishable key in `SUPABASE_PUBLISHABLE_KEY` in `frontend/app.py`. The URL tells the app which Supabase project to use for sign-in and database requests. Skip this configuration if the developer is setting up the project with you; otherwise, commit and push it before users download or update the app from GitHub. The Publishable key can be public, but never put a database password or `secret`/`service_role` key in the frontend or repository.
+
+After the SQL files, open **Authentication → Auth Hooks → Add Hook** in Supabase. Choose **Custom Access Token**, set **Hook Type** to **Postgres** (not HTTPS), select schema **`public`** and function **`custom_access_token_hook`**, then save the hook. When Supabase issues a user's sign-in token, this hook adds that user's assigned app role to it so the database can apply the correct permissions.
+
+Invite the first manager through **Authentication → Users → Add user → Send invitation**, then use the SQL Editor to assign the initial app role. Replace the example email with that invited user's email:
 
 ```sql
 INSERT INTO private.user_role_assignment (user_id, database_role)
@@ -28,63 +42,18 @@ DO UPDATE SET database_role = EXCLUDED.database_role
 RETURNING user_id, database_role;
 ```
 
-The query should return one row with `database_manager`. The project owner must also enable the Data API for the `public` schema and configure Auth's Site URL and Redirect URLs as `http://localhost:8000/`. Update `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `frontend/app.py` with the new project's values, then commit and push that frontend configuration before partners use the GitHub updater. The publishable key may be in the public repository; never put a database password or Supabase secret/service-role key there.
+The query should return one row with `database_manager`.
 
-See the [frontend README](frontend/README.md#project-administrator-set-up-a-new-supabase-project) for the full dashboard steps, Auth hook selection, user invitations, and app setup.
+Go to **Project Settings → Integrations → Data API** and enable the Data API. Then go to **Authentication → URL Configuration** and set the **Site URL** and **Redirect URLs** to `http://localhost:8000/` so invitation and password-reset links return to the local app.
+
 
 ## Frontend App
 
-The `frontend` folder contains a Python web app that runs on each user's computer at `http://localhost:8000`. It is not a public website; it connects over the internet to the shared Supabase project. Partners need Python 3.9 or newer, internet access, and an invited Garden Program account with an app role assigned by a database manager.
+The `frontend` folder contains a Python web app that runs on each user's computer at `http://localhost:8000`. Each user needs to download this GitHub repository onto their device and run the app from its `frontend` folder. The app is not a public website; it connects over the internet to the shared Supabase project.
 
-### Windows
+Its role-based interface gives each user the appropriate tools to manage Garden Program information. The head project manager and other Supabase organization members can also work directly in the Supabase dashboard when needed, but the frontend is the recommended place for day-to-day garden database work. Users need Python 3.9 or newer, internet access, and an invited Garden Program account with an app role assigned by a database manager.
 
-Install Python 3.9 or newer from [python.org/downloads](https://www.python.org/downloads/). Enable the Python launcher during installation, reopen PowerShell, and confirm with `py --version`. Python itself must be installed first; the app launcher creates the virtual environment and installs its packages.
-
-1. Download this repository from GitHub using **Code → Download ZIP**, then unzip it.
-2. Open the extracted `Garden-Database-main` folder and then `frontend`. Keep the folder together; do not move `Run-GardenApp.exe` by itself.
-3. Double-click `Run-GardenApp.exe`. It checks GitHub for frontend file updates, prepares Python and the required packages on first use, and starts the app in your browser. Leave its console window open while using the app.
-4. If the executable does not work, open PowerShell in `frontend` and run `.\scripts\Run-GardenApp.ps1`.
-
-To set up and run the app manually on Windows, open PowerShell in `frontend` and run:
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe app.py
-```
-
-Open `http://localhost:8000` in a browser. Leave PowerShell open while using the app; press **Ctrl+C** to stop it.
-
-### macOS and Linux (including Kali)
-
-1. Download the repository ZIP from GitHub using **Code → Download ZIP**, then unzip it.
-2. Install Python 3.9 or newer if needed. On macOS, install Python 3 from [python.org/downloads](https://www.python.org/downloads/) and verify it with `python3 --version`. On Kali or another Debian-based Linux, install Python and virtual environment support using `sudo apt update` followed by `sudo apt install python3 python3-venv python3-pip`. Then open Terminal in the extracted `Garden-Database-main/frontend` folder.
-3. Create the environment, install packages, and start the app:
-
-   ```bash
-   python3 -m venv .venv
-   .venv/bin/python -m pip install -r requirements.txt
-   .venv/bin/python app.py
-   ```
-
-4. Open `http://localhost:8000` in a browser. Leave Terminal open while using the app; press **Ctrl+C** to stop it.
-
-The Windows launcher and updater do not run on macOS/Linux. To get frontend updates on those systems, download and unzip the updated repository from GitHub, then run the commands above in its `frontend` folder.
-
-Users do not need a Supabase dashboard account, database password, or connection URI. Each person signs in with their own invited Supabase Auth account; a manager must assign their app role before they can access records. Changes made in the app update the shared Supabase data. The app's updater only changes frontend files and never applies SQL or database schema changes. See [frontend/README.md](frontend/README.md) for complete setup and troubleshooting steps.
-
-### Accounts and passwords
-
-- The project administrator sends invitations through Supabase Auth. The app does not have public self-sign-up.
-- Start the local app before opening an invitation or password-reset link. The link returns to `http://localhost:8000`, where the user can set a password.
-- A manager assigns each invited account its app role from **Manage Users**. Managers can request password-reset emails from that page; invitations for new accounts still come from Supabase Auth.
-
-### Common fixes
-
-- **Python was not found:** Install Python 3.9 or newer, reopen PowerShell or Terminal, and check it with `py --version` on Windows or `python3 --version` on macOS/Linux.
-- **No Garden Program role:** Ask a database manager to assign a role to the account used to sign in.
-- **Cannot reach Supabase Auth or Data API:** Check that the computer has internet access.
-- **Port 8000 is already in use:** Stop another running copy of the app before starting this one.
+For full installation, sign-in, and troubleshooting instructions, see the [frontend README](frontend/README.md).
 # Project
 
 ### Inventory & Supplies
@@ -254,4 +223,4 @@ erDiagram
     }
 ```
 
-The app authenticates each partner through Supabase Auth. App roles are assigned to Auth users and enforced by the Supabase database policies; see `sql/roles_and_permissions.sql` and the Supabase setup guides.
+The app authenticates each user through Supabase Auth. App roles are assigned to Auth users and enforced by the Supabase database policies; see `sql/roles_and_permissions.sql` and the Supabase setup guides.
