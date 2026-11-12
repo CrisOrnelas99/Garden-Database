@@ -1,122 +1,13 @@
 ﻿# Garden Database Frontend
 
-A local web app for the LCSD Garden Program. The app runs on each user's computer at `http://localhost:8000` and connects to the shared Supabase project over the Supabase Auth and Data APIs. It is not a public website.
+This guide is for day-to-day users of the Garden Program app. Users download this repository from GitHub and run the app locally from its `frontend` folder on their own computer. The app signs each user in through Supabase Auth and uses their authenticated session to access the shared Supabase project through its Data API, where app changes are saved. The app itself is not hosted as a public website.
 
-## Project administrator: set up a new Supabase project
-
-Use this checklist when creating a replacement Supabase project for the app. The project owner performs these steps. Partners do not need Supabase organization or dashboard accounts to use the frontend; they need an invited Auth user in this project.
-
-### 1. Create the project and enable its Data API
-
-Create or select the Supabase organization, then create a project inside it. Keep the database password in the project administrator's password manager; partners do not use it.
-
-In the project dashboard, open **Integrations → Data API** (or **Project Settings → Data API**, depending on the dashboard layout). Make sure the Data API is enabled and `public` is an exposed schema. `public` is usually exposed by default. Do not expose the `private` schema; it stores role assignments for the Auth hook. Supabase documents the [Data API](https://supabase.com/docs/guides/api) and [API schema exposure](https://supabase.com/docs/guides/api/using-custom-schemas).
-
-### 2. Configure Auth email sign-in and local redirects
-
-In **Authentication → URL Configuration**, set the **Site URL** to:
-
-```text
-http://localhost:8000/
-```
-
-Add the same URL to **Redirect URLs**. The invite and password-reset links must return to the local app. In **Authentication → Sign In / Providers → Email**, keep email/password sign-in enabled and turn off **Allow new users to sign up** so accounts are invitation-only. Supabase Auth sends the invitations and reset links; its built-in email service has low sending limits, so configure custom SMTP if its limits or delivery are not sufficient. See [Auth redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls) and [inviting users](https://supabase.com/docs/guides/auth/users).
-
-### 3. Create the schema, views, and roles
-
-As the project owner, open **SQL Editor** and run each file from this repository, in order, one at a time:
-
-1. [`sql/schema_garden.sql`](../sql/schema_garden.sql)
-2. [`sql/schema_inventory.sql`](../sql/schema_inventory.sql)
-3. [`sql/summary_views.sql`](../sql/summary_views.sql)
-4. [`sql/demo_data.sql`](../sql/demo_data.sql), only if you want the prewritten starter records
-5. [`sql/roles_and_permissions.sql`](../sql/roles_and_permissions.sql), last
-
-The last file creates the PostgreSQL roles, permissions and policies, the private role-assignment table, the access-token hook, manager functions, display-name profiles, and private audit logging. Do not run it before creating the tables and views. For an existing project, review project-specific SQL changes before rerunning this consolidated setup file.
-
-### 4. Enable the Custom Access Token Hook
-
-In **Authentication → Hooks** (shown as **Hooks (Beta)** in some dashboards), add or enable a **Custom Access Token** hook. Select **Postgres**, schema **`public`**, and function **`custom_access_token_hook`**. Do not select HTTPS; the function was created by `roles_and_permissions.sql`.
-
-Before Supabase issues a sign-in token, this hook looks up the user's role in `private.user_role_assignment` and puts that role in the token's `role` claim. Supabase then uses that role when enforcing database grants and row policies. A user without an assignment receives no Garden Program data role and cannot access app records. See Supabase's [Custom Access Token Hook guide](https://supabase.com/docs/guides/auth/auth-hooks/custom-access-token-hook).
-
-### 5. Bootstrap the first Database Manager
-
-First create the initial manager's Auth user: open **Authentication → Users → Add user → Send invitation**, enter the manager's email, and send the invitation. This creates the Auth user; it does not give them Supabase dashboard or organization membership.
-
-As the project owner, run this in SQL Editor, replacing the example email with the exact invited email:
-
-```sql
-INSERT INTO private.user_role_assignment (user_id, database_role)
-SELECT u.id, 'database_manager'
-FROM auth.users AS u
-WHERE lower(u.email) = lower('manager@example.com')
-ON CONFLICT (user_id)
-DO UPDATE SET database_role = EXCLUDED.database_role
-RETURNING user_id, database_role;
-```
-
-The query should return one row with `database_manager`. If it returns no rows, confirm that the invitation created an Auth user and that the email matches. The manager should start the local app before opening the invitation email, set their password, and sign in. Once signed in, they can assign roles from the app's **Manage Users** page; only a project owner can do the initial bootstrap.
-
-#### Emergency app-role recovery (project owner only)
-
-Use these commands in the Supabase SQL Editor as the project owner. They change app-role assignments only; they do not delete Auth accounts or program records.
-
-To revoke one person's app access while keeping their Auth account, replace the example email:
-
-```sql
-DELETE FROM private.user_role_assignment AS assignment
-USING auth.users AS account
-WHERE assignment.user_id = account.id
-  AND lower(account.email) = lower('person@example.com')
-RETURNING assignment.user_id, assignment.database_role;
-```
-
-To revoke every app role (this removes app access for everyone and leaves no manager who can restore access through the app):
-
-```sql
-DELETE FROM private.user_role_assignment
-RETURNING user_id, database_role;
-```
-
-To restore a Database Manager or bootstrap a replacement, replace the example email with an existing Auth user's email:
-
-```sql
-INSERT INTO private.user_role_assignment (user_id, database_role)
-SELECT u.id, 'database_manager'
-FROM auth.users AS u
-WHERE lower(u.email) = lower('manager@example.com')
-ON CONFLICT (user_id)
-DO UPDATE SET database_role = EXCLUDED.database_role
-RETURNING user_id, database_role;
-```
-
-Role changes take effect when affected users receive a refreshed sign-in token. If all roles were removed, only the project owner can restore a manager with the SQL above.
-
-### 6. Point the frontend at the new project
-
-In the dashboard, copy the **Project URL** from **Integrations → Data API** and the **Publishable key** from **Project Settings → API Keys**. In `frontend/app.py`, replace the default values for `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` with those values. Use the project's base URL (for example, `https://<project-ref>.supabase.co`), not a `postgresql://` connection string.
-
-The project URL and publishable key are intended for app use and may be in the public repository. Never put the database password, a Supabase secret key (`sb_secret_...`), or the legacy `service_role` key in the frontend or GitHub. Each request also carries the user's signed-in Auth token, and the SQL roles and policies enforce access. See [Supabase API keys](https://supabase.com/docs/guides/api/api-keys) and [API security](https://supabase.com/docs/guides/api/securing-your-api).
-
-Commit and push the updated frontend configuration before partners download or update the app. The Windows updater gets its files from the repository's `main` branch, so leaving the new project URL/key only in a local copy will not configure copies downloaded by partners.
-
-### 7. Invite the rest of the team
-
-For each partner, go to **Authentication → Users → Add user → Send invitation** and invite their email. Do not add partners as Supabase organization or project members just so they can use the app. They open the local app, accept the invitation, set a password, and sign in. A Database Manager then selects their account and assigns `staff`, `finance_staff`, or `database_manager` on **Manage Users**. Until a role is assigned, the user cannot access app data. Supabase describes this as an [Auth user invitation](https://supabase.com/docs/guides/auth/users#inviting-users); it is separate from inviting someone to the Supabase organization.
-
-### Security model in brief
-
-The app no longer uses a shared PostgreSQL pooler URL. That connection used one database identity for every partner. Instead, each person signs in through Supabase Auth, and the app sends that user's signed token to the Supabase Data API. The custom token hook maps the Auth user to a database role; Postgres grants and policies decide what that role can do. The public publishable key identifies the project, while the signed user token and database permissions control access. Partners use the local app only; changes they make there are saved to this shared Supabase project.
-
-## What partners need
+## What users need
 
 - Python 3.9 or newer
 - Internet access
 - A Garden Program account invited by a manager
 - The account's email and password
-
-Partners do **not** need a Supabase database password or connection URI. They sign in through the app. Supabase applies each account's assigned role to its data access.
 
 ### Install Python
 
@@ -137,14 +28,26 @@ If the executable is blocked or does not work, from PowerShell opened in `fronte
 .\scripts\Run-GardenApp.ps1
 ```
 
-If Windows reports the downloaded script is not digitally signed, confirm it came from the trusted class repository, then unblock only this script and run it:
+If Windows reports the downloaded script is not digitally signed, check that the GitHub page you downloaded from has the Garden Database repository name and the owner/account your project manager gave you. If either does not match, delete that download and get the correct repository link from your project manager. If both match, unblock only this script and run it:
 
 ```powershell
 Unblock-File .\scripts\Run-GardenApp.ps1
 .\scripts\Run-GardenApp.ps1
 ```
 
-Press Ctrl+C in the console window to stop the local server. The updater updates frontend files only; it does not apply SQL or database schema updates. It keeps a backup of previous frontend files under `%LOCALAPPDATA%\GardenDatabase\frontend-backups`.
+The updater updates frontend files only.
+
+If the executable and PowerShell launcher both fail, start the app manually. Open PowerShell in the `frontend` folder and run:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
+```
+
+Open <http://localhost:8000> and keep the PowerShell window open while using the app.
+
+To stop the local server, click the PowerShell or console window and press **Ctrl+C**, or close that window with the **X**. The app will stop running.
 
 ## macOS / Linux quick start
 
@@ -158,18 +61,6 @@ python3 -m venv .venv
 
 Open <http://localhost:8000>, sign in, and press Ctrl+C in Terminal to stop the server.
 
-## Manual Windows setup
-
-From PowerShell in the `frontend` directory:
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe app.py
-```
-
-Open <http://localhost:8000> and sign in. Leave the PowerShell window open while using the app; Ctrl+C stops it.
-
 ## Accepting an invitation
 
 The project administrator sends new-account invitations from Supabase. Start the local app before opening the invitation email. The standard invitation link signs you in temporarily and opens **Set your password**. Enter and confirm your password, save it, and then sign in with your email and chosen password.
@@ -182,39 +73,67 @@ On the sign-in screen, click **Forgot password?**, enter your account email, and
 
 Keep the local app and its console window open before opening the reset email. The link opens the local app, where you can enter and confirm a new password. After saving it, sign in with the new password. If the link has expired or was already used, request a new reset email. If you see a connection error, start the app and reopen the email link.
 
-## Reading long notes
-
-Hover over a Notes cell to read its full text in a popup. You can also focus it with the keyboard or tap it on a touchscreen. The preview wraps text and preserves line breaks, and long notes can be scrolled inside the popup. Press Escape or click outside to close it. The table's row heights and column widths stay unchanged.
-
-## Navigation menu
-
-The sidebar groups pages under **Locations**, **Gardens**, **Inventory & Budget**, **Reports**, and **Manage** where permitted. Sections stay expanded so their links are always visible. The current page and its section are highlighted. Keyboard users can Tab directly through the links.
-
-## Unsaved changes
-
-If you change a record form, the app asks before discarding your edits through **Cancel**, the close button, **Escape**, page navigation, or sign-out. Unchanged forms close without a warning. Refreshing or closing the browser tab may display the browser's own warning; browsers control that message and cannot guarantee it in every situation, such as a forced browser shutdown. The warning does not save a draft.
-
-Unsaved role selections are preserved while searching the Users list. Refreshing that list, leaving it, or signing out asks before discarding pending role changes. Saving one person's role keeps any other pending selections. Entered new passwords also trigger a warning before leaving the password-reset form.
-
 ## Permissions and data
 
 - The app's sign-in uses each person's invited Supabase Auth account. A manager must assign that account one of the app roles before it can access records.
 - Supabase enforces table and report permissions for every signed-in request. The app shows controls that match those permissions, and database policies remain the authority.
 - Changes made in this app affect the shared Supabase data immediately. The local app does not modify database schema.
 
-## Managing users
+## Navigation menu
 
-Database managers have a **Users** page in the sidebar. Search for an existing account, choose **Staff**, **Finance Staff**, or **Database Manager**, and click **Save**. Use **Remove access** to remove an app role while keeping the account and its records. Changes require confirmation. You cannot change or remove your own manager role.
+Use the menu on the left to open a page. The pages shown depend on your role. Choose a page under its section; the sections stay open, and the current page is highlighted.
 
-Managers can click **Send password reset email** next to an account and confirm the recipient. Supabase sends the reset link; the manager never sees or chooses the password. The recipient must run their local app at `http://localhost:8000` before opening the link, then use the existing new-password form. Accounts without an email address cannot receive a reset email. Supabase email limits and delivery settings still apply.
+- **Database Manager:** Dashboard, Inventory & Budget, Gardens, Locations, Reports, and Manage (Users, Data, and Log).
+- **Finance Staff:** Dashboard, Inventory & Budget, Gardens, Locations, and all Reports.
+- **Staff:** Dashboard, Inventory, Gardens, Locations, and Reports without budget information.
 
-The project administrator should allow `http://localhost:8000/` in Supabase Auth's URL Configuration so recovery links return to the local app. This feature uses the public publishable key and the existing manager directory function; no secret key or additional SQL update is needed beyond the Users page setup below.
+## Working with tables and reports
 
-New account invitations are still sent through Supabase by the project administrator. Users appear here once their Auth accounts exist, including accounts with no assigned role. Initial manager assignment still uses the SQL Editor as described in the database setup guide.
+Open a page from the left menu. Tables contain editable records; reports present information for review. Reports are read-only, so update the source information in its table. The pages and data available depend on your app role.
 
-Role changes apply when the user's token refreshes or expires. Refreshing the browser page now requests a fresh sign-in token and reloads permissions; the user can also sign out and sign in again. An already-open page does not instantly receive changes from another person's computer. The management functions also check the manager's current database assignment, so a removed manager cannot keep assigning roles using an old token.
+### Reports
 
-For an existing project that already has the row-change audit log, run [`sql/application_event_log.sql`](../sql/application_event_log.sql) once in Supabase SQL Editor to add account/app events. Fresh projects get both audit streams from [`sql/roles_and_permissions.sql`](../sql/roles_and_permissions.sql). The app and its updater never apply SQL automatically.
+Reports are read-only views prepared by the database from information in one or more tables. They can bring related information together or show calculated summaries, so a report may not correspond to a single table row. Use reports to review information; to change something, find and edit the appropriate source record in its table. Reports reflect the underlying data when they are loaded.
+
+### Search, sort, and download
+
+- **Search:** Type in the search box to find text across the displayed row information. Select **+** to add up to two more search boxes. When multiple searches are filled in, a row must match every search term. Use **×** to remove an added search box. Results update as you type.
+- **Sort:** Select a column heading to sort by that column. Select it again to reverse the order.
+- **Download PDF:** Select the download button to save the table or report currently shown as a PDF. It includes the current search results and sort order. Notes and edit/delete controls are omitted. For crop rotations, switch to **Table** mode before downloading.
+
+### Add and edit information
+
+On a table page, select **+ Add** to create a record. To change an existing record, select **Edit** in its row, update the form, and save. Use the available selection lists for fields linked to other records, and leave database-generated fields alone. A report does not have add or edit controls; make changes in the related table instead.
+
+An **ID** is an internal identifier the database uses to distinguish a record and connect it to related information. Leave ID fields as they are; the app and database handle them. Some fields link one record to another. These are foreign keys. When adding or editing information, choose a linked record from the selection list so the relationship points to an existing record. In a table, linked values that look clickable can be selected to preview information from the related record.
+
+### Delete information
+
+If **Delete** is available for a row, select it and confirm. A deletion may be blocked if other information depends on that record. Delete permissions also depend on your role:
+
+- **Staff:** Can delete purchase requests and inventory transactions only when their request or transaction date is today. Cannot delete other rows.
+- **Finance Staff:** Can delete budget rows and purchase requests or inventory transactions dated today. Cannot delete other rows.
+- **Database Manager:** Can delete rows in other tables. Purchase requests and inventory transactions can be edited or deleted only when their request or transaction date is today.
+
+The same-day rule is based on the date stored in the row. Rows with a blank or earlier date cannot be edited or deleted under this rule. For other tables, Staff and Finance Staff can edit information but cannot delete those rows.
+
+## Manager pages
+
+### Users
+
+Database Managers can search for accounts, set a user's display name, assign or remove the **Staff**, **Finance Staff**, or **Database Manager** app role, and send a password-reset email. Managers cannot change or remove their own role in the app.
+
+New account invitations and Auth account removal are handled in Supabase by the organization administrator. The project owner can also revoke a manager's app role through the Supabase SQL Editor. See the [Supabase user guide](../docs/supabase_user_guide.md) for account-management and SQL instructions.
+
+### Data
+
+Managers can download all Garden Program table rows together as an insertable SQL backup. Save the backup somewhere safe outside the `Garden-Database` folder. If Garden Program data is deleted or lost, a Supabase project administrator can run the latest downloaded file in the Supabase SQL Editor to restore the table rows captured in that snapshot.
+
+This page also has a configurable reminder to download weekly, every two weeks, or monthly, or to turn reminders off. The reminder appears while the app is open.
+
+### Log
+
+Managers can review recorded table additions, edits, and deletions, along with app events such as role or display-name changes, password-reset requests, and data downloads. The Log page includes timestamps, search and date filters, and details about the changed information.
 
 ## Troubleshooting
 
@@ -224,5 +143,7 @@ For an existing project that already has the row-change audit log, run [`sql/app
 | `Could not reach Supabase Auth` / `Data API` | Check internet access and try again. |
 | `no Garden Program role` | Ask the manager to assign a role to the same email used to sign in. |
 | `Invalid login credentials` | Check the invited account's email and password. |
-| `Address already in use` | Stop the other local app instance, or start with `PORT=8080` (macOS/Linux) / `$env:PORT=8080` (PowerShell). |
+| `Address already in use` | Stop the other local app instance, or start with `PORT=8080` (macOS/Linux) / `$env:PORT=8080` (PowerShell), then open <http://localhost:8080>. |
+| A role or access change has not appeared | Sign out and sign back in to refresh access. If the user still cannot see a page or data, ask the manager to confirm the assigned role. |
+| The app still looks outdated after an update | Close the app, run the updater again, then refresh the browser page. |
 

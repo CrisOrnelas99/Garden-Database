@@ -26,7 +26,7 @@ In the new project's Supabase dashboard, open **SQL Editor**. Run each SQL file 
 4. [`sql/demo_data.sql`](sql/demo_data.sql) for demo purposes if you want to try the app with sample records; skip it if you plan to import your own data
 5. [`sql/roles_and_permissions.sql`](sql/roles_and_permissions.sql) last, after the tables and views exist
 
-If you are setting up a different Supabase project yourself, copy its **Project URL** from **Project Settings → Integrations → Data API** and its **Publishable key** from **Project Settings → API Keys**. Put the base Project URL (for example, `https://<project-ref>.supabase.co`, without `/rest/v1/`) in `SUPABASE_URL` and the Publishable key in `SUPABASE_PUBLISHABLE_KEY` in `frontend/app.py`. The URL tells the app which Supabase project to use for sign-in and database requests. Skip this configuration if the developer is setting up the project with you; otherwise, commit and push it before users download or update the app from GitHub. The Publishable key can be public, but never put a database password or `secret`/`service_role` key in the frontend or repository.
+If you are an authorized project maintainer setting up a different Supabase project, copy its **Project URL** from **Project Settings → Integrations → Data API** and its **Publishable key** from **Project Settings → API Keys**. Put the base Project URL, without `/rest/v1/`, in `SUPABASE_URL` and the key in `SUPABASE_PUBLISHABLE_KEY` in `frontend/app.py`. Skip this if the developer is setting up the project with you; otherwise, commit and push the configuration before users download or update the app. Regular app users should use the configured files and should not replace these values. Never put a database password or Secret/`service_role` key in the frontend or repository.
 
 After the SQL files, open **Authentication → Auth Hooks → Add Hook** in Supabase. Choose **Custom Access Token**, set **Hook Type** to **Postgres** (not HTTPS), select schema **`public`** and function **`custom_access_token_hook`**, then save the hook. When Supabase issues a user's sign-in token, this hook adds that user's assigned app role to it so the database can apply the correct permissions.
 
@@ -46,6 +46,25 @@ The query should return one row with `database_manager`.
 
 Go to **Project Settings → Integrations → Data API** and enable the Data API. Then go to **Authentication → URL Configuration** and set the **Site URL** and **Redirect URLs** to `http://localhost:8000/` so invitation and password-reset links return to the local app.
 
+### Inviting users and managing access
+
+After users download the repository, invite each person in Supabase under **Authentication → Users → Add user → Send invitation**. Users must start the local app before opening the invitation link. The app opens so they can set their password and sign in. A Database Manager then assigns their app role from **Manage Users**; they can access garden information after a role is assigned. Regular app users do not need Supabase organization membership.
+
+To assign or reassign an existing Auth user as a Database Manager, run the manager-assignment SQL above in the Supabase SQL Editor, replacing `manager@example.com` with that user's email. The `ON CONFLICT` clause updates an existing app role to `database_manager`.
+
+To revoke a manager's app role while leaving the Auth account in place, run this as the project owner in the Supabase SQL Editor, replacing the example email:
+
+```sql
+DELETE FROM private.user_role_assignment AS assignment
+USING auth.users AS account
+WHERE assignment.user_id = account.id
+  AND lower(account.email) = lower('manager@example.com')
+RETURNING assignment.user_id, assignment.database_role;
+```
+
+To remove a person's sign-in account entirely, an authorized Supabase administrator goes to **Authentication → Users**, finds the account, chooses **Delete user**, and confirms. This also removes the account's app role and display-name profile, but does not delete existing Garden Program records. See the [Supabase user guide](docs/supabase_user_guide.md) for more account-management details.
+
+For help with Supabase invitations, sign-in, app roles, Auth Hooks, or Data API connections, see the [Supabase user guide troubleshooting section](docs/supabase_user_guide.md#9-troubleshooting).
 
 ## Frontend App
 
@@ -68,10 +87,6 @@ Maintain up-to-date records of physical garden footprints, irrigation setups, co
 
 Plan planting schedules, manage crop rotations to maintain soil health, and track seasonal variations systematically while ensuring resources are prepared for the various growing cycles.
 
-
-## Implementation
-
-The garden schema defines shared types, locations, location groups, and garden tables. The inventory schema defines inventory and budget tables. The summary views report on those tables, and `roles_and_permissions.sql` configures roles, permissions, user display names, and audit logging. The new-project section above gives the exact SQL Editor order.
 
 # Current Database Schema
 
