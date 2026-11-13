@@ -308,7 +308,6 @@ async function openApp(session) {
 const LABELS = {
   instock_total: "In Stock",
   bed_size_sq_ft: "Bed Size (sq ft)",
-  delivered_to_fns: "Delivered to FNS",
   is_hlc: "HLC",
   is_full: "Full",
   location_group_name: "Location Group",
@@ -376,8 +375,8 @@ function formatCell(name, value) {
   if (/(status|condition)/i.test(name)) {
     const status = String(value).trim().toLowerCase();
     let tone = "neutral";
-    if (["good", "active", "in-ground", "checked in", "approved", "harvested", "complete", "completed", "delivered", "ordered"].includes(status)) tone = "green";
-    else if (["planned", "pending", "awaiting", "fair", "scheduled", "needs review"].includes(status)) tone = "yellow";
+    if (["good", "active", "in-ground", "checked in", "approved", "harvested", "complete", "completed", "delivered", "delivered to fns", "ordered"].includes(status)) tone = "green";
+    else if (["requested", "planned", "pending", "awaiting", "fair", "scheduled", "needs review"].includes(status)) tone = "yellow";
     else if (["in maintenance", "require maintenance", "checked out", "in progress"].includes(status)) tone = status === "require maintenance" ? "red" : "orange";
     else if (["inactive", "removed", "rejected", "denied", "cancelled", "canceled", "overdue", "needs replacement"].includes(status)) tone = "red";
     return `<span class="pill status-pill status-${tone}">${escapeHtml(value)}</span>`;
@@ -1494,6 +1493,7 @@ function inputFor(col, value, isNew = false) {
   let hint = col.foreign_key ? `<span class="hint">From ${escapeHtml(label(col.foreign_key.ref_table))}</span>` : "";
   if (col.name === "unit_cost_at_request") hint = '<span class="hint">Saved price snapshot; new requests use the item catalog price.</span>';
   if (col.name === "total_cost") hint = '<span class="hint">Calculated from the quantity and saved unit price.</span>';
+  if (state.schema?.name === "purchase_request" && col.name === "status") hint = '<span class="hint">Requested → Ordered → Delivered to FNS. Use Canceled only when no payment remains owed; it releases the budget amount and reverses any recorded delivery.</span>';
   const wide = col.data_type === "text" ? "wide" : "";
   return `<div class="field ${wide}"><label for="${id}">${escapeHtml(label(col.name))}${col.required ? ' <span class="req">*</span>' : ""}</label>${control}${hint}</div>`;
 }

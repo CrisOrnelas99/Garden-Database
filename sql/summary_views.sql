@@ -22,17 +22,14 @@ WHERE il.instock_total <= il.reorder_point;
 
 -- ============================================================
 -- PendingRequests
--- Purchase requests that have not been ordered or delivered
+-- Requested and ordered purchases awaiting delivery; canceled rows are excluded
 -- Show the saved school or group assignment as entered on the request.
 -- ============================================================
 DROP VIEW IF EXISTS "PendingRequests";
 CREATE VIEW "PendingRequests" AS
 SELECT
     pr.request_date,
-    CASE
-        WHEN pr.ordered = FALSE THEN 'Unordered'
-        WHEN pr.delivered_to_fns = FALSE THEN 'Undelivered'
-    END AS request_status,
+    pr.status::TEXT AS request_status,
     pr.item_name,
     pr.requested_by,
     COALESCE(pr.requesting_school_group, pr.requesting_school)::VARCHAR AS assigned_locations,
@@ -41,8 +38,7 @@ SELECT
     pr.review_status,
     pr.notes
 FROM purchase_request pr
-WHERE pr.ordered = FALSE
-   OR pr.delivered_to_fns = FALSE;
+WHERE pr.status IN ('Requested', 'Ordered');
 
 
 -- ============================================================
@@ -103,9 +99,9 @@ request_totals AS (
         pr.requesting_school AS location_name,
         NULL::VARCHAR(200) AS location_group_name,
         SUM(pr.quantity_requested) FILTER (
-            WHERE NOT pr.delivered_to_fns
+            WHERE pr.status IN ('Requested', 'Ordered')
         ) AS purchase_items_pending,
-        SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
+        SUM(pr.total_cost) FILTER (WHERE pr.status IN ('Ordered', 'Delivered to FNS')) AS total_spent
     FROM purchase_request pr
     WHERE pr.requesting_school IS NOT NULL
     GROUP BY pr.requesting_school
@@ -116,9 +112,9 @@ request_totals AS (
         NULL::VARCHAR(200) AS location_name,
         pr.requesting_school_group AS location_group_name,
         SUM(pr.quantity_requested) FILTER (
-            WHERE NOT pr.delivered_to_fns
+            WHERE pr.status IN ('Requested', 'Ordered')
         ) AS purchase_items_pending,
-        SUM(pr.total_cost) FILTER (WHERE pr.ordered) AS total_spent
+        SUM(pr.total_cost) FILTER (WHERE pr.status IN ('Ordered', 'Delivered to FNS')) AS total_spent
     FROM purchase_request pr
     WHERE pr.requesting_school_group IS NOT NULL
     GROUP BY pr.requesting_school_group
@@ -155,7 +151,7 @@ WITH budget_spending AS (
         budget_name,
         SUM(total_cost) AS total_budget_spent
     FROM purchase_request
-    WHERE ordered = TRUE
+    WHERE status IN ('Ordered', 'Delivered to FNS')
       AND budget_name IS NOT NULL
     GROUP BY budget_name
 )
@@ -172,7 +168,7 @@ JOIN purchase_request pr
     ON b.budget_name = pr.budget_name
 JOIN budget_spending bs
     ON bs.budget_name = b.budget_name
-WHERE pr.ordered = TRUE
+WHERE pr.status IN ('Ordered', 'Delivered to FNS')
 GROUP BY
     b.budget_name,
     pr.item_name,
@@ -197,7 +193,7 @@ WITH source_item_spending AS (
         SUM(pr.quantity_requested) AS total_quantity_ordered,
         SUM(pr.total_cost) AS total_spent
     FROM purchase_request pr
-    WHERE pr.ordered = TRUE
+    WHERE pr.status IN ('Ordered', 'Delivered to FNS')
     GROUP BY
         COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned'),
         pr.item_name
@@ -225,13 +221,13 @@ SELECT
     school_year,
     SUM(
         CASE
-            WHEN ordered = TRUE THEN total_cost
+            WHEN status IN ('Ordered', 'Delivered to FNS') THEN total_cost
             ELSE 0
         END
     ) AS total_spent,
     SUM(
         CASE
-            WHEN ordered = FALSE THEN total_cost
+            WHEN status = 'Requested' THEN total_cost
             ELSE 0
         END
     ) AS pending_spending

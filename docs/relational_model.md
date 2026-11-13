@@ -16,7 +16,7 @@ This document describes the implemented PostgreSQL schema. `PK` means primary ke
 
 **inventory_list**(`inventory_id` PK, `item_name` UQ, FK(`item_name`) -> item(`item_name`), cumulative_asset, instock_total, reorder_point, counted, storage_location, notes)
 
-**purchase_request**(`request_id` PK, request_date, requested_by, requesting_school, requesting_school_group, item_name, unit_cost_at_request, quantity_requested, total_cost, delivered_to_fns, review_status, ordered, budget_name, funding_source, school_year, notes); FK(`requesting_school`) -> location(`location_name`), FK(`requesting_school_group`) -> location_group(`location_group_name`), FK(`item_name`) -> item(`item_name`), FK(`budget_name`) -> budget(`budget_name`)
+**purchase_request**(`request_id` PK, request_date, requested_by, requesting_school, requesting_school_group, item_name, unit_cost_at_request, quantity_requested, total_cost, status, review_status, budget_name, funding_source, school_year, notes); FK(`requesting_school`) -> location(`location_name`), FK(`requesting_school_group`) -> location_group(`location_group_name`), FK(`item_name`) -> item(`item_name`), FK(`budget_name`) -> budget(`budget_name`)
 
 **inventory_transaction**(`transaction_id` PK, transaction_date, status, taken_by, for_school, for_school_group, item_name, quantity, notes); FK(`for_school`) -> location(`location_name`), FK(`for_school_group`) -> location_group(`location_group_name`), FK(`item_name`) -> inventory_list(`item_name`)
 
@@ -126,15 +126,14 @@ Records requested items, request status, delivery, and optional budget and fundi
 | unit_cost_at_request | dollar | NULL; unit price snapshot, populated from catalog when omitted if available |
 | quantity_requested | nonnegative_count | NULL in column definition; CHECK > 0 when supplied |
 | total_cost | dollar | NOT NULL, DEFAULT 0; calculated from quantity and price snapshot; explicitly supplied historical totals may be retained |
-| delivered_to_fns | BOOLEAN | NOT NULL, DEFAULT FALSE; delivery state |
+| status | purchase_request_status | NOT NULL, DEFAULT Requested; Requested, Ordered, Delivered to FNS, or Canceled |
 | review_status | TEXT | NULL; review or order status |
-| ordered | BOOLEAN | NOT NULL, DEFAULT FALSE; order state |
 | budget_name | VARCHAR(100) | NULL; FK to budget.budget_name; update cascades |
 | funding_source | VARCHAR(100) | NULL; funding source text |
 | school_year | VARCHAR(9) | NULL; associated school year |
 | notes | TEXT | NULL; additional request details |
 
-CHECK: requesting_school and requesting_school_group cannot both be non-NULL. When one is entered, a trigger clears the other. Both may be NULL for a personal/unassigned request. A request marked delivered must have a quantity. Referenced groups must have members. Ordered requests update remaining budget; delivered requests may update inventory.
+CHECK: requesting_school and requesting_school_group cannot both be non-NULL. When one is entered, a trigger clears the other. Both may be NULL for a personal/unassigned request. A request marked delivered must have a quantity. Referenced groups must have members. Ordered and Delivered to FNS requests count toward budget spending. Delivered to FNS requests add inventory; reversing a delivery removes that quantity, subject to stock availability. Requested and Ordered appear in pending reports; Canceled does not count toward pending quantities or spending.
 
 ### inventory_transaction
 

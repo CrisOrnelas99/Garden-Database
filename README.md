@@ -156,7 +156,7 @@ erDiagram
         int quantity_requested
         decimal unit_cost_at_request
         decimal total_cost
-        boolean ordered
+        purchase_request_status status
     }
 
     INVENTORY_TRANSACTION {

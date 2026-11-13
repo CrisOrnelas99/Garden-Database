@@ -1,4 +1,4 @@
-﻿"""Local Flask app; authenticated data requests are enforced by Supabase Postgres roles."""
+"""Local Flask app; authenticated data requests are enforced by Supabase Postgres roles."""
 
 import base64
 import copy
@@ -49,7 +49,7 @@ VIEWS = {
 }
 VIEW_DESCRIPTIONS = {
     "RestockList": "Identifies inventory items at or below their reorder point.",
-    "PendingRequests": "Lists purchase requests that are unordered or not yet delivered, showing the saved school or group assignment by name.",
+    "PendingRequests": "Lists Requested and Ordered purchase requests awaiting delivery, showing the saved school or group assignment by name.",
     "SchoolSupply": "Summarizes inventory and purchasing activity in separate rows for each school and each named group. Group totals stay on the group row.",
     "BudgetPurchases": "Groups ordered quantities and item spending by budget and item, with budget-level totals.",
     "FundingSourceSpending": "Groups ordered quantities and spending by funding source and item, with funding-source totals.",
@@ -59,6 +59,7 @@ VIEW_DESCRIPTIONS = {
     "GardenAssets": "Lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.",
 }
 ENUMS = {
+    "purchase_request_status": ["Requested", "Ordered", "Delivered to FNS", "Canceled"],
     "condition": ["Good", "Require Maintenance", "In Maintenance"],
     "lifecycle_status": ["Active", "Planned", "Inactive"],
     "rotation_status": ["Planned", "In-ground", "Removed", "Harvested"],
@@ -157,8 +158,8 @@ SCHEMAS = {
         varchar("requesting_school_group", 200, fk=ref("location_group", "location_group_name")),
         varchar("item_name", 200, False, fk=ref("item", "item_name")),
         numeric("unit_cost_at_request", domain="dollar"), integer("quantity_requested", domain="nonnegative_count"),
-        numeric("total_cost", False, "0", "dollar"), boolean("delivered_to_fns", False, "false"),
-        text("review_status"), boolean("ordered", False, "false"),
+        numeric("total_cost", False, "0", "dollar"), enum("status", "purchase_request_status", False, "'Requested'"),
+        text("review_status"),
         varchar("budget_name", 100, fk=ref("budget", "budget_name")),
         varchar("funding_source", 100), varchar("school_year", 9), text("notes"),
     ]),
@@ -202,8 +203,8 @@ SCHEMAS = {
 
 STAFF_PURCHASE_COLUMNS = [
     "request_id", "request_date", "requested_by", "requesting_school", "requesting_school_group",
-    "item_name", "quantity_requested", "unit_cost_at_request", "total_cost", "delivered_to_fns",
-    "review_status", "ordered", "school_year", "notes",
+    "item_name", "quantity_requested", "unit_cost_at_request", "total_cost", "status",
+    "review_status", "school_year", "notes",
 ]
 STAFF_VIEWS = {"CropCalendar", "CurrentBedPlantings", "GardenAssets", "RestockList", "PendingRequests", "SchoolSupply"}
 STAFF_VIEW_COLUMNS = {

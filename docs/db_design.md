@@ -68,6 +68,7 @@ recorded as a new transaction, as enforced by the inventory trigger.
 - `dollar`: nonnegative monetary amount with two decimal places; defined in the inventory schema.
 - `nonnegative_count`: nonnegative integer quantity; defined in the garden schema for shared use.
 - `inventory_transaction_status`: `Checked In` or `Checked Out`.
+- `purchase_request_status`: Requested, Ordered, Delivered to FNS, or Canceled.
 - `condition`: `Good`, `Require Maintenance`, or `In Maintenance`; defined in the garden schema for shared use.
 - `lifecycle_status`: `Active`, `Planned`, or `Inactive`; defined in the garden schema for shared use.
 - `rotation_status`: `Planned`, `In-ground`, `Removed`, or `Harvested`.
@@ -157,9 +158,8 @@ Records requested items, ordering and delivery state, and optional budget and fu
 - `unit_cost_at_request`: unit price recorded for this request; defaults to the catalog price when omitted and remains fixed if the catalog price changes.
 - `quantity_requested`: required positive quantity.
 - `total_cost`: calculated from quantity and the request's unit-price snapshot.
-- `delivered_to_fns`: whether the requested item has been delivered to FNS.
+- `status`: Requested, Ordered, Delivered to FNS, or Canceled; defaults to Requested. Ordered and Delivered to FNS count toward spending. Only Delivered to FNS adds stock. Canceled is excluded from pending quantities and spending.
 - `review_status`: free-text review or order status.
-- `ordered`: whether the request has been ordered.
 - `budget_name`: optional budget used for the request.
 - `funding_source`: optional funding source text.
 - `school_year`: school year associated with the request.
@@ -260,7 +260,7 @@ The app and database check that selected schools and groups exist. The database 
 Views provide readable reports without changing the underlying records.
 
 - `RestockList`: identifies inventory items at or below their reorder point.
-- `PendingRequests`: lists purchase requests that are unordered or not yet delivered, showing the saved school or group assignment by name.
+- `PendingRequests`: lists Requested and Ordered purchases awaiting delivery, showing their status and saved school or group assignment. Delivered to FNS and Canceled requests are excluded.
 - `SchoolSupply`: summarizes inventory and purchasing activity in separate rows for each school and each named group. Group totals stay on the group row.
 - `BudgetPurchases`: groups ordered quantities and item spending by budget and item, with budget-level totals.
 - `FundingSourceSpending`: groups ordered quantities and spending by funding source and item, with funding-source totals.

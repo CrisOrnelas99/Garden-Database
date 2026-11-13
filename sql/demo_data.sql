@@ -171,130 +171,25 @@ ON CONFLICT (item_name) DO NOTHING;
 -- PURCHASE REQUESTS
 -- ============================================================
 
-INSERT INTO purchase_request
-    (
-        request_date,
-        requested_by,
-        requesting_school,
-        item_name,
-        quantity_requested,
-        delivered_to_fns,
-        review_status,
-        ordered,
-        budget_name,
-        funding_source,
-        school_year,
-        notes
-    )
-VALUES
-    (
-        '2026-08-15', 'Alice Morgan', 'Hogwarts',
-        'Plant Pots', 5, TRUE, 'Approved', TRUE,
-        'Garden Supplies', 'SHCF_26-27_#9556',
-        '2026-2027', 'Pots for spring seedlings in the Hogwarts greenhouse'
-    ),
-    (
-        '2026-08-16', 'Brian Lee', 'Sunshine Elementary',
-        'Garden Gloves', 6, TRUE, 'Approved', TRUE,
-        'Garden Supplies', 'SHCF_26-27_#9556',
-        '2026-2027', 'Gloves for student garden work'
-    ),
-    (
-        '2026-08-17', 'Carla Davis', 'Green Valley Middle School',
-        'Hydroponic Nutrients', 4, TRUE, 'Approved', TRUE,
-        'Hydroponics', 'Collaboratory_26-27_#9446',
-        '2026-2027', 'Hydroponic growing supplies'
-    ),
-    (
-        '2026-08-18', 'Daniel Smith', 'Oakwood High School',
-        'Garden Soil', 12, FALSE, 'Under Review', FALSE,
-        'Seeds and Soil', 'SHCF_26-27_#9556',
-        '2026-2027', 'Soil for garden beds'
-    ),
-    (
-        '2026-08-19', 'Emily Brown', 'Riverbend Academy',
-        'Tomato Seeds', 8, FALSE, 'Under Review', FALSE,
-        'Seeds and Soil', 'SHCF_26-27_#9556',
-        '2026-2027', 'Tomato planting supplies'
-    ),
-    (
-        '2026-08-20', 'Alice Morgan', 'Hogwarts',
-        'Hand Trowel', 4, TRUE, 'Approved', TRUE,
-        'Tools and Equipment', 'DonatedFunds_5120',
-        '2026-2027', 'Additional hand tools for Professor Sprout''s Herbology class'
-    ),
-    (
-        '2026-08-21', 'Brian Lee', 'Sunshine Elementary',
-        'Watering Can', 3, TRUE, 'Approved', TRUE,
-        'Garden Maintenance', 'DonatedFunds_5120',
-        '2026-2027', 'Watering equipment'
-    ),
-    (
-        '2026-08-22', 'Carla Davis', 'Green Valley Middle School',
-        'Pruning Shears', 3, FALSE, 'Under Review', FALSE,
-        'Tools and Equipment', 'DonatedFunds_5120',
-        '2026-2027', 'Garden maintenance tools'
-    ),
-    (
-        '2026-08-23', 'Grace Taylor', 'Maple Grove School',
-        'Lettuce Seeds', 10, TRUE, 'Approved', TRUE,
-        'Seeds and Soil', 'SHCF_26-27_#9556',
-        '2026-2027', 'Lettuce planting supplies'
-    ),
-    (
-        '2026-08-24', 'Henry Moore', 'Pinecrest Elementary',
-        'Plant Labels', 20, TRUE, 'Approved', TRUE,
-        'Garden Supplies', 'SHCF_26-27_#9556',
-        '2026-2027', 'Labels for crop identification'
-    ),
-    (
-        '2026-08-25', 'Isabella Clark', 'Lakeside Middle School',
-        'Carrot Seeds', 8, FALSE, 'Under Review', FALSE,
-        'Seeds and Soil', 'SHCF_26-27_#9556',
-        '2026-2027', 'Carrot planting supplies'
-    ),
-    (
-        '2026-08-26', 'James Hall', 'Cedar Ridge School',
-        'Basil Seeds', 8, TRUE, 'Approved', TRUE,
-        'Seeds and Soil', 'SHCF_26-27_#9556',
-        '2026-2027', 'Herb garden supplies'
-    ),
-    (
-        '2026-08-27', 'Karen Allen', 'Meadowbrook Academy',
-        'Compost Mix', 15, TRUE, 'Approved', TRUE,
-        'Garden Maintenance', 'DonatedFunds_5120',
-        '2026-2027', 'Compost for garden beds'
-    ),
-    (
-        '2026-08-28', 'Liam Young', 'Willow Creek School',
-        'Drip Irrigation Kit', 2, FALSE, 'Approved', TRUE,
-        'Garden Maintenance', 'DonatedFunds_5120',
-        '2026-2027', 'Irrigation equipment'
-    ),
-    (
-        '2026-08-29', 'Mia King', 'Northside Community School',
-        'Knee Pads', 4, TRUE, 'Approved', TRUE,
-        'Tools and Equipment', 'DonatedFunds_5120',
-        '2026-2027', 'Safety equipment for volunteers'
-    ),
-    (
-        '2026-08-30', 'Alice Morgan', 'Hogwarts',
-        'Garden Gloves', 3, TRUE, 'Approved', TRUE,
-        'Garden Supplies', 'SHCF_26-27_#9556',
-        '2026-2027', 'Replacement gloves for the greenhouse team'
-    ),
-    (
-        '2027-08-15', 'Alice Morgan', 'Hogwarts',
-        'Plant Pots', 8, FALSE, 'Approved', TRUE,
-        'Garden Supplies', 'LocalDonors_26-27',
-        '2027-2028', 'Ordered pots for the upcoming greenhouse season; delivery is pending'
-    ),
-    (
-        '2027-08-12', 'Paula Green', 'Brookside School',
-        'Lettuce Seeds', 5, FALSE, 'Approved', TRUE,
-        'Community Donation', NULL,
-        '2027-2028', 'First purchase for a school that is preparing to start a garden'
-    );
+INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, quantity_requested, status, review_status, budget_name, funding_source, school_year, notes) VALUES
+    ('2026-08-15', 'Alice Morgan', 'Hogwarts', 'Plant Pots', 5, 'Delivered to FNS', 'Approved', 'Garden Supplies', 'SHCF_26-27_#9556', '2026-2027', 'Pots for spring seedlings in the Hogwarts greenhouse'),
+    ('2026-08-16', 'Brian Lee', 'Sunshine Elementary', 'Garden Gloves', 6, 'Delivered to FNS', 'Approved', 'Garden Supplies', 'SHCF_26-27_#9556', '2026-2027', 'Gloves for student garden work'),
+    ('2026-08-17', 'Carla Davis', 'Green Valley Middle School', 'Hydroponic Nutrients', 4, 'Delivered to FNS', 'Approved', 'Hydroponics', 'Collaboratory_26-27_#9446', '2026-2027', 'Hydroponic growing supplies'),
+    ('2026-08-18', 'Daniel Smith', 'Oakwood High School', 'Garden Soil', 12, 'Requested', 'Under Review', 'Seeds and Soil', 'SHCF_26-27_#9556', '2026-2027', 'Soil for garden beds'),
+    ('2026-08-19', 'Emily Brown', 'Riverbend Academy', 'Tomato Seeds', 8, 'Requested', 'Under Review', 'Seeds and Soil', 'SHCF_26-27_#9556', '2026-2027', 'Tomato planting supplies'),
+    ('2026-08-20', 'Alice Morgan', 'Hogwarts', 'Hand Trowel', 4, 'Delivered to FNS', 'Approved', 'Tools and Equipment', 'DonatedFunds_5120', '2026-2027', 'Additional hand tools for Professor Sprout''s Herbology class'),
+    ('2026-08-21', 'Brian Lee', 'Sunshine Elementary', 'Watering Can', 3, 'Delivered to FNS', 'Approved', 'Garden Maintenance', 'DonatedFunds_5120', '2026-2027', 'Watering equipment'),
+    ('2026-08-22', 'Carla Davis', 'Green Valley Middle School', 'Pruning Shears', 3, 'Requested', 'Under Review', 'Tools and Equipment', 'DonatedFunds_5120', '2026-2027', 'Garden maintenance tools'),
+    ('2026-08-23', 'Grace Taylor', 'Maple Grove School', 'Lettuce Seeds', 10, 'Delivered to FNS', 'Approved', 'Seeds and Soil', 'SHCF_26-27_#9556', '2026-2027', 'Lettuce planting supplies'),
+    ('2026-08-24', 'Henry Moore', 'Pinecrest Elementary', 'Plant Labels', 20, 'Delivered to FNS', 'Approved', 'Garden Supplies', 'SHCF_26-27_#9556', '2026-2027', 'Labels for crop identification'),
+    ('2026-08-25', 'Isabella Clark', 'Lakeside Middle School', 'Carrot Seeds', 8, 'Requested', 'Under Review', 'Seeds and Soil', 'SHCF_26-27_#9556', '2026-2027', 'Carrot planting supplies'),
+    ('2026-08-26', 'James Hall', 'Cedar Ridge School', 'Basil Seeds', 8, 'Delivered to FNS', 'Approved', 'Seeds and Soil', 'SHCF_26-27_#9556', '2026-2027', 'Herb garden supplies'),
+    ('2026-08-27', 'Karen Allen', 'Meadowbrook Academy', 'Compost Mix', 15, 'Delivered to FNS', 'Approved', 'Garden Maintenance', 'DonatedFunds_5120', '2026-2027', 'Compost for garden beds'),
+    ('2026-08-28', 'Liam Young', 'Willow Creek School', 'Drip Irrigation Kit', 2, 'Ordered', 'Approved', 'Garden Maintenance', 'DonatedFunds_5120', '2026-2027', 'Irrigation equipment'),
+    ('2026-08-29', 'Mia King', 'Northside Community School', 'Knee Pads', 4, 'Delivered to FNS', 'Approved', 'Tools and Equipment', 'DonatedFunds_5120', '2026-2027', 'Safety equipment for volunteers'),
+    ('2026-08-30', 'Alice Morgan', 'Hogwarts', 'Garden Gloves', 3, 'Delivered to FNS', 'Approved', 'Garden Supplies', 'SHCF_26-27_#9556', '2026-2027', 'Replacement gloves for the greenhouse team'),
+    ('2027-08-15', 'Alice Morgan', 'Hogwarts', 'Plant Pots', 8, 'Ordered', 'Approved', 'Garden Supplies', 'LocalDonors_26-27', '2027-2028', 'Ordered pots for the upcoming greenhouse season; delivery is pending'),
+    ('2027-08-12', 'Paula Green', 'Brookside School', 'Lettuce Seeds', 5, 'Ordered', 'Approved', 'Community Donation', NULL, '2027-2028', 'First purchase for a school that is preparing to start a garden');
 
 -- Single-location requests use requesting_school directly. Multi-location
 -- requests use requesting_school_group and leave requesting_school NULL.
@@ -319,52 +214,12 @@ SET requesting_school = 'Brookside School',
 WHERE request_date = '2027-08-12';
 
 -- The central partner office can order items without having a garden.
-INSERT INTO purchase_request
-    (
-        request_date,
-        requested_by,
-        requesting_school,
-        item_name,
-        quantity_requested,
-        delivered_to_fns,
-        review_status,
-        ordered,
-        budget_name,
-        funding_source,
-        school_year,
-        notes
-    )
-VALUES
-    (
-        '2026-09-02', 'Frank Wilson', 'HLC Office',
-        'Knee Pads', 2, FALSE, 'Approved', TRUE,
-        'Community Donation', NULL,
-        '2026-2027', 'Protective gear ordered for central program staff'
-    );
+INSERT INTO purchase_request (request_date, requested_by, requesting_school, item_name, quantity_requested, status, review_status, budget_name, funding_source, school_year, notes) VALUES
+    ('2026-09-02', 'Frank Wilson', 'HLC Office', 'Knee Pads', 2, 'Ordered', 'Approved', 'Community Donation', NULL, '2026-2027', 'Protective gear ordered for central program staff');
 
 -- A bulk request assigned to all 16 locations, including locations without gardens.
-INSERT INTO purchase_request
-    (
-        request_date,
-        requested_by,
-        requesting_school_group,
-        item_name,
-        quantity_requested,
-        delivered_to_fns,
-        review_status,
-        ordered,
-        budget_name,
-        funding_source,
-        school_year,
-        notes
-    )
-VALUES
-    (
-        '2026-09-04', 'Frank Wilson', 'All HLC Gardens',
-        'Garden Gloves', 30, FALSE, 'Approved', TRUE,
-        'Garden Supplies', 'SHCF_26-27_#9556',
-        '2026-2027', 'Bulk glove order for locations with garden details, including inactive gardens; quantities are not split by location'
-    );
+INSERT INTO purchase_request (request_date, requested_by, requesting_school_group, item_name, quantity_requested, status, review_status, budget_name, funding_source, school_year, notes) VALUES
+    ('2026-09-04', 'Frank Wilson', 'All HLC Gardens', 'Garden Gloves', 30, 'Ordered', 'Approved', 'Garden Supplies', 'SHCF_26-27_#9556', '2026-2027', 'Bulk glove order for locations with garden details, including inactive gardens; quantities are not split by location');
 
 -- ============================================================
 -- INVENTORY TRANSACTIONS

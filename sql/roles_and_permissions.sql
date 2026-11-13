@@ -172,9 +172,8 @@ GRANT SELECT (
     quantity_requested,
     unit_cost_at_request,
     total_cost,
-    delivered_to_fns,
+    status,
     review_status,
-    ordered,
     school_year,
     notes
 ) ON public.purchase_request TO staff;
@@ -190,9 +189,8 @@ GRANT INSERT (
     quantity_requested,
     unit_cost_at_request,
     total_cost,
-    delivered_to_fns,
+    status,
     review_status,
-    ordered,
     school_year,
     notes
 ) ON public.purchase_request TO staff;
@@ -207,9 +205,8 @@ GRANT UPDATE (
     quantity_requested,
     unit_cost_at_request,
     total_cost,
-    delivered_to_fns,
+    status,
     review_status,
-    ordered,
     school_year,
     notes
 ) ON public.purchase_request TO staff;

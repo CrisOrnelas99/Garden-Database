@@ -14,6 +14,10 @@ CREATE TYPE inventory_transaction_status AS ENUM (
     'Checked Out'
 );
 
+CREATE TYPE purchase_request_status AS ENUM (
+    'Requested', 'Ordered', 'Delivered to FNS', 'Canceled'
+);
+
 -- ============================================================
 -- budget
 -- One shared amount and remaining balance per budget name.
@@ -83,9 +87,8 @@ CREATE TABLE purchase_request (
     quantity_requested nonnegative_count
         CHECK (quantity_requested > 0),
     total_cost dollar NOT NULL DEFAULT 0,
-    delivered_to_fns BOOLEAN NOT NULL DEFAULT FALSE,
+    status purchase_request_status NOT NULL DEFAULT 'Requested',
     review_status TEXT,
-    ordered BOOLEAN NOT NULL DEFAULT FALSE,
     budget_name VARCHAR(100),
     funding_source VARCHAR(100),
     school_year VARCHAR(9),
@@ -107,7 +110,7 @@ CREATE TABLE purchase_request (
         CHECK (requesting_school IS NULL OR requesting_school_group IS NULL),
 
     CONSTRAINT chk_purchase_request_delivered_has_quantity
-        CHECK (NOT delivered_to_fns OR quantity_requested IS NOT NULL),
+        CHECK (status <> 'Delivered to FNS' OR quantity_requested IS NOT NULL),
 
     -- Keep referenced item names stable; stock history triggers depend on this key.
     CONSTRAINT fk_purchase_request_item
@@ -274,7 +277,7 @@ BEGIN
                 SELECT SUM(pr.total_cost)
                 FROM purchase_request pr
                 WHERE pr.budget_name = p_budget_name
-                  AND pr.ordered = TRUE
+                  AND pr.status IN ('Ordered', 'Delivered to FNS')
             ),
             0
         )
@@ -450,7 +453,7 @@ DECLARE
     available_stock INT;
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        IF NEW.delivered_to_fns THEN
+        IF NEW.status = 'Delivered to FNS' THEN
             inventory_delta := NEW.quantity_requested;
             SELECT instock_total INTO available_stock
             FROM inventory_list
@@ -468,7 +471,7 @@ BEGIN
         END IF;
         RETURN NEW;
     ELSIF TG_OP = 'DELETE' THEN
-        IF OLD.delivered_to_fns THEN
+        IF OLD.status = 'Delivered to FNS' THEN
             inventory_delta := -OLD.quantity_requested;
             SELECT instock_total INTO available_stock
             FROM inventory_list
@@ -491,7 +494,7 @@ BEGIN
         RETURN OLD;
     ELSE
         -- If the delivered item is unchanged, apply only the quantity difference.
-        IF OLD.delivered_to_fns AND NEW.delivered_to_fns
+        IF OLD.status = 'Delivered to FNS' AND NEW.status = 'Delivered to FNS'
            AND OLD.item_name = NEW.item_name THEN
             inventory_delta := NEW.quantity_requested - OLD.quantity_requested;
             IF inventory_delta <> 0 THEN
@@ -517,7 +520,7 @@ BEGIN
         END IF;
 
         -- Reverse the prior delivery only when its delivered item or state changes.
-        IF OLD.delivered_to_fns THEN
+        IF OLD.status = 'Delivered to FNS' THEN
             inventory_delta := -OLD.quantity_requested;
             SELECT instock_total INTO available_stock
             FROM inventory_list
@@ -539,7 +542,7 @@ BEGIN
         END IF;
 
         -- Add the new delivery only when its delivered item or state changes.
-        IF NEW.delivered_to_fns THEN
+        IF NEW.status = 'Delivered to FNS' THEN
             inventory_delta := NEW.quantity_requested;
             SELECT instock_total INTO available_stock
             FROM inventory_list
@@ -587,7 +590,7 @@ BEGIN
                 SELECT SUM(pr.total_cost)
                 FROM purchase_request pr
                 WHERE pr.budget_name = NEW.budget_name
-                  AND pr.ordered = TRUE
+                  AND pr.status IN ('Ordered', 'Delivered to FNS')
             ),
             0
         );
@@ -613,7 +616,7 @@ SET remaining_budget = b.budget_amount - COALESCE(
         SELECT SUM(pr.total_cost)
         FROM purchase_request pr
         WHERE pr.budget_name = b.budget_name
-          AND pr.ordered = TRUE
+          AND pr.status IN ('Ordered', 'Delivered to FNS')
     ),
     0
 )
@@ -622,7 +625,7 @@ WHERE b.remaining_budget IS DISTINCT FROM b.budget_amount - COALESCE(
         SELECT SUM(pr.total_cost)
         FROM purchase_request pr
         WHERE pr.budget_name = b.budget_name
-          AND pr.ordered = TRUE
+          AND pr.status IN ('Ordered', 'Delivered to FNS')
     ),
     0
 );
