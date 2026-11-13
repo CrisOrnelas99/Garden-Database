@@ -247,42 +247,13 @@ Tracks plantings by bed within a location's garden.
 
 ## Using location groups
 
-In Supabase, add one row to `location_group` for each custom group name. Then add one row to `group_members` for each school or office in that group. Both tables use readable names, so the group and location can be recognized while editing. Do not create or manually maintain the built-in `All HLC Gardens` group or its membership; the schema creates it and maintains its membership automatically from `location.is_hlc`. To include a new HLC location, set `is_hlc = TRUE` when inserting it. The schema triggers must be installed in the database for this behavior to run.
+Use the **Location Groups** and **Group Members** pages under **Locations** to organize schools into groups. Create a custom group in Location Groups, then add one row in Group Members for each school or office that belongs to it. Select the existing group and location for each membership. A group needs at least one member before it can be used on a purchase request or inventory transaction. The group page lets you view its associated schools.
 
-For example, create `SchoolBandC` and add two schools:
+**All HLC Gardens** is maintained automatically from each location's HLC setting. Do not add or remove its membership manually. When a location is marked as HLC, it is included automatically; clearing that setting removes it. This is a live group, so reports show its current members.
 
-```sql
-INSERT INTO location_group (location_group_name)
-VALUES ('SchoolBandC');
+When creating or editing a purchase request, choose either a single **Requesting School** or a **Requesting School Group**. For an inventory transaction, choose either a single school or a group in the corresponding assignment fields. Leave both blank when the record is not assigned to a school or group. The form clears the other assignment when you choose one, so a record cannot be assigned to both at once. The requester or handler is recorded separately in **Requested By** or **Taken By**.
 
-INSERT INTO group_members (location_group_name, location_name)
-VALUES
-    ('SchoolBandC', 'Sunshine Elementary'),
-    ('SchoolBandC', 'Green Valley Middle School');
-```
-
-For a purchase request, set `requesting_school` for one school or `requesting_school_group` for a group. For an inventory transaction, use `for_school` or `for_school_group` in the same way. Fill at most one assignment field; leave both `NULL` for personal use. When editing a row, entering a value in one field automatically clears the other. The requester or person handling the transaction remains recorded in `requested_by` or `taken_by`.
-
-```sql
-UPDATE purchase_request
-SET requesting_school_group = 'SchoolBandC'
-WHERE request_id = 123;
-
-UPDATE inventory_transaction
-SET for_school_group = 'SchoolBandC'
-WHERE transaction_id = 123;
-```
-
-Developers can get a group's schools by joining the group and membership tables:
-
-```sql
-SELECT lg.location_group_name, gl.location_name
-FROM location_group AS lg
-JOIN group_members AS gl
-    ON gl.location_group_name = lg.location_group_name;
-```
-
-The foreign keys require group members and locations to exist. A referenced group must have at least one member; the database prevents removing its final member while requests or transactions still reference it.
+The app and database check that selected schools and groups exist. The database also prevents removing a group's last school while purchase requests or inventory transactions still use that group.
 
 ## Views
 

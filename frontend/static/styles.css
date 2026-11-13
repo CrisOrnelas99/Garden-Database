@@ -412,14 +412,19 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
 .account-panel { margin: 24px 6px 4px; padding: 14px 10px 4px; border-top: 1px solid rgba(255,255,255,.16); }
 .account-email { overflow-wrap: anywhere; color: #fff; font-size: 12px; font-weight: 600; }
 .account-role { margin-top: 5px; color: rgba(223,238,227,.68); font-size: 11px; text-transform: capitalize; }
+.account-actions { display: flex; gap: 8px; margin-top: 12px; }
 .sign-out-btn {
-  margin-top: 12px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.24);
+  flex: 1; margin: 0; padding: 7px 10px; border: 1px solid rgba(255,255,255,.24);
   border-radius: 7px; color: #eff6ed; background: transparent; font: inherit; font-size: 12px; cursor: pointer;
 }
 .sign-out-btn:hover { background: rgba(255,255,255,.08); }
+.help-link { text-align: center; text-decoration: none; }
+.help-link.active { border-color: rgba(255,255,255,.5); background: rgba(255,255,255,.12); }
+.help-search-control { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.help-search-control .search { width: min(220px, 55vw); }
 
 /* Manager account list and role confirmation dialog. */
-.user-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.user-summary { display: grid; grid-template-columns: minmax(180px, 240px); gap: 16px; margin-bottom: 24px; }
 .user-summary .card { padding: 20px; }
 .user-summary strong { display: block; font-size: 28px; color: var(--green-900); margin-bottom: 5px; }
 .user-summary span { color: var(--muted); font-size: 13px; }
@@ -427,6 +432,26 @@ dialog::backdrop { background: rgba(20, 30, 24, .45); }
 .users-heading h2 { margin: 0 0 5px; font-size: 16px; }
 .users-heading p { margin: 0; color: var(--muted); font-size: 13px; }
 .users-heading .search { max-width: 240px; }
+.help-section { margin-bottom: 18px; }
+.help-section > .card-header h2 { margin: 0; font-size: 17px; }
+.help-markdown { padding: 22px; line-height: 1.6; overflow-wrap: anywhere; }
+.help-markdown > :first-child { margin-top: 0; }
+.help-markdown > :last-child { margin-bottom: 0; }
+.help-markdown h1, .help-markdown h2, .help-markdown h3, .help-markdown h4 { margin: 1.5em 0 .55em; line-height: 1.3; }
+.help-markdown h1 { font-size: 24px; }
+.help-markdown h2 { font-size: 20px; }
+.help-markdown h3 { font-size: 16px; }
+.help-markdown p, .help-markdown ul, .help-markdown ol, .help-markdown blockquote { margin: .7em 0; }
+.help-markdown li + li { margin-top: .25em; }
+.help-markdown a { color: var(--green-700); overflow-wrap: anywhere; }
+.help-markdown pre { padding: 14px; overflow: auto; border-radius: 8px; background: #f4f6f2; }
+.help-markdown code { padding: 1px 4px; border-radius: 4px; background: #f0f2ee; font-size: .92em; }
+.help-markdown pre code { padding: 0; background: transparent; }
+.help-markdown table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; }
+.help-markdown th, .help-markdown td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+.help-markdown th { background: #f4f6f2; }
+.help-markdown blockquote { padding-left: 14px; border-left: 3px solid var(--green-500); color: var(--muted); }
+.help-search-match { border-radius: 3px; color: #513b00; background: #ffe58a; }
 .user-name { display: flex; align-items: center; gap: 12px; }
 .user-avatar { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; color: #33593e; background: #e9f0e5; font-size: 12px; font-weight: 700; }
 .user-name strong { display: block; font-size: 13px; font-weight: 600; }

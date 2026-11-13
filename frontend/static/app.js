@@ -129,6 +129,8 @@ const supabaseClient = window.supabase.createClient(
 const ROLE_LABELS = { staff: "Staff", finance_staff: "Finance Staff", database_manager: "Database Manager" };
 let appStarted = false;
 let initializingSession = true;
+let weeklySignOutTimer = null;
+let signOutNotice = "";
 let recordBaseline = null;
 let recordSaving = false;
 let currentRouteHash = null;
@@ -137,6 +139,8 @@ const pendingDisplayNameEdits = new Map();
 let dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let cropRotationMode = "table";
 let cropRotationMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let cropCalendarReportMode = "table";
+let cropCalendarReportMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 // Compare current field values with the values shown when the record form opened.
 function recordSnapshot() {
@@ -180,7 +184,28 @@ window.addEventListener("beforeunload", event => {
   event.returnValue = "";
 });
 
+function startWeeklySignOutTimer(deadlineTimestamp) {
+  clearTimeout(weeklySignOutTimer);
+  const delay = Number(deadlineTimestamp) * 1000 - Date.now();
+  weeklySignOutTimer = setTimeout(() => {
+    void expireLocalSignIn("Weekly sign-in ended Monday at 12:01 a.m. Please sign in again.");
+  }, Math.max(0, Math.min(delay, 2147483647)));
+}
+
+async function expireLocalSignIn(message) {
+  clearTimeout(weeklySignOutTimer);
+  signOutNotice = message;
+  try {
+    const { error } = await supabaseClient.auth.signOut({ scope: "local" });
+    if (error) signOutNotice = "";
+  } catch {
+    signOutNotice = "";
+  }
+  showLogin(message, "info");
+}
+
 function showLogin(message = "", messageTone = "error") {
+  clearTimeout(weeklySignOutTimer);
   hideNotePreview();
   hideReferencePreview();
   discardRecordDraft();
@@ -255,6 +280,7 @@ async function openApp(session) {
   content.innerHTML = '<div class="empty">Loading your access…</div>';
   try {
     state.meta = await api("/meta");
+    startWeeklySignOutTimer(state.meta.weekly_sign_out_at);
     state.role = state.meta.role;
     $("#account-role").textContent = ROLE_LABELS[state.role] || state.role;
     updateDataExportReminder();
@@ -271,6 +297,7 @@ async function openApp(session) {
       showLogin("Your account is signed in but has no Garden Program role yet. Ask a manager to assign one.");
       return false;
     }
+    if (err.sessionExpired) return false;
     content.innerHTML = `<div class="banner"><strong>Could not load the app.</strong> ${escapeHtml(err.message)}</div>
       <button class="btn primary" id="retry-startup">Try again</button>`;
     $("#retry-startup").onclick = () => openApp(session);
@@ -426,6 +453,10 @@ async function api(path, options = {}) {
   if (!res.ok) {
     const err = new Error(data.error || `Request failed (${res.status})`);
     err.detail = data.detail;
+    if (res.status === 401 && data.error === "Weekly sign-in expired. Please sign in again.") {
+      err.sessionExpired = true;
+      await expireLocalSignIn("Weekly sign-in ended Monday at 12:01 a.m. Please sign in again.");
+    }
     throw err;
   }
   return data;
@@ -684,6 +715,7 @@ function renderNav() {
   const preferredOrder = ["Inventory & Budget", "Gardens", "Locations", "Reports", "Manage"];
   const orderedGroups = [...preferredOrder.filter(name => groups[name]), ...Object.keys(groups).filter(name => !preferredOrder.includes(name))];
   const current = location.hash || "#/dashboard";
+  $("#help-link").classList.toggle("active", current === "#/help");
   const hoverGroups = new Set(["Locations", "Reports", "Manage"]);
   const currentGroup = orderedGroups.find(group => groups[group].some(link => link.href === current));
   expandedNavGroup = hoverGroups.has(currentGroup) ? currentGroup : null;
@@ -905,6 +937,7 @@ function buildDashboardCalendar(rows, month) {
 function showCropCalendarEvent(event) {
   if (!event) return;
   const dialog = $("#crop-event-dialog");
+  $("#crop-event-close").onclick = () => dialog.close();
   const row = event.row;
   $("#crop-event-title").textContent = event.kind + " · " + (row.plant_name || "Planting");
   const fields = [
@@ -1110,7 +1143,12 @@ function renderRecordContent(html) {
 async function showView(name) {
   const view = state.meta.views.find((v) => v.name === name);
   if (!view) return showError(new Error(`Unknown report: ${name}`));
-  setHeader(view.label, view.description || "", "", true);
+  const cropCalendarControls = name === "CropCalendar"
+    ? '<div class="view-mode-toggle" role="group" aria-label="Crop calendar display">' +
+      '<button type="button" class="btn small" id="crop-calendar-report-table-mode">Table</button>' +
+      '<button type="button" class="btn small" id="crop-calendar-report-calendar-mode">Calendar</button></div>'
+    : "";
+  setHeader(view.label, view.description || "", cropCalendarControls, true);
   content.innerHTML = '<div class="empty">Loading…</div>';
   state.rows = await api(`/views/${name}`);
   const render = () => {
@@ -1121,10 +1159,116 @@ async function showView(name) {
       ...rowColumns.filter((c) => !preferredColumns.includes(c)),
     ];
     const visible = filterAndSort(state.rows);
-    renderRecordContent(`${multiSearchControls()}<div class="card">${dataTable(visible, { columns })}</div><p class="muted">${visible.length} of ${state.rows.length} records</p>`);
+    const showingCalendar = name === "CropCalendar" && cropCalendarReportMode === "calendar";
+    const reportContent = showingCalendar
+      ? '<div class="card crop-rotation-calendar-card"><div class="card-header crop-rotation-calendar-heading">' +
+        '<div><strong>Sowing and expected harvest dates</strong><div class="muted">Select a planting or harvest to view its report information.</div></div>' +
+        '<div class="crop-calendar-controls"><button type="button" class="btn small" id="crop-calendar-report-prev" aria-label="Previous month">‹</button>' +
+        '<strong id="crop-calendar-report-month"></strong><button type="button" class="btn small" id="crop-calendar-report-next" aria-label="Next month">›</button>' +
+        '<button type="button" class="btn small" id="crop-calendar-report-today">Today</button></div></div>' +
+        '<div id="crop-calendar-report-grid"></div></div>'
+      : '<div class="card">' + dataTable(visible, { columns }) + '</div>';
+    renderRecordContent(`${multiSearchControls()}${reportContent}<p class="muted">${visible.length} of ${state.rows.length} plantings</p>`);
     bindTableControls(render);
+    if (showingCalendar) {
+      const calendar = buildDashboardCalendar(visible, cropCalendarReportMonth);
+      $("#crop-calendar-report-month").textContent = new Intl.DateTimeFormat(undefined, {
+        month: "long", year: "numeric",
+      }).format(cropCalendarReportMonth);
+      $("#crop-calendar-report-grid").innerHTML = calendar.markup;
+      const shiftMonth = amount => {
+        cropCalendarReportMonth = new Date(cropCalendarReportMonth.getFullYear(), cropCalendarReportMonth.getMonth() + amount, 1);
+        render();
+      };
+      $("#crop-calendar-report-prev").onclick = () => shiftMonth(-1);
+      $("#crop-calendar-report-next").onclick = () => shiftMonth(1);
+      $("#crop-calendar-report-today").onclick = () => {
+        cropCalendarReportMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        render();
+      };
+      content.querySelectorAll("[data-crop-event]").forEach(button => {
+        button.onclick = () => showCropCalendarEvent(calendar.events[Number(button.dataset.cropEvent)]);
+      });
+    }
   };
   render();
+  if (name === "CropCalendar") {
+    const setMode = mode => {
+      cropCalendarReportMode = mode;
+      for (const [id, selected] of [
+        ["crop-calendar-report-table-mode", mode === "table"],
+        ["crop-calendar-report-calendar-mode", mode === "calendar"],
+      ]) {
+        const button = $("#" + id);
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      }
+      render();
+    };
+    $("#crop-calendar-report-table-mode").onclick = () => setMode("table");
+    $("#crop-calendar-report-calendar-mode").onclick = () => setMode("calendar");
+    setMode(cropCalendarReportMode);
+  }
+}
+
+// Load the guides appropriate to this signed-in user's app role.
+async function showHelp() {
+  const searchControls = '<label class="help-search-control"><span>Search guides</span>' +
+    '<input class="search" id="help-search" type="search" placeholder="Search guides" aria-label="Search help guides">' +
+    '<span id="help-search-count" class="muted" role="status" aria-live="polite"></span></label>';
+  setHeader("Help", "Guides and instructions for using the Garden Database app.", searchControls);
+  content.innerHTML = '<div class="empty">Loading help guides…</div>';
+  const guides = await api("/help");
+  const section = (id, title, html) => `<section class="card help-section" id="${id}"><div class="card-header"><h2>${title}</h2></div><article class="help-markdown">${html}</article></section>`;
+  content.innerHTML = section("frontend-help", "Frontend User Guide", guides.frontend || "") +
+    section("database-reference-help", "Program Data Reference", guides.reference || "") +
+    (guides.manager ? section("manager-help", "Manager Pages", guides.manager) : "") +
+    (guides.supabase ? section("supabase-help", "Supabase User Guide", guides.supabase) : "") +
+    section("help-troubleshooting", "Troubleshooting", guides.troubleshooting || "");
+  const searchInput = $("#help-search");
+  const searchCount = $("#help-search-count");
+  const searchGuides = () => {
+    content.querySelectorAll("mark.help-search-match").forEach(mark => mark.replaceWith(document.createTextNode(mark.textContent)));
+    content.querySelectorAll(".help-markdown").forEach(article => article.normalize());
+    const term = searchInput.value.trim();
+    if (!term) {
+      searchCount.textContent = "";
+      return;
+    }
+    const needle = term.toLocaleLowerCase();
+    let matchCount = 0;
+    content.querySelectorAll(".help-markdown").forEach(article => {
+      const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      textNodes.forEach(node => {
+        const original = node.nodeValue;
+        const lower = original.toLocaleLowerCase();
+        let cursor = 0;
+        let index = lower.indexOf(needle, cursor);
+        if (index < 0) return;
+        const fragment = document.createDocumentFragment();
+        while (index >= 0) {
+          fragment.append(document.createTextNode(original.slice(cursor, index)));
+          const mark = document.createElement("mark");
+          mark.className = "help-search-match";
+          mark.textContent = original.slice(index, index + term.length);
+          fragment.append(mark);
+          cursor = index + term.length;
+          matchCount += 1;
+          index = lower.indexOf(needle, cursor);
+        }
+        fragment.append(document.createTextNode(original.slice(cursor)));
+        node.replaceWith(fragment);
+      });
+    });
+    searchCount.textContent = matchCount ? `${matchCount} match${matchCount === 1 ? "" : "es"}` : "No matches";
+  };
+  searchInput.oninput = searchGuides;
+  content.querySelectorAll("a[href^='http']").forEach(link => {
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+  });
 }
 
 /* ---------- Editable tables ---------- */
@@ -1526,9 +1670,7 @@ async function showUsers() {
   content.innerHTML = `
     <div class="user-notice" id="users-notice" role="status" hidden></div>
     <section class="user-summary" aria-label="Account summary">
-      <div class="card"><strong id="user-count"></strong><span>Accounts</span></div>
-      <div class="card"><strong id="assigned-count"></strong><span>With app access</span></div>
-      <div class="card"><strong id="unassigned-count"></strong><span>Without app access</span></div>
+      <div class="card"><strong id="user-count"></strong><span>Total accounts</span></div>
     </section>
     <section class="card">
       <div class="users-heading"><div><h2>People &amp; roles</h2><p>Choose a role, then save your change.</p></div>
@@ -1564,8 +1706,6 @@ async function showUsers() {
     users.sort((a, b) => (a.email || a.user_id).localeCompare(b.email || b.user_id));
     const query = $("#search-users").value.toLowerCase();
     $("#user-count").textContent = users.length;
-    $("#assigned-count").textContent = users.filter(user => user.database_role).length;
-    $("#unassigned-count").textContent = users.filter(user => !user.database_role).length;
     const rows = users.map((user, index) => {
       if (!`${user.email || ""} ${user.user_id}`.toLowerCase().includes(query)) return "";
       const self = user.user_id === state.meta.user.id;
@@ -1850,6 +1990,7 @@ async function route() {
     else if (kind === "users") await showUsers();
     else if (kind === "manage-data") await showManageData();
     else if (kind === "audit-log") await showAuditLog();
+    else if (kind === "help") await showHelp();
     else await showDashboard();
   } catch (err) {
     showError(err);
@@ -2011,7 +2152,11 @@ $("#reset-cancel").onclick = async () => {
 supabaseClient.auth.onAuthStateChange((event, session) => {
   if (event === "PASSWORD_RECOVERY") return showPasswordSetup("recovery");
   if (settingPassword) return;
-  if (event === "SIGNED_OUT") showLogin();
+  if (event === "SIGNED_OUT") {
+    const message = signOutNotice;
+    signOutNotice = "";
+    showLogin(message, message ? "info" : "error");
+  }
   if (event === "SIGNED_IN" && !appStarted && !initializingSession) setTimeout(() => openApp(session), 0);
 });
 

@@ -6,9 +6,14 @@ import datetime
 import io
 import json
 import os
+import sys
+import threading
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
 
+import bleach
+import markdown
 import requests
 from flask import Flask, g, jsonify, request, send_file, send_from_directory
 
@@ -214,6 +219,25 @@ class ApiError(Exception):
         self.message, self.status, self.detail = message, status, detail
 
 app = Flask(__name__, static_folder="static", static_url_path="")
+WEEKLY_SIGN_OUT_LOCK = threading.Lock()
+WEEKLY_SIGN_OUT_MESSAGE = "Weekly sign-in expired. Please sign in again."
+HELP_ALLOWED_TAGS = {
+    "a", "blockquote", "br", "code", "em", "h1", "h2", "h3", "h4", "h5", "h6",
+    "hr", "li", "ol", "p", "pre", "strong", "table", "tbody", "td", "th", "thead",
+    "tr", "ul",
+}
+HELP_ALLOWED_ATTRIBUTES = {"a": ["href", "title"], "code": ["class"]}
+
+def render_help_markdown(source):
+    # Render the repository guides as Markdown while allowing only safe HTML output.
+    rendered = markdown.markdown(source, extensions=["fenced_code", "sane_lists", "tables"])
+    return bleach.clean(
+        rendered,
+        tags=HELP_ALLOWED_TAGS,
+        attributes=HELP_ALLOWED_ATTRIBUTES,
+        protocols=["http", "https", "mailto"],
+        strip=True,
+    )
 
 # Send app errors back to the browser in a consistent, readable format.
 @app.errorhandler(ApiError)
@@ -228,6 +252,65 @@ def decode_claims(token):
         return json.loads(base64.urlsafe_b64decode(part.encode("ascii")))
     except Exception:
         raise ApiError("Your sign-in session is invalid. Please sign in again.", 401)
+
+# Keep each Supabase session's weekly sign-out deadline on this computer so it
+# survives browser reloads and local server restarts without storing tokens.
+def weekly_sign_out_deadline(session_id):
+    if not isinstance(session_id, str) or not session_id:
+        raise ApiError("Your sign-in session is invalid. Please sign in again.", 401)
+
+    if os.name == "nt":
+        state_root = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    elif os.environ.get("XDG_STATE_HOME"):
+        state_root = Path(os.environ["XDG_STATE_HOME"])
+    elif os.name == "posix" and sys.platform == "darwin":
+        state_root = Path.home() / "Library" / "Application Support"
+    else:
+        state_root = Path.home() / ".local" / "state"
+    state_dir = state_root / "GardenDatabase"
+    state_file = state_dir / "weekly-sign-ins.json"
+
+    now = datetime.datetime.now()
+    now_timestamp = now.timestamp()
+    with WEEKLY_SIGN_OUT_LOCK:
+        try:
+            records = json.loads(state_file.read_text(encoding="utf-8")) if state_file.exists() else {}
+            if not isinstance(records, dict):
+                raise ValueError("Invalid weekly sign-in state")
+        except (OSError, ValueError, json.JSONDecodeError):
+            if state_file.exists():
+                raise ApiError("Could not read the local sign-in schedule. Contact the app manager.", 503)
+            records = {}
+
+        stored_deadline = records.get(session_id)
+        if isinstance(stored_deadline, (int, float)):
+            deadline_timestamp = float(stored_deadline)
+        else:
+            days_until_monday = (7 - now.weekday()) % 7
+            deadline = datetime.datetime.combine(
+                now.date() + datetime.timedelta(days=days_until_monday),
+                datetime.time(0, 1),
+            )
+            if deadline <= now:
+                deadline += datetime.timedelta(days=7)
+            deadline_timestamp = deadline.timestamp()
+
+        # Prune old session entries while retaining expired deadlines long
+        # enough to keep a stale session from receiving a fresh week.
+        records = {
+            key: value for key, value in records.items()
+            if isinstance(value, (int, float)) and float(value) >= now_timestamp - 30 * 24 * 60 * 60
+        }
+        records[session_id] = deadline_timestamp
+        try:
+            state_dir.mkdir(parents=True, exist_ok=True)
+            temporary_file = state_file.with_suffix(".tmp")
+            temporary_file.write_text(json.dumps(records), encoding="utf-8")
+            temporary_file.replace(state_file)
+        except OSError:
+            raise ApiError("Could not save the local sign-in schedule. Check this computer's storage permissions.", 503)
+
+    return deadline_timestamp
 
 # Ask Supabase to validate the user's token, then remember their account and assigned role.
 def authenticate_request():
@@ -245,9 +328,14 @@ def authenticate_request():
         raise ApiError("Could not reach Supabase Auth. Check your internet connection.", 503)
     if response.status_code != 200:
         raise ApiError("Your sign-in session has expired. Please sign in again.", 401)
-    role = decode_claims(token).get("role")
+    claims = decode_claims(token)
+    role = claims.get("role")
     if role not in ROLES:
         raise ApiError("This account has no Garden Program role assigned yet.", 403)
+    deadline_timestamp = weekly_sign_out_deadline(claims.get("session_id"))
+    if datetime.datetime.now().timestamp() >= deadline_timestamp:
+        raise ApiError(WEEKLY_SIGN_OUT_MESSAGE, 401)
+    g.weekly_sign_out_at = deadline_timestamp
     g.access_token, g.auth_user, g.role = token, response.json(), role
 
 # Require a valid sign-in before handling any app data request.
@@ -393,7 +481,44 @@ def meta():
               for name, cfg in TABLES.items() if not (g.role == "staff" and name == "budget")]
     views = [{"name": name, "label": label, "description": VIEW_DESCRIPTIONS[name]} for name, label in VIEWS.items()
              if not (g.role == "staff" and name not in STAFF_VIEWS)]
-    return jsonify({"role": g.role, "user": {"id": g.auth_user.get("id"), "email": g.auth_user.get("email")}, "tables": tables, "views": views})
+    return jsonify({
+        "role": g.role,
+        "user": {"id": g.auth_user.get("id"), "email": g.auth_user.get("email")},
+        "tables": tables,
+        "views": views,
+        "weekly_sign_out_at": g.weekly_sign_out_at,
+    })
+
+# Provide the frontend guide to signed-in users and the Supabase guide only to managers.
+@app.get("/api/help")
+def get_help_guides():
+    repository_root = Path(__file__).resolve().parent.parent
+    try:
+        frontend_source = (repository_root / "frontend" / "README.md").read_text(encoding="utf-8-sig")
+        manager_start = frontend_source.find("\n## Manager pages")
+        troubleshooting_start = frontend_source.find("\n## Troubleshooting", manager_start)
+        if manager_start < 0 or troubleshooting_start < 0:
+            raise ApiError("The frontend guide is missing its expected sections.", 500)
+
+        reference_source = (repository_root / "docs" / "db_design.md").read_text(encoding="utf-8-sig")
+        reference_start = reference_source.find("## Reusable types")
+        if reference_start < 0:
+            raise ApiError("The database reference section could not be found.", 500)
+
+        manager_source = frontend_source[manager_start:troubleshooting_start]
+        troubleshooting_source = frontend_source[troubleshooting_start:]
+        guides = {
+            "frontend": render_help_markdown(frontend_source[:manager_start]),
+            "reference": render_help_markdown(reference_source[reference_start:]),
+            "troubleshooting": render_help_markdown(troubleshooting_source),
+        }
+        if g.role == "database_manager":
+            guides["manager"] = render_help_markdown(manager_source)
+            supabase_source = (repository_root / "docs" / "supabase_user_guide.md").read_text(encoding="utf-8-sig")
+            guides["supabase"] = render_help_markdown(supabase_source)
+    except OSError:
+        raise ApiError("The help guides could not be loaded from this installation.", 500)
+    return jsonify(guides)
 
 # Give the browser the field descriptions needed to display a table and build its forms.
 @app.get("/api/tables/<name>/schema")
