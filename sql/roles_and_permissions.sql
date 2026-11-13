@@ -447,13 +447,13 @@ BEGIN
     END LOOP;
 END $$;
 
--- Database managers can correct/delete only purchase requests and inventory
--- transactions dated today, matching staff and finance_staff. NULL and older
--- dates are blocked. INSERT and SELECT remain available without a date limit.
+-- Database managers can correct today's purchase/inventory rows completely.
+-- Older, non-delivered purchase requests may still have workflow fields
+-- corrected; delivered requests remain locked. Deletes stay same-day only.
 CREATE POLICY database_manager_recent_purchase_request_update
     ON public.purchase_request FOR UPDATE TO database_manager
-    USING (request_date = CURRENT_DATE)
-    WITH CHECK (request_date = CURRENT_DATE);
+    USING (status <> 'Delivered to FNS')
+    WITH CHECK (true);
 CREATE POLICY database_manager_recent_purchase_request_delete
     ON public.purchase_request FOR DELETE TO database_manager
     USING (request_date = CURRENT_DATE);
@@ -466,19 +466,20 @@ CREATE POLICY database_manager_recent_inventory_transaction_delete
     ON public.inventory_transaction FOR DELETE TO database_manager
     USING (transaction_date = CURRENT_DATE);
 
--- Edit/delete is limited to rows whose business date is today. Rows with a
--- NULL date are not editable or deletable by any of the three app roles.
+-- Deletes remain limited to rows whose business date is today. Older
+-- purchase requests can update only workflow fields; NULL dates remain
+-- blocked from editing and deletion.
 CREATE POLICY staff_recent_purchase_request_update
     ON public.purchase_request FOR UPDATE TO staff
-    USING (request_date = CURRENT_DATE)
-    WITH CHECK (request_date = CURRENT_DATE);
+    USING (status <> 'Delivered to FNS')
+    WITH CHECK (true);
 CREATE POLICY staff_recent_purchase_request_delete
     ON public.purchase_request FOR DELETE TO staff
     USING (request_date = CURRENT_DATE);
 CREATE POLICY finance_recent_purchase_request_update
     ON public.purchase_request FOR UPDATE TO finance_staff
-    USING (request_date = CURRENT_DATE)
-    WITH CHECK (request_date = CURRENT_DATE);
+    USING (status <> 'Delivered to FNS')
+    WITH CHECK (true);
 CREATE POLICY finance_recent_purchase_request_delete
     ON public.purchase_request FOR DELETE TO finance_staff
     USING (request_date = CURRENT_DATE);
@@ -545,8 +546,8 @@ CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA private TO supabase_auth_admin;
 
--- Prevent a role from changing the date to restart the correction window.
--- All three data roles may only edit rows dated today; NULL dates are blocked.
+-- Keep dates immutable. Today's requests allow full edits. Older requests may
+-- only change purchase workflow fields, and delivered requests are immutable.
 CREATE OR REPLACE FUNCTION private.guard_recent_record_date_edit()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -572,12 +573,25 @@ BEGIN
     old_date := (old_row ->> date_column)::DATE;
     new_date := (new_row ->> date_column)::DATE;
 
-    IF old_date IS NULL THEN
-        RAISE EXCEPTION 'Rows with a NULL date cannot be edited by staff, finance_staff, or database_manager.';
-    ELSIF old_date IS DISTINCT FROM CURRENT_DATE THEN
-        RAISE EXCEPTION 'Only rows dated today can be edited by staff, finance_staff, or database_manager.';
-    ELSIF new_date IS DISTINCT FROM old_date THEN
+    IF new_date IS DISTINCT FROM old_date THEN
         RAISE EXCEPTION 'The record date cannot be changed during the correction window.';
+    END IF;
+
+    IF TG_TABLE_NAME = 'purchase_request' THEN
+        IF old_row ->> 'status' = 'Delivered to FNS' THEN
+            RAISE EXCEPTION 'Delivered purchase requests cannot be edited.';
+        END IF;
+        IF old_date IS DISTINCT FROM CURRENT_DATE AND
+           (old_row - ARRAY['status', 'review_status', 'budget_name', 'funding_source', 'notes'])
+             IS DISTINCT FROM
+           (new_row - ARRAY['status', 'review_status', 'budget_name', 'funding_source', 'notes']) THEN
+            RAISE EXCEPTION 'Older purchase requests may only change status, review_status, budget_name, funding_source, or notes.';
+        END IF;
+    ELSIF old_date IS NULL OR old_date <> CURRENT_DATE THEN
+        IF old_date IS NULL THEN
+            RAISE EXCEPTION 'Rows with a NULL transaction date cannot be edited.';
+        END IF;
+        RAISE EXCEPTION 'Only today''s inventory transactions can be edited.';
     END IF;
 
     RETURN NEW;

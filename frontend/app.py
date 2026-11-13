@@ -33,7 +33,7 @@ TABLES = {
     "item": {"label": "Item Catalog", "group": "Inventory & Budget", "description": "Catalog of supplies that can be purchased or tracked in inventory."},
     "inventory_list": {"label": "Inventory", "group": "Inventory & Budget", "description": "Tracks current stock for catalog items. Each catalog item can have at most one inventory-list row."},
     "purchase_request": {"label": "Purchase Requests", "group": "Inventory & Budget", "description": "Records requested items, ordering and delivery state, and optional budget and funding-source details.", "readonly": ["unit_cost_at_request", "total_cost"], "readonly_display": ["unit_cost_at_request", "total_cost"]},
-    "inventory_transaction": {"label": "Check In / Out", "group": "Inventory & Budget", "description": "Records inventory check-ins and check-outs. A row may be assigned to one school, one location group, or neither for personal use."},
+    "inventory_transaction": {"label": "Check In / Out", "group": "Inventory & Budget", "description": "Records inventory check-ins and check-outs. To keep the movement history accurate, create a new Checked In row when items are returned instead of changing a Checked Out row; transaction status changes are not reversible."},
     "garden_bed": {"label": "Garden Beds", "group": "Gardens", "description": "Stores individual beds for locations. Adding the first bed automatically starts the bed count for that location."},
     "irrigation_setup": {"label": "Irrigation", "group": "Gardens", "description": "Stores zero or more irrigation systems for each location with garden details."},
     "compost_unit": {"label": "Compost Units", "group": "Gardens", "description": "Stores zero or more composting units for each location with garden details."},
@@ -47,6 +47,8 @@ VIEWS = {
     "BudgetPurchases": "Budget Purchases", "FundingSourceSpending": "Funding Source Spending",
     "YearlyPurchase": "Yearly Purchases",
 }
+TABLE_DESCRIPTIONS = {}
+
 VIEW_DESCRIPTIONS = {
     "RestockList": "Identifies inventory items at or below their reorder point.",
     "PendingRequests": "Lists Requested and Ordered purchase requests awaiting delivery, showing the saved school or group assignment by name.",

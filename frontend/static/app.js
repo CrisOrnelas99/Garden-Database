@@ -12,6 +12,7 @@ let referenceHideTimer = null;
 let referenceRequestId = 0;
 let previewedReferenceKey = null;
 let expandedNavGroup = null;
+let formReadonlyNames = new Set();
 
 function hideNotePreview() {
   clearTimeout(noteHideTimer);
@@ -1402,12 +1403,20 @@ function sameDayRow(name, row) {
   return Boolean(date) && String(date).slice(0, 10) === new Date().toISOString().slice(0, 10);
 }
 
+function isDeliveredPurchaseRequest(row) {
+  return Boolean(row && String(row.status || "").trim() === "Delivered to FNS");
+}
+
 function canEdit(name, row) {
+  if (name === "purchase_request") {
+    if (isDeliveredPurchaseRequest(row)) return false;
+    return Boolean(row);
+  }
   if (state.role === "database_manager") {
-    if (["purchase_request", "inventory_transaction"].includes(name)) return sameDayRow(name, row);
+    if (name === "inventory_transaction") return sameDayRow(name, row);
     return true;
   }
-  if (["purchase_request", "inventory_transaction"].includes(name)) return sameDayRow(name, row);
+  if (name === "inventory_transaction") return sameDayRow(name, row);
   return true;
 }
 
@@ -1458,6 +1467,7 @@ function inputFor(col, value, isNew = false) {
     }
   }
 
+  const effectiveReadonly = col.readonly || formReadonlyNames.has(col.name);
   if (col.data_type === "boolean") {
     const checked = value === null || value === undefined ? /true/i.test(col.default_value || "") : value;
     return `<div class="field checkbox"><input type="checkbox" id="${id}" name="${col.name}" ${checked ? "checked" : ""}><label for="${id}">${escapeHtml(label(col.name))}</label></div>`;
@@ -1468,8 +1478,12 @@ function inputFor(col, value, isNew = false) {
     || (state.schema?.name === "inventory_transaction" && col.name === "taken_by"));
   if (actorField) {
     control = `<input type="text" id="${id}" name="${col.name}" value="${escapeHtml(v)}" readonly aria-readonly="true" title="Filled from your account">`;
-  } else if (col.readonly) {
-    const displayValue = value == null || value === "" ? "" : money.format(Number(value));
+  } else if (effectiveReadonly) {
+    const displayValue = value == null || value === ""
+      ? ""
+      : isMoneyColumn(col.name) && Number.isFinite(Number(value))
+        ? money.format(Number(value))
+        : String(value);
     control = `<input type="text" id="${id}" name="${col.name}" value="${escapeHtml(displayValue)}" readonly aria-readonly="true">`;
   } else if (col.foreign_key) {
     control = `<select id="${id}" name="${col.name}" ${required}></select>`;
@@ -1501,7 +1515,7 @@ function inputFor(col, value, isNew = false) {
 function fillForeignKeySelects(record) {
   for (const col of state.schema.columns) {
     const fk = col.foreign_key;
-    if (!fk || col.readonly) continue;
+    if (!fk || col.readonly || formReadonlyNames.has(col.name)) continue;
     const select = $(`#f_${col.name}`);
     const current = select.value || (record ? record[col.name] : "") || "";
     let options = state.options[col.name] || [];
@@ -1557,7 +1571,7 @@ function setupPurchaseRequestCostPreview(record) {
     if (price === null || price === undefined || price === "") {
       unitCost.value = sameRecordItem ? "No saved price snapshot" : "No catalog price set";
       totalCost.value = sameRecordItem
-        ? (record.total_cost == null ? "Not calculated" : money.format(Number(record.total_cost)))
+        ? (Number.isFinite(Number(record.total_cost)) ? money.format(Number(record.total_cost)) : "Not calculated")
         : "Price not available";
       return;
     }
@@ -1567,12 +1581,12 @@ function setupPurchaseRequestCostPreview(record) {
     const quantityText = quantity.value.trim();
     if (!quantityText) {
       totalCost.value = record && itemName === record.item_name
-        ? (record.total_cost == null ? "Enter a quantity" : money.format(Number(record.total_cost)))
+        ? (Number.isFinite(Number(record.total_cost)) ? money.format(Number(record.total_cost)) : "Enter a quantity")
         : "Enter a quantity";
       return;
     }
     const quantityNumber = Number(quantityText);
-    totalCost.value = Number.isFinite(quantityNumber) && quantityNumber > 0
+    totalCost.value = Number.isFinite(quantityNumber) && quantityNumber > 0 && Number.isFinite(priceNumber)
       ? money.format(quantityNumber * priceNumber)
       : "Enter a quantity greater than zero";
   };
@@ -1586,6 +1600,13 @@ async function openForm(record, initialValues = {}) {
   hideNotePreview();
   hideReferencePreview();
   const schema = state.schema;
+  formReadonlyNames = new Set();
+  if (record && schema.name === "purchase_request" && !sameDayRow(schema.name, record)) {
+    formReadonlyNames = new Set([
+      "request_date", "requested_by", "requesting_school", "requesting_school_group",
+      "item_name", "unit_cost_at_request", "quantity_requested", "total_cost", "school_year",
+    ]);
+  }
   if (!record && ["purchase_request", "inventory_transaction"].includes(schema.name)) {
     const { data: displayName, error } = await supabaseClient.rpc("get_my_display_name");
     if (error) console.warn("Could not load account display name; using email.", error.message);
@@ -1596,8 +1617,8 @@ async function openForm(record, initialValues = {}) {
   $("#dialog-title").textContent = record ? `Edit ${tableLabel}` : `Add to ${tableLabel}`;
   $("#form-error").hidden = true;
 
-  const editable = schema.columns.filter((c) => !c.readonly);
-  const visible = schema.columns.filter((c) => !c.readonly || c.show_readonly);
+  const editable = schema.columns.filter((c) => !c.readonly && !formReadonlyNames.has(c.name));
+  const visible = schema.columns.filter((c) => !c.readonly || c.show_readonly || formReadonlyNames.has(c.name));
   $("#form-fields").innerHTML = visible
     .map((c) => inputFor(c, record ? record[c.name] : (initialValues[c.name] ?? null), !record))
     .join("");
