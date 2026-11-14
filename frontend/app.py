@@ -46,7 +46,7 @@ VIEWS = {
     "PendingRequests": "Pending Requests", "SchoolSupply": "School Supply",
     "BudgetPurchases": "Budget Purchases", "FundingSourceSpending": "Funding Source Spending",
     "ItemSpending": "Item Spending",
-    "YearlyPurchase": "Yearly Purchases",
+    "YearlyPurchase": "Yearly Purchases", "PlantCount": "Plant Count",
 }
 TABLE_DESCRIPTIONS = {}
 
@@ -61,6 +61,7 @@ VIEW_DESCRIPTIONS = {
     "CurrentBedPlantings": "Shows in-ground and harvested plantings with the associated bed details and estimated harvest date.",
     "CropCalendar": "Shows planned, current, and past crop rotations with an estimated harvest date.",
     "GardenAssets": "Lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.",
+    "PlantCount": "Summarizes current and historical plant quantities across locations and counts current locations using each plant.",
 }
 ENUMS = {
     "purchase_request_status": ["Requested", "Ordered", "Delivered to FNS", "Canceled"],
@@ -210,7 +211,7 @@ STAFF_PURCHASE_COLUMNS = [
     "item_name", "quantity_requested", "unit_cost_at_request", "total_cost", "status",
     "review_status", "school_year", "notes",
 ]
-STAFF_VIEWS = {"CropCalendar", "CurrentBedPlantings", "GardenAssets", "RestockList", "PendingRequests", "SchoolSupply"}
+STAFF_VIEWS = {"CropCalendar", "CurrentBedPlantings", "GardenAssets", "RestockList", "PendingRequests", "SchoolSupply", "PlantCount"}
 STAFF_VIEW_COLUMNS = {
     "PendingRequests": ["request_date", "request_status", "item_name", "requested_by", "assigned_locations",
                         "quantity_requested", "total_cost", "review_status", "notes"],
@@ -631,6 +632,16 @@ def delete_row(name):
 @app.get("/api/views/<name>")
 def get_view(name):
     ensure_view(name)
+    if name == "SchoolSupply":
+        mode = request.args.get("mode", "overview")
+        resources = {
+            "overview": "SchoolSupply",
+            "requests": "SchoolSupplyRequests",
+            "checked_out": "SchoolSupplyCheckedOut",
+        }
+        if mode not in resources:
+            raise ApiError("Unknown School Supply report mode.", 400)
+        return jsonify(fetch_rows(resources[mode], "*"))
     return jsonify(fetch_rows(name, view_select(name)))
 
 # Gather counts, restock alerts, upcoming plantings, and any budgets the user may view.

@@ -98,9 +98,9 @@ request_totals AS (
     SELECT
         pr.requesting_school AS location_name,
         NULL::VARCHAR(200) AS location_group_name,
-        SUM(pr.quantity_requested) FILTER (
+        COUNT(*) FILTER (
             WHERE pr.status IN ('Requested', 'Ordered')
-        ) AS purchase_items_pending,
+        ) AS purchase_requests_pending,
         SUM(pr.total_cost) FILTER (WHERE pr.status IN ('Ordered', 'Delivered to FNS')) AS total_spent
     FROM purchase_request pr
     WHERE pr.requesting_school IS NOT NULL
@@ -111,9 +111,9 @@ request_totals AS (
     SELECT
         NULL::VARCHAR(200) AS location_name,
         pr.requesting_school_group AS location_group_name,
-        SUM(pr.quantity_requested) FILTER (
+        COUNT(*) FILTER (
             WHERE pr.status IN ('Requested', 'Ordered')
-        ) AS purchase_items_pending,
+        ) AS purchase_requests_pending,
         SUM(pr.total_cost) FILTER (WHERE pr.status IN ('Ordered', 'Delivered to FNS')) AS total_spent
     FROM purchase_request pr
     WHERE pr.requesting_school_group IS NOT NULL
@@ -123,7 +123,7 @@ SELECT
     a.assignment_type,
     COALESCE(a.location_name, a.location_group_name) AS location_name,
     COALESCE(tt.items_currently_checked_out, 0) AS items_currently_checked_out,
-    COALESCE(rt.purchase_items_pending, 0) AS purchase_items_pending,
+    COALESCE(rt.purchase_requests_pending, 0) AS purchase_requests_pending,
     COALESCE(rt.total_spent, 0) AS total_spent
 FROM assignments a
 LEFT JOIN transaction_totals tt
@@ -138,6 +138,60 @@ ORDER BY
         WHEN 'Group' THEN 1
     END,
     COALESCE(a.location_name, a.location_group_name);
+
+-- Detailed purchase requests associated with each school or location group.
+DROP VIEW IF EXISTS "SchoolSupplyRequests";
+CREATE VIEW "SchoolSupplyRequests" AS
+SELECT
+    CASE WHEN pr.requesting_school IS NOT NULL THEN 'School' ELSE 'Group' END AS assignment_type,
+    COALESCE(pr.requesting_school, pr.requesting_school_group) AS location_name,
+    pr.request_id,
+    pr.request_date,
+    pr.item_name,
+    pr.requested_by,
+    pr.quantity_requested,
+    pr.status,
+    pr.total_cost,
+    pr.notes
+FROM purchase_request AS pr
+WHERE pr.status IN ('Requested', 'Ordered')
+ORDER BY
+    CASE WHEN pr.requesting_school IS NOT NULL THEN 0 ELSE 1 END,
+    COALESCE(pr.requesting_school, pr.requesting_school_group),
+    pr.request_date NULLS LAST,
+    pr.request_id;
+
+-- Current checked-out quantities by school/group and item.
+DROP VIEW IF EXISTS "SchoolSupplyCheckedOut";
+CREATE VIEW "SchoolSupplyCheckedOut" AS
+SELECT
+    CASE WHEN it.for_school IS NOT NULL THEN 'School' ELSE 'Group' END AS assignment_type,
+    COALESCE(it.for_school, it.for_school_group) AS location_name,
+    it.item_name,
+    SUM(
+        CASE
+            WHEN it.status = 'Checked Out' THEN it.quantity
+            WHEN it.status = 'Checked In' THEN -it.quantity
+        END
+    ) AS current_quantity,
+    COUNT(*) AS transaction_count,
+    MAX(it.transaction_date) AS last_transaction_date
+FROM inventory_transaction AS it
+WHERE it.for_school IS NOT NULL OR it.for_school_group IS NOT NULL
+GROUP BY
+    CASE WHEN it.for_school IS NOT NULL THEN 'School' ELSE 'Group' END,
+    COALESCE(it.for_school, it.for_school_group),
+    it.item_name
+HAVING SUM(
+    CASE
+        WHEN it.status = 'Checked Out' THEN it.quantity
+        WHEN it.status = 'Checked In' THEN -it.quantity
+    END
+) > 0
+ORDER BY
+    CASE WHEN it.for_school IS NOT NULL THEN 0 ELSE 1 END,
+    location_name,
+    it.item_name;
 
 
 -- ============================================================
@@ -244,6 +298,39 @@ SELECT
 FROM purchase_request
 GROUP BY school_year, COALESCE(TO_CHAR(request_date, 'FMMonth YYYY'), 'No date')
 ORDER BY school_year, MIN(request_date) NULLS LAST;
+
+
+-- ============================================================
+-- PlantCount
+-- Plant quantities and current location counts
+-- ============================================================
+DROP VIEW IF EXISTS "PlantCount";
+CREATE VIEW "PlantCount" AS
+SELECT
+    p.plant_name,
+    COUNT(DISTINCT cr.location_name) FILTER (
+        WHERE cr.status IN ('Planned', 'In-ground')
+    ) AS current_location_count,
+    COALESCE(SUM(cr.quantity) FILTER (
+        WHERE cr.status = 'Planned'
+    ), 0) AS planned_quantity,
+    COALESCE(SUM(cr.quantity) FILTER (
+        WHERE cr.status IN ('Planned', 'In-ground')
+    ), 0) AS current_total_quantity,
+    COALESCE(SUM(cr.quantity) FILTER (
+        WHERE cr.status = 'In-ground'
+    ), 0) AS in_ground_quantity,
+    COALESCE(SUM(cr.quantity) FILTER (
+        WHERE cr.status = 'Harvested'
+    ), 0) AS harvested_quantity,
+    COALESCE(SUM(cr.quantity) FILTER (
+        WHERE cr.status = 'Removed'
+    ), 0) AS removed_quantity
+FROM plant AS p
+LEFT JOIN crop_rotation AS cr
+    ON cr.plant_name = p.plant_name
+GROUP BY p.plant_name
+ORDER BY p.plant_name;
 
 
 -- ============================================================

@@ -142,6 +142,7 @@ const pendingDisplayNameEdits = new Map();
 let dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let cropCalendarReportMode = "table";
 let cropCalendarReportMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let schoolSupplyMode = "overview";
 
 // Compare current field values with the values shown when the record form opened.
 function recordSnapshot() {
@@ -314,6 +315,12 @@ const LABELS = {
   location_group_name: "Location Group",
   associated_schools: "Associated Schools",
   unit_cost_at_request: "Unit Cost at Request",
+  current_location_count: "Current Location Count",
+  current_total_quantity: "Current Total Quantity",
+  planned_quantity: "Planned Quantity",
+  in_ground_quantity: "In-Ground Quantity",
+  harvested_quantity: "Harvested Quantity",
+  removed_quantity: "Removed Quantity",
 };
 
 // Keep report columns in a predictable order even if the database view's
@@ -340,7 +347,15 @@ const VIEW_COLUMNS = {
   ],
   SchoolSupply: [
     "assignment_type", "location_name", "items_currently_checked_out",
-    "purchase_items_pending", "total_spent",
+    "purchase_requests_pending", "total_spent",
+  ],
+  SchoolSupplyRequests: [
+    "assignment_type", "location_name", "request_id", "request_date", "item_name",
+    "requested_by", "quantity_requested", "status", "total_cost", "notes",
+  ],
+  SchoolSupplyCheckedOut: [
+    "assignment_type", "location_name", "item_name", "current_quantity",
+    "transaction_count", "last_transaction_date",
   ],
   BudgetPurchases: [
     "budget_name", "request_id", "item_name", "total_quantity_ordered", "total_spent",
@@ -352,6 +367,7 @@ const VIEW_COLUMNS = {
     "item_name", "purchase_request_count", "total_quantity_ordered", "total_spent", "average_unit_cost",
   ],
   YearlyPurchase: ["school_year", "purchase_month", "purchase_request_count", "total_quantity_ordered", "total_spent", "pending_spending"],
+  PlantCount: ["plant_name", "current_location_count", "planned_quantity", "current_total_quantity", "in_ground_quantity", "harvested_quantity", "removed_quantity"],
 };
 
 function label(name) {
@@ -1208,14 +1224,25 @@ async function showView(name) {
       '<button type="button" class="btn small" id="crop-calendar-report-table-mode">Table</button>' +
       '<button type="button" class="btn small" id="crop-calendar-report-calendar-mode">Calendar</button></div>'
     : "";
-  setHeader(view.label, view.description || "", cropCalendarControls, true);
+  const schoolSupplyControls = name === "SchoolSupply"
+    ? '<div class="view-mode-toggle" role="group" aria-label="School Supply display">' +
+      '<button type="button" class="btn small" id="school-supply-overview-mode">Overview</button>' +
+      '<button type="button" class="btn small" id="school-supply-requests-mode">Purchase Requests</button>' +
+      '<button type="button" class="btn small" id="school-supply-checked-out-mode">Checked Out Items</button></div>'
+    : "";
+  setHeader(view.label, view.description || "", schoolSupplyControls || cropCalendarControls, true);
   content.innerHTML = '<div class="empty">Loading…</div>';
-  state.rows = await api(`/views/${name}`);
+  if (name === "SchoolSupply") state.sort = null;
+  const modeQuery = name === "SchoolSupply" ? `?mode=${encodeURIComponent(schoolSupplyMode)}` : "";
+  state.rows = await api(`/views/${name}${modeQuery}`);
   const financialConfig = financialReportConfig(name);
   if (financialConfig) setHeader(view.label, view.description || "", financialReportControls(name, state.rows), true);
   const render = () => {
     const rowColumns = state.rows.length ? Object.keys(state.rows[0]) : [];
-    const preferredColumns = VIEW_COLUMNS[name] || rowColumns;
+    const modeColumns = name === "SchoolSupply"
+      ? (schoolSupplyMode === "requests" ? VIEW_COLUMNS.SchoolSupplyRequests : schoolSupplyMode === "checked_out" ? VIEW_COLUMNS.SchoolSupplyCheckedOut : VIEW_COLUMNS.SchoolSupply)
+      : null;
+    const preferredColumns = modeColumns || VIEW_COLUMNS[name] || rowColumns;
     const columns = [
       ...preferredColumns.filter((c) => rowColumns.includes(c)),
       ...rowColumns.filter((c) => !preferredColumns.includes(c)),
@@ -1230,7 +1257,15 @@ async function showView(name) {
         if (index >= 0) columns.splice(index, 1);
       });
     }
-    const filteredRows = filterAndSort(state.rows);
+    const schoolSupplyRows = name === "SchoolSupply"
+      ? [...state.rows].sort((a, b) => {
+        const typeOrder = {School: 0, Group: 1};
+        const typeComparison = (typeOrder[a.assignment_type] ?? 2) - (typeOrder[b.assignment_type] ?? 2);
+        if (typeComparison) return typeComparison;
+        return String(a.location_name ?? "").localeCompare(String(b.location_name ?? ""), undefined, {numeric: true});
+      })
+      : state.rows;
+    const filteredRows = filterAndSort(schoolSupplyRows);
     const visible = financialConfig && financialReportModes[name] === "summary"
       ? summarizeFinancialReport(name, filteredRows)
       : filteredRows;
@@ -1251,6 +1286,24 @@ async function showView(name) {
       : state.rows.length;
     renderRecordContent(`${multiSearchControls()}${reportContent}<p class="muted">${visible.length} of ${totalReportRecords} records</p>`);
     bindTableControls(render);
+    if (name === "SchoolSupply") {
+      const modeButtons = {
+        overview: $("#school-supply-overview-mode"),
+        requests: $("#school-supply-requests-mode"),
+        checked_out: $("#school-supply-checked-out-mode"),
+      };
+      Object.entries(modeButtons).forEach(([mode, button]) => {
+        if (!button) return;
+        button.classList.toggle("active", schoolSupplyMode === mode);
+        button.setAttribute("aria-pressed", String(schoolSupplyMode === mode));
+        button.onclick = async () => {
+          schoolSupplyMode = mode;
+          state.sort = null;
+          state.rows = await api(`/views/SchoolSupply?mode=${encodeURIComponent(mode)}`);
+          render();
+        };
+      });
+    }
     if (financialConfig) {
       const summaryButton = $("#financial-summary-mode");
       const detailButton = $("#financial-detail-mode");

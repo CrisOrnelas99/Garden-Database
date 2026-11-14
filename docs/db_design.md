@@ -261,7 +261,8 @@ Views provide readable reports without changing the underlying records.
 
 - `RestockList`: identifies inventory items at or below their reorder point.
 - `PendingRequests`: lists Requested and Ordered purchases awaiting delivery, showing their status and saved school or group assignment. Delivered to FNS and Canceled requests are excluded.
-- `SchoolSupply`: summarizes inventory and purchasing activity in separate rows for each school and each named group. Group totals stay on the group row.
+- `SchoolSupply`: summarizes inventory and purchasing activity in separate rows for each school and each named group. It shows current checked-out items, pending purchase-request counts, and spending. Group totals stay on the group row.
+- The School Supply report also provides detailed purchase-request and currently checked-out-item modes for the associated schools and groups.
 - `BudgetPurchases`: groups ordered quantities and item spending by budget and item, with budget-level totals.
 - `FundingSourceSpending`: groups ordered quantities and spending by funding source and item, with funding-source totals.
 - `ItemSpending`: summarizes each item’s non-canceled purchase-request count, ordered quantity, total spending, and average unit cost. Spending totals include ordered and delivered requests.
@@ -269,6 +270,7 @@ Views provide readable reports without changing the underlying records.
 - `CurrentBedPlantings`: shows in-ground and harvested plantings with the associated bed details and estimated harvest date.
 - `CropCalendar`: shows planned, current, and past crop rotations with an estimated harvest date.
 - `GardenAssets`: lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.
+- `PlantCount`: summarizes each plant's current location count, planned quantity, current total quantity (Planned plus In-ground), in-ground quantity, harvested quantity, and removed quantity.
 
 ## Functions and triggers
 

@@ -103,6 +103,8 @@ Reports are read-only views prepared by the database from information in one or 
 
 The **Item Spending** report summarizes purchasing by item. It shows the number of non-canceled purchase requests, total quantity ordered, total spending for ordered and delivered requests, and average unit cost. Canceled requests are not included in those totals.
 
+The **School Supply** report has three modes: **Overview** shows current checked-out totals, pending purchase-request counts, and spending; **Purchase Requests** lists pending requests associated with each school or group; and **Checked Out Items** shows current checked-out quantities by item and school/group. Delivered and canceled requests are not counted as pending.
+
 The **Yearly Purchases** report can be switched between a yearly summary and a monthly view. The monthly view shows the School Year beside each Purchase Month, along with ordered purchase-request count, ordered quantity, and spending. Dated requests use a readable month and year label such as `May 2026`; requests without a date appear in a separate `No date` row for their school year.
 
 ### Add and edit information
@@ -138,6 +140,8 @@ This page also has a configurable reminder to download weekly, every two weeks, 
 ### Log
 
 Managers can review recorded table additions, edits, and deletions, along with app events such as role or display-name changes, password-reset requests, and data downloads. The Log page includes timestamps, search and date filters, and details about the changed information.
+
+The **Plant Count** report summarizes each plant across the program. It shows the current location count, planned quantity, current total quantity (Planned plus In-ground), in-ground quantity, harvested quantity, and removed quantity. Current locations include only Planned and In-ground rotations.
 
 ## Troubleshooting
 

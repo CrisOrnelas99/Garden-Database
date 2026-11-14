@@ -274,7 +274,7 @@ GRANT SELECT (
     assignment_type,
     location_name,
     items_currently_checked_out,
-    purchase_items_pending
+    purchase_requests_pending
 ) ON public."SchoolSupply" TO staff;
 
 -- Pending request cost is visible; the budget-specific views remain restricted.
