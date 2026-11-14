@@ -1,4 +1,6 @@
 const state = { meta: null, schema: null, rows: [], options: {}, sort: null, search: "", role: null };
+const financialReportModes = { BudgetPurchases: "summary", FundingSourceSpending: "summary", YearlyPurchase: "summary" };
+let cropRotationMode = "table";
 let dataExportReminderDismissed = false;
 
 const $ = (sel) => document.querySelector(sel);
@@ -138,8 +140,6 @@ let currentRouteHash = null;
 const pendingRoleEdits = new Map();
 const pendingDisplayNameEdits = new Map();
 let dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-let cropRotationMode = "table";
-let cropRotationMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let cropCalendarReportMode = "table";
 let cropCalendarReportMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -343,14 +343,15 @@ const VIEW_COLUMNS = {
     "purchase_items_pending", "total_spent",
   ],
   BudgetPurchases: [
-    "budget_name", "item_name", "total_quantity_ordered", "total_spent", "total_budget",
-    "total_budget_spent", "remaining_budget",
+    "budget_name", "request_id", "item_name", "total_quantity_ordered", "total_spent",
   ],
   FundingSourceSpending: [
-    "funding_source", "item_name", "total_quantity_ordered", "total_spent",
-    "total_funding_source_spent",
+    "funding_source", "request_id", "item_name", "total_quantity_ordered",
   ],
-  YearlyPurchase: ["school_year", "total_spent", "pending_spending"],
+  ItemSpending: [
+    "item_name", "purchase_request_count", "total_quantity_ordered", "total_spent", "average_unit_cost",
+  ],
+  YearlyPurchase: ["school_year", "purchase_month", "purchase_request_count", "total_quantity_ordered", "total_spent", "pending_spending"],
 };
 
 function label(name) {
@@ -760,14 +761,16 @@ function renderNav() {
   });
 }
 
-function dataTable(rows, { columns, actions = false, foreignKeys = {} } = {}) {
+function dataTable(rows, { columns, actions = false, foreignKeys = {}, actionsFirst = false } = {}) {
   if (!rows.length) return `<div class="empty">${actions ? "No records yet." : "No records to show."}</div>`;
   const cols = columns || Object.keys(rows[0]);
   const head = cols
     .map((c) => {
       const sorted = state.sort && state.sort.col === c;
       const isNote = c === "notes" || c.endsWith("_notes");
-      return `<th data-sort="${escapeHtml(c)}" class="${isNote ? "notes" : ""} ${sorted ? "sorted" : ""} ${sorted && state.sort.desc ? "desc" : ""}">${escapeHtml(label(c))}</th>`;
+      const columnClass = `col-${c.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+      const sortDirection = sorted ? (state.sort.desc ? "down" : "up") : "";
+      return `<th data-sort="${escapeHtml(c)}" class="${columnClass} ${isNote ? "notes" : ""} ${sorted ? "sorted" : ""}">${escapeHtml(label(c))}<span class="sort-arrows" aria-hidden="true"><span class="sort-arrow-up ${sortDirection === "up" ? "active" : ""}">▲</span><span class="sort-arrow-down ${sortDirection === "down" ? "active" : ""}">▼</span></span></th>`;
     })
     .join("");
   const body = rows
@@ -775,7 +778,8 @@ function dataTable(rows, { columns, actions = false, foreignKeys = {} } = {}) {
       const cells = cols
         .map((c) => {
           const isNote = c === "notes" || c.endsWith("_notes");
-          const cls = isNote ? "notes" : typeof row[c] === "number" ? "num" : "";
+          const columnClass = `col-${c.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+          const cls = `${columnClass} ${isNote ? "notes" : typeof row[c] === "number" ? "num" : ""}`.trim();
           const noteAttributes = isNote && row[c] != null && String(row[c]) !== ""
             ? ` data-note="${escapeHtml(row[c])}" tabindex="0"` : "";
           const foreignKey = foreignKeys[c];
@@ -787,14 +791,14 @@ function dataTable(rows, { columns, actions = false, foreignKeys = {} } = {}) {
         .join("");
       const rowActions = typeof actions === "function" ? actions(row) : { edit: actions, delete: actions };
       const actionButtons = [
-        rowActions.edit ? `<button class="btn small" data-edit="${index}">Edit</button>` : "",
+        rowActions.edit ? `<button class="btn small edit-btn" data-edit="${index}">Edit</button>` : "",
         rowActions.delete ? `<button class="btn small danger" data-delete="${index}">Delete</button>` : "",
       ].join("");
       const buttons = actionButtons ? `<td class="actions">${actionButtons}</td>` : "";
-      return `<tr>${cells}${buttons}</tr>`;
+      return `<tr>${actionsFirst ? buttons : ""}${cells}${actionsFirst ? "" : buttons}</tr>`;
     })
     .join("");
-  return `<div class="table-wrap"><table class="data-table"><thead><tr>${head}${actions ? "<th></th>" : ""}</tr></thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="data-table"><thead><tr>${actions && actionsFirst ? "<th></th>" : ""}${head}${actions && !actionsFirst ? "<th></th>" : ""}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function filterAndSort(rows) {
@@ -855,7 +859,9 @@ function bindTableControls(rerender) {
   content.querySelectorAll("th[data-sort]").forEach((th) => {
     th.onclick = () => {
       const col = th.dataset.sort;
-      state.sort = state.sort && state.sort.col === col ? { col, desc: !state.sort.desc } : { col, desc: false };
+      if (state.sort?.col !== col) state.sort = { col, desc: false };
+      else if (!state.sort.desc) state.sort = { col, desc: true };
+      else state.sort = null;
       rerender();
     };
   });
@@ -979,6 +985,12 @@ function renderDashboardCalendar(rows) {
     month: "long", year: "numeric",
   }).format(dashboardCalendarMonth);
   $("#dashboard-calendar-content").innerHTML = calendar.markup;
+  const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+  const previousButton = $("#dashboard-calendar-prev");
+  const nextButton = $("#dashboard-calendar-next");
+  if (previousButton) previousButton.disabled = dashboardCalendarMonth <= currentMonth;
+  if (nextButton) nextButton.disabled = dashboardCalendarMonth >= nextMonth;
   $("#dashboard-calendar-content").querySelectorAll("[data-crop-event]").forEach(button => {
     button.onclick = () => showCropCalendarEvent(calendar.events[Number(button.dataset.cropEvent)]);
   });
@@ -1046,6 +1058,7 @@ function buildCropRotationCalendar(rows, month) {
 /* ---------- Dashboard ---------- */
 
 async function showDashboard() {
+  dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   setHeader("Dashboard", "Garden program overview");
   content.innerHTML = '<div class="empty">Loading…</div>';
   const data = await api("/dashboard");
@@ -1094,7 +1107,10 @@ async function showDashboard() {
     </section>
   `;
   const shiftCalendarMonth = amount => {
-    dashboardCalendarMonth = new Date(dashboardCalendarMonth.getFullYear(), dashboardCalendarMonth.getMonth() + amount, 1);
+    const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    const requestedMonth = new Date(dashboardCalendarMonth.getFullYear(), dashboardCalendarMonth.getMonth() + amount, 1);
+    dashboardCalendarMonth = requestedMonth < currentMonth ? currentMonth : requestedMonth > nextMonth ? nextMonth : requestedMonth;
     renderDashboardCalendar(data.rotations);
   };
   $("#dashboard-calendar-prev").onclick = () => shiftCalendarMonth(-1);
@@ -1140,6 +1156,50 @@ function renderRecordContent(html) {
   if (wrapper) wrapper.scrollLeft = left;
 }
 
+function financialReportConfig(name) {
+  if (name === "BudgetPurchases") return {
+    key: "budget_name", label: "Budget", summaryColumns: ["budget_name", "purchase_request_count", "total_budget", "total_spent", "remaining_budget"],
+  };
+  if (name === "FundingSourceSpending") return {
+    key: "funding_source", label: "Funding source", summaryColumns: ["funding_source", "purchase_request_count", "total_spent"],
+  };
+  if (name === "YearlyPurchase") return {
+    key: "school_year", label: "School year", summaryColumns: ["school_year", "purchase_request_count", "total_quantity_ordered", "total_spent", "pending_spending"],
+    detailColumns: ["school_year", "purchase_month", "purchase_request_count", "total_quantity_ordered", "total_spent"],
+    modeLabels: ["Yearly", "Monthly"],
+  };
+  return null;
+}
+
+function financialReportControls(name, rows) {
+  const config = financialReportConfig(name);
+  if (!config) return "";
+  const labels = config.modeLabels || ["Summary", "Detail"];
+  return '<div class="view-mode-toggle financial-report-controls" role="group" aria-label="Financial report display">' +
+    '<button type="button" class="btn small" id="financial-summary-mode">' + labels[0] + '</button>' +
+    '<button type="button" class="btn small" id="financial-detail-mode">' + labels[1] + '</button></div>';
+}
+
+function summarizeFinancialReport(name, rows) {
+  const config = financialReportConfig(name);
+  if (!config) return rows;
+  const groups = new Map();
+  rows.forEach(row => {
+    const key = String(row[config.key] ?? "");
+    if (!groups.has(key)) groups.set(key, {...row, item_name: undefined, request_id: undefined, purchase_request_count: 0, total_quantity_ordered: 0, total_spent: 0, pending_spending: 0});
+    const summary = groups.get(key);
+    summary.purchase_request_count += row.purchase_request_count === undefined ? 1 : Number(row.purchase_request_count) || 0;
+    summary.total_quantity_ordered += Number(row.total_quantity_ordered) || 0;
+    summary.total_spent += Number(row.total_spent) || 0;
+    summary.pending_spending += Number(row.pending_spending) || 0;
+  });
+  return [...groups.values()].map(row => {
+    const result = {...row};
+    delete result.item_name;
+    return result;
+  });
+}
+
 async function showView(name) {
   const view = state.meta.views.find((v) => v.name === name);
   if (!view) return showError(new Error(`Unknown report: ${name}`));
@@ -1151,6 +1211,8 @@ async function showView(name) {
   setHeader(view.label, view.description || "", cropCalendarControls, true);
   content.innerHTML = '<div class="empty">Loading…</div>';
   state.rows = await api(`/views/${name}`);
+  const financialConfig = financialReportConfig(name);
+  if (financialConfig) setHeader(view.label, view.description || "", financialReportControls(name, state.rows), true);
   const render = () => {
     const rowColumns = state.rows.length ? Object.keys(state.rows[0]) : [];
     const preferredColumns = VIEW_COLUMNS[name] || rowColumns;
@@ -1158,7 +1220,23 @@ async function showView(name) {
       ...preferredColumns.filter((c) => rowColumns.includes(c)),
       ...rowColumns.filter((c) => !preferredColumns.includes(c)),
     ];
-    const visible = filterAndSort(state.rows);
+    if (name === "FundingSourceSpending" && financialReportModes[name] === "detail") {
+      const redundantIndex = columns.indexOf("total_funding_source_spent");
+      if (redundantIndex >= 0) columns.splice(redundantIndex, 1);
+    }
+    if (name === "BudgetPurchases" && financialReportModes[name] === "detail") {
+      ["total_budget", "total_budget_spent", "remaining_budget"].forEach(column => {
+        const index = columns.indexOf(column);
+        if (index >= 0) columns.splice(index, 1);
+      });
+    }
+    const filteredRows = filterAndSort(state.rows);
+    const visible = financialConfig && financialReportModes[name] === "summary"
+      ? summarizeFinancialReport(name, filteredRows)
+      : filteredRows;
+    const financialColumns = financialConfig && financialReportModes[name] === "summary"
+      ? financialConfig.summaryColumns
+      : financialConfig?.detailColumns || columns;
     const showingCalendar = name === "CropCalendar" && cropCalendarReportMode === "calendar";
     const reportContent = showingCalendar
       ? '<div class="card crop-rotation-calendar-card"><div class="card-header crop-rotation-calendar-heading">' +
@@ -1167,9 +1245,20 @@ async function showView(name) {
         '<strong id="crop-calendar-report-month"></strong><button type="button" class="btn small" id="crop-calendar-report-next" aria-label="Next month">›</button>' +
         '<button type="button" class="btn small" id="crop-calendar-report-today">Today</button></div></div>' +
         '<div id="crop-calendar-report-grid"></div></div>'
-      : '<div class="card">' + dataTable(visible, { columns }) + '</div>';
-    renderRecordContent(`${multiSearchControls()}${reportContent}<p class="muted">${visible.length} of ${state.rows.length} plantings</p>`);
+      : '<div class="card">' + dataTable(visible, { columns: financialColumns }) + '</div>';
+    const totalReportRecords = financialConfig && financialReportModes[name] === "summary"
+      ? summarizeFinancialReport(name, state.rows).length
+      : state.rows.length;
+    renderRecordContent(`${multiSearchControls()}${reportContent}<p class="muted">${visible.length} of ${totalReportRecords} records</p>`);
     bindTableControls(render);
+    if (financialConfig) {
+      const summaryButton = $("#financial-summary-mode");
+      const detailButton = $("#financial-detail-mode");
+      summaryButton.classList.toggle("active", financialReportModes[name] === "summary");
+      detailButton.classList.toggle("active", financialReportModes[name] === "detail");
+      summaryButton.onclick = () => { financialReportModes[name] = "summary"; render(); };
+      detailButton.onclick = () => { financialReportModes[name] = "detail"; render(); };
+    }
     if (showingCalendar) {
       const calendar = buildDashboardCalendar(visible, cropCalendarReportMonth);
       $("#crop-calendar-report-month").textContent = new Intl.DateTimeFormat(undefined, {
@@ -1212,10 +1301,12 @@ async function showView(name) {
 }
 
 // Load the guides appropriate to this signed-in user's app role.
-async function showHelp() {
+async function showHelp(focusSection = "") {
   const searchControls = '<label class="help-search-control"><span>Search guides</span>' +
     '<input class="search" id="help-search" type="search" placeholder="Search guides" aria-label="Search help guides">' +
-    '<span id="help-search-count" class="muted" role="status" aria-live="polite"></span></label>';
+    '<span id="help-search-count" class="muted" role="status" aria-live="polite"></span>' +
+    '<button type="button" class="btn small" id="help-search-prev" aria-label="Previous search match" title="Previous match">↑</button>' +
+    '<button type="button" class="btn small" id="help-search-next" aria-label="Next search match" title="Next match">↓</button></label>';
   setHeader("Help", "Guides and instructions for using the Garden Database app.", searchControls);
   content.innerHTML = '<div class="empty">Loading help guides…</div>';
   const guides = await api("/help");
@@ -1225,14 +1316,39 @@ async function showHelp() {
     (guides.manager ? section("manager-help", "Manager Pages", guides.manager) : "") +
     (guides.supabase ? section("supabase-help", "Supabase User Guide", guides.supabase) : "") +
     section("help-troubleshooting", "Troubleshooting", guides.troubleshooting || "");
+  if (focusSection === "location-groups") {
+    const heading = [...content.querySelectorAll("h2, h3")]
+      .find(element => element.textContent.trim().toLowerCase() === "using location groups");
+    heading?.scrollIntoView({ block: "start" });
+  }
   const searchInput = $("#help-search");
   const searchCount = $("#help-search-count");
+  const searchPrev = $("#help-search-prev");
+  const searchNext = $("#help-search-next");
+  let searchMatches = [];
+  let searchIndex = -1;
+  const updateSearchNavigation = () => {
+    searchPrev.disabled = searchMatches.length === 0;
+    searchNext.disabled = searchMatches.length === 0;
+    searchMatches.forEach((match, index) => match.classList.toggle("help-search-current", index === searchIndex));
+    searchCount.textContent = searchMatches.length
+      ? `${searchIndex + 1} of ${searchMatches.length} matches`
+      : (searchInput.value.trim() ? "No matches" : "");
+  };
+  const moveSearchMatch = (direction) => {
+    if (!searchMatches.length) return;
+    searchIndex = (searchIndex + direction + searchMatches.length) % searchMatches.length;
+    updateSearchNavigation();
+    searchMatches[searchIndex].scrollIntoView({ block: "center", behavior: "smooth" });
+  };
   const searchGuides = () => {
     content.querySelectorAll("mark.help-search-match").forEach(mark => mark.replaceWith(document.createTextNode(mark.textContent)));
     content.querySelectorAll(".help-markdown").forEach(article => article.normalize());
     const term = searchInput.value.trim();
     if (!term) {
-      searchCount.textContent = "";
+      searchMatches = [];
+      searchIndex = -1;
+      updateSearchNavigation();
       return;
     }
     const needle = term.toLocaleLowerCase();
@@ -1262,9 +1378,13 @@ async function showHelp() {
         node.replaceWith(fragment);
       });
     });
-    searchCount.textContent = matchCount ? `${matchCount} match${matchCount === 1 ? "" : "es"}` : "No matches";
+    searchMatches = [...content.querySelectorAll("mark.help-search-match")];
+    searchIndex = searchMatches.length ? 0 : -1;
+    updateSearchNavigation();
   };
   searchInput.oninput = searchGuides;
+  searchPrev.onclick = () => moveSearchMatch(-1);
+  searchNext.onclick = () => moveSearchMatch(1);
   content.querySelectorAll("a[href^='http']").forEach(link => {
     link.target = "_blank";
     link.rel = "noopener noreferrer";
@@ -1276,17 +1396,15 @@ async function showHelp() {
 async function showTable(name) {
   const table = state.meta.tables.find((t) => t.name === name);
   if (!table) return showError(new Error(`Unknown table: ${name}`));
-  const cropModeControls = name === "crop_rotation"
-    ? '<div class="view-mode-toggle" role="group" aria-label="Crop rotation display">' +
-      '<button type="button" class="btn small" id="crop-rotation-table-mode">Table</button>' +
-      '<button type="button" class="btn small" id="crop-rotation-calendar-mode">Calendar</button></div>'
-    : "";
   setHeader(
     table.label,
     table.description || "",
-    cropModeControls,
+    "",
     true
   );
+  if (name === "location_group" || name === "group_members") {
+    $("#page-sub").innerHTML = `${escapeHtml(table.description || "")} <a href="#/help/location-groups" class="inline-help-link">Open Help: Using location groups</a>`;
+  }
   content.innerHTML = '<div class="empty">Loading…</div>';
   const [schema, rows] = await Promise.all([api(`/tables/${name}/schema`), api(`/tables/${name}`)]);
   state.schema = schema;
@@ -1371,23 +1489,6 @@ async function showTable(name) {
     content.querySelectorAll("[data-delete]").forEach((b) => (b.onclick = () => deleteRow(visible[b.dataset.delete])));
   };
   render();
-  if (name === "crop_rotation") {
-    const setMode = mode => {
-      cropRotationMode = mode;
-      for (const [id, selected] of [
-        ["crop-rotation-table-mode", mode === "table"],
-        ["crop-rotation-calendar-mode", mode === "calendar"],
-      ]) {
-        const button = $("#" + id);
-        button.classList.toggle("active", selected);
-        button.setAttribute("aria-pressed", String(selected));
-      }
-      render();
-    };
-    $("#crop-rotation-table-mode").onclick = () => setMode("table");
-    $("#crop-rotation-calendar-mode").onclick = () => setMode("calendar");
-    setMode(cropRotationMode);
-  }
   const addButton = $("#add-btn");
   if (addButton) addButton.onclick = () => openForm(null);
 }
@@ -1507,7 +1608,7 @@ function inputFor(col, value, isNew = false) {
   let hint = col.foreign_key ? `<span class="hint">From ${escapeHtml(label(col.foreign_key.ref_table))}</span>` : "";
   if (col.name === "unit_cost_at_request") hint = '<span class="hint">Saved price snapshot; new requests use the item catalog price.</span>';
   if (col.name === "total_cost") hint = '<span class="hint">Calculated from the quantity and saved unit price.</span>';
-  if (state.schema?.name === "purchase_request" && col.name === "status") hint = '<span class="hint">Requested → Ordered → Delivered to FNS. Use Canceled only when no payment remains owed; it releases the budget amount and reverses any recorded delivery.</span>';
+  if (state.schema?.name === "purchase_request" && col.name === "status") hint = '<span class="hint">Requested → Ordered → Delivered to FNS. Once delivered, this table cannot be edited.</span>';
   const wide = col.data_type === "text" ? "wide" : "";
   return `<div class="field ${wide}"><label for="${id}">${escapeHtml(label(col.name))}${col.required ? ' <span class="req">*</span>' : ""}</label>${control}${hint}</div>`;
 }
@@ -1601,11 +1702,15 @@ async function openForm(record, initialValues = {}) {
   hideReferencePreview();
   const schema = state.schema;
   formReadonlyNames = new Set();
+  if (record && schema.name === "inventory_transaction") {
+    formReadonlyNames.add("taken_by");
+  }
   if (record && schema.name === "purchase_request" && !sameDayRow(schema.name, record)) {
     formReadonlyNames = new Set([
-      "request_date", "requested_by", "requesting_school", "requesting_school_group",
+      "requested_by", "requesting_school", "requesting_school_group",
       "item_name", "unit_cost_at_request", "quantity_requested", "total_cost", "school_year",
     ]);
+    if (record.request_date) formReadonlyNames.add("request_date");
   }
   if (!record && ["purchase_request", "inventory_transaction"].includes(schema.name)) {
     const { data: displayName, error } = await supabaseClient.rpc("get_my_display_name");
@@ -1618,7 +1723,9 @@ async function openForm(record, initialValues = {}) {
   $("#form-error").hidden = true;
 
   const editable = schema.columns.filter((c) => !c.readonly && !formReadonlyNames.has(c.name));
-  const visible = schema.columns.filter((c) => !c.readonly || c.show_readonly || formReadonlyNames.has(c.name));
+  const visible = record
+    ? editable
+    : schema.columns.filter((c) => !c.readonly || c.show_readonly || formReadonlyNames.has(c.name));
   $("#form-fields").innerHTML = visible
     .map((c) => inputFor(c, record ? record[c.name] : (initialValues[c.name] ?? null), !record))
     .join("");
@@ -1929,6 +2036,15 @@ async function showAuditLog() {
   ].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
   content.innerHTML = `<div class="audit-toolbar"><div class="audit-search-row"><input id="audit-search" class="search" type="search" placeholder="Search…" aria-label="Search log"><button class="btn small audit-add-filter" id="audit-add-filter" type="button" aria-label="Add another search box" title="Add another search box">+</button><span id="audit-extra-filters" class="audit-filter-inline"></span></div><div class="audit-toolbar-actions">${printButton}<label class="audit-date-filter">From <input id="audit-from" type="datetime-local" aria-label="Filter from date and time"></label><label class="audit-date-filter">To <input id="audit-to" type="datetime-local" aria-label="Filter through date and time"></label></div></div><section class="card"><div class="table-wrap"><table class="data-table"><thead><tr><th>When</th><th>User</th><th>Event</th><th>Table / Area</th><th>Details</th></tr></thead><tbody id="audit-rows"></tbody></table></div><div class="empty" id="audit-empty" hidden>No matching entries.</div><p class="muted" id="audit-count"></p></section>`;
   $("#print-page").onclick = downloadTablePdf;
+  let auditSort = null;
+  const auditSortColumns = ["timestamp", "actor_email", "event", "area"];
+  const auditHeaderLabels = ["When", "User", "Event", "Table / Area"];
+  content.querySelectorAll(".data-table thead th").forEach((th, index) => {
+    th.classList.add(["col-when", "col-user", "col-event", "col-area", "col-details"][index]);
+    if (index >= auditSortColumns.length) return;
+    th.dataset.auditSort = auditSortColumns[index];
+    th.innerHTML = `${auditHeaderLabels[index]}<span class="sort-arrows" aria-hidden="true"><span class="sort-arrow-up">▲</span><span class="sort-arrow-down">▼</span></span>`;
+  });
   let filteredEntries = [];
   const render = () => {
     const queries = [$("#audit-search").value, ...[...content.querySelectorAll("[data-audit-extra-filter]")].map(input => input.value)]
@@ -1941,6 +2057,22 @@ async function showAuditLog() {
       const searchable = `${when} ${entry.timestamp} ${entry.actor_email || ""} ${entry.actor_user_id || ""} ${entry.event} ${entry.area} ${entry.details?.target_email || emailByUserId[entry.details?.target_user_id] || ""} ${JSON.stringify(entry.details)}`;
       const haystack = searchable.toLowerCase();
       return stamp >= from && stamp <= to && queries.every(query => haystack.includes(query));
+    });
+    if (auditSort) {
+      const { col, desc } = auditSort;
+      filteredEntries.sort((a, b) => {
+        const x = col === "timestamp" ? Date.parse(a.timestamp) : String(a[col] || "");
+        const y = col === "timestamp" ? Date.parse(b.timestamp) : String(b[col] || "");
+        const comparison = typeof x === "number" && typeof y === "number"
+          ? x - y
+          : x.localeCompare(y, undefined, { numeric: true });
+        return desc ? -comparison : comparison;
+      });
+    }
+    content.querySelectorAll("th[data-audit-sort]").forEach(th => {
+      const active = auditSort?.col === th.dataset.auditSort;
+      th.querySelector(".sort-arrow-up")?.classList.toggle("active", active && !auditSort?.desc);
+      th.querySelector(".sort-arrow-down")?.classList.toggle("active", active && Boolean(auditSort?.desc));
     });
     $("#audit-rows").innerHTML = filteredEntries.map(entry => {
       let details = entry.details;
@@ -1956,7 +2088,7 @@ async function showAuditLog() {
         } else if (entry.action === "INSERT") details = {row_key: entry.row_key, created: entry.new_data};
         else if (entry.action === "DELETE") details = {row_key: entry.row_key, deleted: entry.old_data};
       }
-      return `<tr><td>${escapeHtml(new Intl.DateTimeFormat(undefined, {dateStyle:"medium",timeStyle:"short"}).format(new Date(entry.timestamp)))}</td><td>${escapeHtml(entry.actor_email || entry.actor_user_id || "System / SQL Editor")}</td><td>${escapeHtml(entry.event)}</td><td>${escapeHtml(entry.area)}</td><td><details><summary>View details</summary><pre>${escapeHtml(JSON.stringify(details,null,2))}</pre></details></td></tr>`;
+      return `<tr><td class="col-when">${escapeHtml(new Intl.DateTimeFormat(undefined, {dateStyle:"medium",timeStyle:"short"}).format(new Date(entry.timestamp)))}</td><td class="col-user">${escapeHtml(entry.actor_email || entry.actor_user_id || "System / SQL Editor")}</td><td class="col-event">${escapeHtml(entry.event)}</td><td class="col-area">${escapeHtml(entry.area)}</td><td class="col-details"><details><summary>View details</summary><pre>${escapeHtml(JSON.stringify(details,null,2))}</pre></details></td></tr>`;
     }).join("");
     $("#audit-empty").hidden = filteredEntries.length > 0;
     $("#audit-count").textContent = `${filteredEntries.length} of ${combined.length} log entries`;
@@ -1983,6 +2115,15 @@ async function showAuditLog() {
   $("#audit-add-filter").onclick = addExtraFilter;
   $("#audit-from").onchange = render;
   $("#audit-to").onchange = render;
+  content.querySelectorAll("th[data-audit-sort]").forEach(th => {
+    th.onclick = () => {
+      const col = th.dataset.auditSort;
+      if (auditSort?.col !== col) auditSort = { col, desc: false };
+      else if (!auditSort.desc) auditSort = { col, desc: true };
+      else auditSort = null;
+      render();
+    };
+  });
   render();
 }
 
@@ -2011,7 +2152,7 @@ async function route() {
     else if (kind === "users") await showUsers();
     else if (kind === "manage-data") await showManageData();
     else if (kind === "audit-log") await showAuditLog();
-    else if (kind === "help") await showHelp();
+    else if (kind === "help") await showHelp((location.hash || "").split("/")[2] || "");
     else await showDashboard();
   } catch (err) {
     showError(err);

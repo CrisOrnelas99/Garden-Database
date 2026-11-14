@@ -264,7 +264,8 @@ Views provide readable reports without changing the underlying records.
 - `SchoolSupply`: summarizes inventory and purchasing activity in separate rows for each school and each named group. Group totals stay on the group row.
 - `BudgetPurchases`: groups ordered quantities and item spending by budget and item, with budget-level totals.
 - `FundingSourceSpending`: groups ordered quantities and spending by funding source and item, with funding-source totals.
-- `YearlyPurchase`: summarizes ordered and unordered request spending by school year.
+- `ItemSpending`: summarizes each item’s non-canceled purchase-request count, ordered quantity, total spending, and average unit cost. Spending totals include ordered and delivered requests.
+- `YearlyPurchase`: summarizes ordered and unordered request spending by school year and provides monthly ordered-purchase totals. Dated requests use a readable month and year label; requests without a date appear in a separate `No date` row.
 - `CurrentBedPlantings`: shows in-ground and harvested plantings with the associated bed details and estimated harvest date.
 - `CropCalendar`: shows planned, current, and past crop rotations with an estimated harvest date.
 - `GardenAssets`: lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.

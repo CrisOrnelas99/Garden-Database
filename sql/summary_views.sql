@@ -157,9 +157,10 @@ WITH budget_spending AS (
 )
 SELECT
     b.budget_name,
+    pr.request_id,
     pr.item_name,
-    SUM(pr.quantity_requested) AS total_quantity_ordered,
-    SUM(pr.total_cost) AS total_spent,
+    pr.quantity_requested AS total_quantity_ordered,
+    pr.total_cost AS total_spent,
     b.budget_amount AS total_budget,
     bs.total_budget_spent,
     b.remaining_budget
@@ -169,15 +170,9 @@ JOIN purchase_request pr
 JOIN budget_spending bs
     ON bs.budget_name = b.budget_name
 WHERE pr.status IN ('Ordered', 'Delivered to FNS')
-GROUP BY
-    b.budget_name,
-    pr.item_name,
-    b.budget_amount,
-    bs.total_budget_spent,
-    b.remaining_budget
 ORDER BY
     b.budget_name,
-    pr.item_name;
+    pr.request_id;
 
 
 -- ============================================================
@@ -186,28 +181,42 @@ ORDER BY
 -- ============================================================
 DROP VIEW IF EXISTS "FundingSourceSpending";
 CREATE VIEW "FundingSourceSpending" AS
-WITH source_item_spending AS (
-    SELECT
-        COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned') AS funding_source,
-        pr.item_name,
-        SUM(pr.quantity_requested) AS total_quantity_ordered,
-        SUM(pr.total_cost) AS total_spent
-    FROM purchase_request pr
-    WHERE pr.status IN ('Ordered', 'Delivered to FNS')
-    GROUP BY
-        COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned'),
-        pr.item_name
-)
 SELECT
-    funding_source,
-    item_name,
-    total_quantity_ordered,
-    total_spent,
-    SUM(total_spent) OVER (PARTITION BY funding_source) AS total_funding_source_spent
-FROM source_item_spending
+    COALESCE(NULLIF(BTRIM(pr.funding_source), ''), 'Unassigned') AS funding_source,
+    pr.request_id,
+    pr.item_name,
+    pr.quantity_requested AS total_quantity_ordered,
+    pr.total_cost AS total_spent
+FROM purchase_request pr
+WHERE pr.status IN ('Ordered', 'Delivered to FNS')
 ORDER BY
     funding_source,
-    item_name;
+    pr.request_id;
+
+
+-- ============================================================
+-- ItemSpending
+-- Purchase volume and spending summarized by item
+-- ============================================================
+DROP VIEW IF EXISTS "ItemSpending";
+CREATE VIEW "ItemSpending" AS
+SELECT
+    pr.item_name,
+    COUNT(*) FILTER (
+        WHERE pr.status <> 'Canceled'
+    ) AS purchase_request_count,
+    COALESCE(SUM(pr.quantity_requested) FILTER (
+        WHERE pr.status IN ('Ordered', 'Delivered to FNS')
+    ), 0) AS total_quantity_ordered,
+    COALESCE(SUM(pr.total_cost) FILTER (
+        WHERE pr.status IN ('Ordered', 'Delivered to FNS')
+    ), 0) AS total_spent,
+    AVG(pr.unit_cost_at_request) FILTER (
+        WHERE pr.status IN ('Ordered', 'Delivered to FNS')
+    ) AS average_unit_cost
+FROM purchase_request AS pr
+GROUP BY pr.item_name
+ORDER BY pr.item_name;
 
 
 -- ============================================================
@@ -219,21 +228,22 @@ DROP VIEW IF EXISTS "YearlyPurchase";
 CREATE VIEW "YearlyPurchase" AS
 SELECT
     school_year,
-    SUM(
-        CASE
-            WHEN status IN ('Ordered', 'Delivered to FNS') THEN total_cost
-            ELSE 0
-        END
-    ) AS total_spent,
-    SUM(
-        CASE
-            WHEN status = 'Requested' THEN total_cost
-            ELSE 0
-        END
-    ) AS pending_spending
+    COALESCE(TO_CHAR(request_date, 'FMMonth YYYY'), 'No date') AS purchase_month,
+    COUNT(*) FILTER (
+        WHERE status IN ('Ordered', 'Delivered to FNS')
+    ) AS purchase_request_count,
+    COALESCE(SUM(quantity_requested) FILTER (
+        WHERE status IN ('Ordered', 'Delivered to FNS')
+    ), 0) AS total_quantity_ordered,
+    COALESCE(SUM(total_cost) FILTER (
+        WHERE status IN ('Ordered', 'Delivered to FNS')
+    ), 0) AS total_spent,
+    COALESCE(SUM(total_cost) FILTER (
+        WHERE status = 'Requested'
+    ), 0) AS pending_spending
 FROM purchase_request
-GROUP BY school_year
-ORDER BY school_year;
+GROUP BY school_year, COALESCE(TO_CHAR(request_date, 'FMMonth YYYY'), 'No date')
+ORDER BY school_year, MIN(request_date) NULLS LAST;
 
 
 -- ============================================================

@@ -27,13 +27,13 @@ ROLES = {"staff", "finance_staff", "database_manager"}
 
 TABLES = {
     "location": {"label": "Locations", "group": "Locations", "description": "Stores schools and program locations. Garden fields are optional, so an office or a school without a tracked garden can leave them empty.", "readonly": ["bed_count"]},
-    "location_group": {"label": "Location Groups", "group": "Locations", "description": "Stores one readable row for each location group."},
+    "location_group": {"label": "Location Groups", "group": "Locations", "description": "Stores one readable row for each location group. Groups represent multiple schools or other locations and can be selected for purchase requests and inventory transactions."},
     "group_members": {"label": "Group Members", "group": "Locations", "description": "Connects groups to their member locations. Each row represents one location in one group."},
     "budget": {"label": "Budgets", "group": "Inventory & Budget", "description": "Stores the available and remaining amount for each budget.", "readonly": ["remaining_budget"]},
     "item": {"label": "Item Catalog", "group": "Inventory & Budget", "description": "Catalog of supplies that can be purchased or tracked in inventory."},
     "inventory_list": {"label": "Inventory", "group": "Inventory & Budget", "description": "Tracks current stock for catalog items. Each catalog item can have at most one inventory-list row."},
     "purchase_request": {"label": "Purchase Requests", "group": "Inventory & Budget", "description": "Records requested items, ordering and delivery state, and optional budget and funding-source details.", "readonly": ["unit_cost_at_request", "total_cost"], "readonly_display": ["unit_cost_at_request", "total_cost"]},
-    "inventory_transaction": {"label": "Check In / Out", "group": "Inventory & Budget", "description": "Records inventory check-ins and check-outs. To keep the movement history accurate, create a new Checked In row when items are returned instead of changing a Checked Out row; transaction status changes are not reversible."},
+    "inventory_transaction": {"label": "Check In / Out", "group": "Inventory & Budget", "description": "Records inventory check-ins and check-outs. To keep the movement history accurate, create a new Checked In row when items are returned instead of changing a Checked Out row."},
     "garden_bed": {"label": "Garden Beds", "group": "Gardens", "description": "Stores individual beds for locations. Adding the first bed automatically starts the bed count for that location."},
     "irrigation_setup": {"label": "Irrigation", "group": "Gardens", "description": "Stores zero or more irrigation systems for each location with garden details."},
     "compost_unit": {"label": "Compost Units", "group": "Gardens", "description": "Stores zero or more composting units for each location with garden details."},
@@ -45,6 +45,7 @@ VIEWS = {
     "GardenAssets": "Garden Assets", "RestockList": "Restock List",
     "PendingRequests": "Pending Requests", "SchoolSupply": "School Supply",
     "BudgetPurchases": "Budget Purchases", "FundingSourceSpending": "Funding Source Spending",
+    "ItemSpending": "Item Spending",
     "YearlyPurchase": "Yearly Purchases",
 }
 TABLE_DESCRIPTIONS = {}
@@ -55,7 +56,8 @@ VIEW_DESCRIPTIONS = {
     "SchoolSupply": "Summarizes inventory and purchasing activity in separate rows for each school and each named group. Group totals stay on the group row.",
     "BudgetPurchases": "Groups ordered quantities and item spending by budget and item, with budget-level totals.",
     "FundingSourceSpending": "Groups ordered quantities and spending by funding source and item, with funding-source totals.",
-    "YearlyPurchase": "Summarizes ordered and unordered request spending by school year.",
+    "ItemSpending": "Summarizes purchase request counts, ordered quantities, and spending for each item. Canceled requests are excluded from the totals.",
+    "YearlyPurchase": "Summarizes purchase spending by school year, with a monthly view of ordered purchases.",
     "CurrentBedPlantings": "Shows in-ground and harvested plantings with the associated bed details and estimated harvest date.",
     "CropCalendar": "Shows planned, current, and past crop rotations with an estimated harvest date.",
     "GardenAssets": "Lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.",

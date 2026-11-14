@@ -101,6 +101,10 @@ Reports are read-only views prepared by the database from information in one or 
 - **Sort:** Select a column heading to sort by that column. Select it again to reverse the order.
 - **Download PDF:** Select the download button to save the table or report currently shown as a PDF. It includes the current search results and sort order. Notes and edit/delete controls are omitted. For crop rotations, switch to **Table** mode before downloading.
 
+The **Item Spending** report summarizes purchasing by item. It shows the number of non-canceled purchase requests, total quantity ordered, total spending for ordered and delivered requests, and average unit cost. Canceled requests are not included in those totals.
+
+The **Yearly Purchases** report can be switched between a yearly summary and a monthly view. The monthly view shows the School Year beside each Purchase Month, along with ordered purchase-request count, ordered quantity, and spending. Dated requests use a readable month and year label such as `May 2026`; requests without a date appear in a separate `No date` row for their school year.
+
 ### Add and edit information
 
 On a table page, select **+ Add** to create a record. To change an existing record, select **Edit** in its row, update the form, and save. Use the available selection lists for fields linked to other records, and leave database-generated fields alone. A report does not have add or edit controls; make changes in the related table instead.

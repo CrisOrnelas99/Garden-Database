@@ -256,6 +256,7 @@ BEGIN
           AND viewname NOT IN (
               'BudgetPurchases',
               'FundingSourceSpending',
+              'ItemSpending',
               'YearlyPurchase',
               'SchoolSupply',
               'PendingRequests'
@@ -573,7 +574,13 @@ BEGIN
     old_date := (old_row ->> date_column)::DATE;
     new_date := (new_row ->> date_column)::DATE;
 
-    IF new_date IS DISTINCT FROM old_date THEN
+    IF new_date IS DISTINCT FROM old_date
+       AND NOT (
+           TG_TABLE_NAME = 'purchase_request'
+           AND old_date IS NULL
+           AND new_date IS NOT NULL
+       )
+    THEN
         RAISE EXCEPTION 'The record date cannot be changed during the correction window.';
     END IF;
 
@@ -582,9 +589,29 @@ BEGIN
             RAISE EXCEPTION 'Delivered purchase requests cannot be edited.';
         END IF;
         IF old_date IS DISTINCT FROM CURRENT_DATE AND
-           (old_row - ARRAY['status', 'review_status', 'budget_name', 'funding_source', 'notes'])
+           (
+             old_row - (
+                 ARRAY[
+                     'status', 'review_status', 'budget_name', 'funding_source', 'notes'
+                 ] || CASE
+                     WHEN old_date IS NULL AND new_date IS NOT NULL
+                         THEN ARRAY['request_date']::TEXT[]
+                     ELSE ARRAY[]::TEXT[]
+                 END
+             )
+           )
              IS DISTINCT FROM
-           (new_row - ARRAY['status', 'review_status', 'budget_name', 'funding_source', 'notes']) THEN
+           (
+             new_row - (
+                 ARRAY[
+                     'status', 'review_status', 'budget_name', 'funding_source', 'notes'
+                 ] || CASE
+                     WHEN old_date IS NULL AND new_date IS NOT NULL
+                         THEN ARRAY['request_date']::TEXT[]
+                     ELSE ARRAY[]::TEXT[]
+                 END
+             )
+           ) THEN
             RAISE EXCEPTION 'Older purchase requests may only change status, review_status, budget_name, funding_source, or notes.';
         END IF;
     ELSIF old_date IS NULL OR old_date <> CURRENT_DATE THEN
