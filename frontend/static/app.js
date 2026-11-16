@@ -436,6 +436,24 @@ function formatReferenceCell(name, value) {
   return formatCell(name, value);
 }
 
+const AUDIT_READABLE_FIELDS = {
+  location: ["location_name"], location_group: ["location_group_name"], group_members: ["location_group_name", "location_name"],
+  budget: ["budget_name"], item: ["item_name"], inventory_list: ["item_name"],
+  purchase_request: ["item_name", "requesting_school", "requesting_school_group"],
+  inventory_transaction: ["item_name", "for_school", "for_school_group"],
+  garden_bed: ["location_name", "bed_name"], irrigation_setup: ["location_name", "irrigation_name"],
+  compost_unit: ["location_name", "unit_name"], plant: ["plant_name"],
+  crop_rotation: ["location_name", "bed_name", "plant_name"],
+};
+
+function enrichAuditRowKey(entry, details, rowData) {
+  if (entry.source !== "data" || !rowData || typeof rowData !== "object") return details;
+  const fields = AUDIT_READABLE_FIELDS[entry.area] || [];
+  const readable = Object.fromEntries(fields.filter(field => rowData[field] !== null && rowData[field] !== undefined && rowData[field] !== "").map(field => [field, rowData[field]]));
+  if (!Object.keys(readable).length) return details;
+  return {...details, row_key: {...(details.row_key || {}), ...readable}};
+}
+
 // Show the related row above its foreign-key value using the signed-in user's permissions.
 async function showReferencePreview(anchor, column, row, foreignKey) {
   hideNotePreview();
@@ -1844,15 +1862,13 @@ async function showUsers() {
   let users = await api("/users");
   content.innerHTML = `
     <div class="user-notice" id="users-notice" role="status" hidden></div>
-    <section class="user-summary" aria-label="Account summary">
-      <div class="card"><strong id="user-count"></strong><span>Total accounts</span></div>
-    </section>
     <section class="card">
       <div class="users-heading"><div><h2>People &amp; roles</h2><p>Choose a role, then save your change.</p></div>
         <input class="search" id="search-users" type="search" placeholder="Search accounts…" aria-label="Search accounts"></div>
       <div class="table-wrap"><table><thead><tr><th>Account</th><th>Display name</th><th>Role</th><th class="user-actions-heading">Actions</th></tr></thead><tbody id="users-body"></tbody></table></div>
       <div class="empty" id="users-empty" hidden>No matching accounts.</div>
     </section>
+    <p class="muted" id="users-count"></p>
     <p class="access-note"><strong>Your own role is protected</strong> so you cannot accidentally remove your manager access.<br>
       Removing access keeps the person's account. They can be assigned a role again later.</p>
     <p class="access-note invitation-note">A Supabase organization administrator sends account invitations through Supabase Auth.</p>`;
@@ -1880,7 +1896,7 @@ async function showUsers() {
   const renderUsers = () => {
     users.sort((a, b) => (a.email || a.user_id).localeCompare(b.email || b.user_id));
     const query = $("#search-users").value.toLowerCase();
-    $("#user-count").textContent = users.length;
+    $("#users-count").textContent = `${users.length} accounts`;
     const rows = users.map((user, index) => {
       if (!`${user.email || ""} ${user.user_id}`.toLowerCase().includes(query)) return "";
       const self = user.user_id === state.meta.user.id;
@@ -2123,6 +2139,7 @@ async function showAuditLog() {
     });
     $("#audit-rows").innerHTML = filteredEntries.map(entry => {
       let details = entry.details;
+      let auditRowData = null;
       if (details?.target_user_id && !details.target_email && emailByUserId[details.target_user_id]) {
         details = {...details, target_email: emailByUserId[details.target_user_id]};
       }
@@ -2130,11 +2147,18 @@ async function showAuditLog() {
         if (entry.action === "UPDATE") {
           const before = entry.old_data || {};
           const after = entry.new_data || {};
+          auditRowData = after;
           const changed = Object.keys(after).filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]));
           details = {row_key: entry.row_key, changed: Object.fromEntries(changed.map(key => [key, {from: before[key] ?? null, to: after[key] ?? null}]))};
-        } else if (entry.action === "INSERT") details = {row_key: entry.row_key, created: entry.new_data};
-        else if (entry.action === "DELETE") details = {row_key: entry.row_key, deleted: entry.old_data};
+        } else if (entry.action === "INSERT") {
+          auditRowData = entry.new_data;
+          details = {row_key: entry.row_key, created: entry.new_data};
+        } else if (entry.action === "DELETE") {
+          auditRowData = entry.old_data;
+          details = {row_key: entry.row_key, deleted: entry.old_data};
+        }
       }
+      details = enrichAuditRowKey(entry, details, auditRowData);
       return `<tr><td class="col-when">${escapeHtml(new Intl.DateTimeFormat(undefined, {dateStyle:"medium",timeStyle:"short"}).format(new Date(entry.timestamp)))}</td><td class="col-user">${escapeHtml(entry.actor_email || entry.actor_user_id || "System / SQL Editor")}</td><td class="col-event">${escapeHtml(entry.event)}</td><td class="col-area">${escapeHtml(entry.area)}</td><td class="col-details"><details><summary>View details</summary><pre>${escapeHtml(JSON.stringify(details,null,2))}</pre></details></td></tr>`;
     }).join("");
     $("#audit-empty").hidden = filteredEntries.length > 0;
