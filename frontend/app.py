@@ -632,16 +632,6 @@ def delete_row(name):
 @app.get("/api/views/<name>")
 def get_view(name):
     ensure_view(name)
-    if name == "SchoolSupply":
-        mode = request.args.get("mode", "overview")
-        resources = {
-            "overview": "SchoolSupply",
-            "requests": "SchoolSupplyRequests",
-            "checked_out": "SchoolSupplyCheckedOut",
-        }
-        if mode not in resources:
-            raise ApiError("Unknown School Supply report mode.", 400)
-        return jsonify(fetch_rows(resources[mode], "*"))
     return jsonify(fetch_rows(name, view_select(name)))
 
 # Gather counts, restock alerts, upcoming plantings, and any budgets the user may view.

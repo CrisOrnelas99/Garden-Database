@@ -15,6 +15,36 @@ let referenceRequestId = 0;
 let previewedReferenceKey = null;
 let expandedNavGroup = null;
 let formReadonlyNames = new Set();
+let groupMemberSearchIndex = null;
+
+async function prepareGroupSearchText(rows) {
+  if (!rows?.length) return;
+  const groupFields = ["location_group_name", "requesting_school_group", "for_school_group", "assigned_locations"];
+  if (!rows.some(row => groupFields.some(field => row[field]))) return;
+  if (!groupMemberSearchIndex) {
+    groupMemberSearchIndex = new Map();
+    try {
+      const members = await api("/tables/group_members");
+      members.forEach(member => {
+        const group = String(member.location_group_name || "");
+        const location = String(member.location_name || "");
+        if (!group || !location) return;
+        const locations = groupMemberSearchIndex.get(group) || [];
+        locations.push(location);
+        groupMemberSearchIndex.set(group, locations);
+      });
+    } catch {
+      groupMemberSearchIndex = new Map();
+    }
+  }
+  rows.forEach(row => {
+    const groups = groupFields.flatMap(field => String(row[field] || "").split(",").map(value => value.trim())).filter(Boolean);
+    const locations = groups.flatMap(group => groupMemberSearchIndex.get(group) || []);
+    Object.defineProperty(row, "__group_search_text", {
+      value: [...new Set(locations)].join(" "), enumerable: false, configurable: true,
+    });
+  });
+}
 
 function hideNotePreview() {
   clearTimeout(noteHideTimer);
@@ -142,7 +172,6 @@ const pendingDisplayNameEdits = new Map();
 let dashboardCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let cropCalendarReportMode = "table";
 let cropCalendarReportMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-let schoolSupplyMode = "overview";
 
 // Compare current field values with the values shown when the record form opened.
 function recordSnapshot() {
@@ -348,14 +377,6 @@ const VIEW_COLUMNS = {
   SchoolSupply: [
     "assignment_type", "location_name", "items_currently_checked_out",
     "purchase_requests_pending", "total_spent",
-  ],
-  SchoolSupplyRequests: [
-    "assignment_type", "location_name", "request_id", "request_date", "item_name",
-    "requested_by", "quantity_requested", "status", "total_cost", "notes",
-  ],
-  SchoolSupplyCheckedOut: [
-    "assignment_type", "location_name", "item_name", "current_quantity",
-    "transaction_count", "last_transaction_date",
   ],
   BudgetPurchases: [
     "budget_name", "request_id", "item_name", "total_quantity_ordered", "total_spent",
@@ -822,7 +843,7 @@ function filterAndSort(rows) {
   const terms = [$("#search")?.value, ...[...document.querySelectorAll("[data-record-search]")].map(input => input.value)]
     .map(value => String(value || "").trim().toLowerCase()).filter(Boolean);
   if (terms.length) out = out.filter(row => {
-    const text = Object.values(row).map(value => String(value ?? "")).join(" ").toLowerCase();
+    const text = [...Object.values(row), row.__group_search_text].map(value => String(value ?? "")).join(" ").toLowerCase();
     return terms.every(term => text.includes(term));
   });
   if (state.sort) {
@@ -1224,25 +1245,15 @@ async function showView(name) {
       '<button type="button" class="btn small" id="crop-calendar-report-table-mode">Table</button>' +
       '<button type="button" class="btn small" id="crop-calendar-report-calendar-mode">Calendar</button></div>'
     : "";
-  const schoolSupplyControls = name === "SchoolSupply"
-    ? '<div class="view-mode-toggle" role="group" aria-label="School Supply display">' +
-      '<button type="button" class="btn small" id="school-supply-overview-mode">Overview</button>' +
-      '<button type="button" class="btn small" id="school-supply-requests-mode">Purchase Requests</button>' +
-      '<button type="button" class="btn small" id="school-supply-checked-out-mode">Checked Out Items</button></div>'
-    : "";
-  setHeader(view.label, view.description || "", schoolSupplyControls || cropCalendarControls, true);
+  setHeader(view.label, view.description || "", cropCalendarControls, true);
   content.innerHTML = '<div class="empty">Loading…</div>';
-  if (name === "SchoolSupply") state.sort = null;
-  const modeQuery = name === "SchoolSupply" ? `?mode=${encodeURIComponent(schoolSupplyMode)}` : "";
-  state.rows = await api(`/views/${name}${modeQuery}`);
+  state.rows = await api(`/views/${name}`);
+  await prepareGroupSearchText(state.rows);
   const financialConfig = financialReportConfig(name);
   if (financialConfig) setHeader(view.label, view.description || "", financialReportControls(name, state.rows), true);
   const render = () => {
     const rowColumns = state.rows.length ? Object.keys(state.rows[0]) : [];
-    const modeColumns = name === "SchoolSupply"
-      ? (schoolSupplyMode === "requests" ? VIEW_COLUMNS.SchoolSupplyRequests : schoolSupplyMode === "checked_out" ? VIEW_COLUMNS.SchoolSupplyCheckedOut : VIEW_COLUMNS.SchoolSupply)
-      : null;
-    const preferredColumns = modeColumns || VIEW_COLUMNS[name] || rowColumns;
+    const preferredColumns = VIEW_COLUMNS[name] || rowColumns;
     const columns = [
       ...preferredColumns.filter((c) => rowColumns.includes(c)),
       ...rowColumns.filter((c) => !preferredColumns.includes(c)),
@@ -1286,24 +1297,6 @@ async function showView(name) {
       : state.rows.length;
     renderRecordContent(`${multiSearchControls()}${reportContent}<p class="muted">${visible.length} of ${totalReportRecords} records</p>`);
     bindTableControls(render);
-    if (name === "SchoolSupply") {
-      const modeButtons = {
-        overview: $("#school-supply-overview-mode"),
-        requests: $("#school-supply-requests-mode"),
-        checked_out: $("#school-supply-checked-out-mode"),
-      };
-      Object.entries(modeButtons).forEach(([mode, button]) => {
-        if (!button) return;
-        button.classList.toggle("active", schoolSupplyMode === mode);
-        button.setAttribute("aria-pressed", String(schoolSupplyMode === mode));
-        button.onclick = async () => {
-          schoolSupplyMode = mode;
-          state.sort = null;
-          state.rows = await api(`/views/SchoolSupply?mode=${encodeURIComponent(mode)}`);
-          render();
-        };
-      });
-    }
     if (financialConfig) {
       const summaryButton = $("#financial-summary-mode");
       const detailButton = $("#financial-detail-mode");
@@ -1462,6 +1455,7 @@ async function showTable(name) {
   const [schema, rows] = await Promise.all([api(`/tables/${name}/schema`), api(`/tables/${name}`)]);
   state.schema = schema;
   state.rows = rows;
+  await prepareGroupSearchText(state.rows);
 
   const render = () => {
     const visible = filterAndSort(state.rows);

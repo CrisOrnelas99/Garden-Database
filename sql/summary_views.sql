@@ -139,59 +139,8 @@ ORDER BY
     END,
     COALESCE(a.location_name, a.location_group_name);
 
--- Detailed purchase requests associated with each school or location group.
 DROP VIEW IF EXISTS "SchoolSupplyRequests";
-CREATE VIEW "SchoolSupplyRequests" AS
-SELECT
-    CASE WHEN pr.requesting_school IS NOT NULL THEN 'School' ELSE 'Group' END AS assignment_type,
-    COALESCE(pr.requesting_school, pr.requesting_school_group) AS location_name,
-    pr.request_id,
-    pr.request_date,
-    pr.item_name,
-    pr.requested_by,
-    pr.quantity_requested,
-    pr.status,
-    pr.total_cost,
-    pr.notes
-FROM purchase_request AS pr
-WHERE pr.status IN ('Requested', 'Ordered')
-ORDER BY
-    CASE WHEN pr.requesting_school IS NOT NULL THEN 0 ELSE 1 END,
-    COALESCE(pr.requesting_school, pr.requesting_school_group),
-    pr.request_date NULLS LAST,
-    pr.request_id;
-
--- Current checked-out quantities by school/group and item.
 DROP VIEW IF EXISTS "SchoolSupplyCheckedOut";
-CREATE VIEW "SchoolSupplyCheckedOut" AS
-SELECT
-    CASE WHEN it.for_school IS NOT NULL THEN 'School' ELSE 'Group' END AS assignment_type,
-    COALESCE(it.for_school, it.for_school_group) AS location_name,
-    it.item_name,
-    SUM(
-        CASE
-            WHEN it.status = 'Checked Out' THEN it.quantity
-            WHEN it.status = 'Checked In' THEN -it.quantity
-        END
-    ) AS current_quantity,
-    COUNT(*) AS transaction_count,
-    MAX(it.transaction_date) AS last_transaction_date
-FROM inventory_transaction AS it
-WHERE it.for_school IS NOT NULL OR it.for_school_group IS NOT NULL
-GROUP BY
-    CASE WHEN it.for_school IS NOT NULL THEN 'School' ELSE 'Group' END,
-    COALESCE(it.for_school, it.for_school_group),
-    it.item_name
-HAVING SUM(
-    CASE
-        WHEN it.status = 'Checked Out' THEN it.quantity
-        WHEN it.status = 'Checked In' THEN -it.quantity
-    END
-) > 0
-ORDER BY
-    CASE WHEN it.for_school IS NOT NULL THEN 0 ELSE 1 END,
-    location_name,
-    it.item_name;
 
 
 -- ============================================================
