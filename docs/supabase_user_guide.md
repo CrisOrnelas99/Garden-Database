@@ -24,6 +24,8 @@ For a new project, open **SQL Editor** from the dashboard's left menu and select
 
 This order is for a new project. Do not rerun the full schema setup on an existing project without reviewing the SQL and current database state first.
 
+Before running `sql/roles_and_permissions.sql`, enable the **Cron** Postgres module under **Integrations → Cron**. The permissions script creates a daily job named `purge-old-log-records` that runs at 03:15 UTC. It removes records older than 13 months from the private audit and application-event logs only; it does not delete Garden Program data. Supabase Cron uses the `pg_cron` Postgres extension. See the [Supabase Cron guide](https://supabase.com/docs/guides/cron).
+
 ## 3. Configure the app connection and sign-in
 
 ### Enable the Data API and find the Project URL

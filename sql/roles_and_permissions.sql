@@ -995,3 +995,39 @@ REVOKE EXECUTE ON FUNCTION public.record_app_event(TEXT, JSONB) FROM PUBLIC, ano
 REVOKE EXECUTE ON FUNCTION public.list_application_events() FROM PUBLIC, anon, authenticated, staff, finance_staff;
 GRANT EXECUTE ON FUNCTION public.record_app_event(TEXT, JSONB) TO staff, finance_staff, database_manager;
 GRANT EXECUTE ON FUNCTION public.list_application_events() TO database_manager;
+
+-- Retain audit and application-event history for 13 months. This function is
+-- intentionally private and is called by a daily Supabase Cron job.
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+
+CREATE INDEX IF NOT EXISTS audit_log_changed_at_idx
+    ON private.audit_log (changed_at);
+
+CREATE INDEX IF NOT EXISTS application_event_occurred_at_idx
+    ON private.application_event (occurred_at);
+
+CREATE OR REPLACE FUNCTION private.purge_old_log_records()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, private
+AS $$
+BEGIN
+    DELETE FROM private.audit_log
+    WHERE changed_at < clock_timestamp() - INTERVAL '13 months';
+
+    DELETE FROM private.application_event
+    WHERE occurred_at < clock_timestamp() - INTERVAL '13 months';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION private.purge_old_log_records() FROM PUBLIC, anon, authenticated,
+    staff, finance_staff, database_manager;
+
+-- Re-running this file replaces the job with the same name rather than
+-- creating duplicate cleanup jobs. The schedule is 03:15 UTC every day.
+SELECT cron.schedule(
+    'purge-old-log-records',
+    '15 3 * * *',
+    $$SELECT private.purge_old_log_records();$$
+);

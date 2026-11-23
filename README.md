@@ -26,6 +26,8 @@ In the new project's Supabase dashboard, open **SQL Editor**. Run each SQL file 
 4. [`sql/demo_data.sql`](sql/demo_data.sql) for demo purposes if you want to try the app with sample records; skip it if you plan to import your own data
 5. [`sql/roles_and_permissions.sql`](sql/roles_and_permissions.sql) last, after the tables and views exist
 
+Before running `sql/roles_and_permissions.sql`, enable the **Cron** Postgres module under **Integrations → Cron**. The permissions script creates a daily cleanup job named `purge-old-log-records`. It deletes audit and application-event log records older than 13 months; the underlying Garden Program records are not deleted.
+
 If you are an authorized project maintainer setting up a different Supabase project, copy its **Project URL** from **Project Settings → Integrations → Data API** and its **Publishable key** from **Project Settings → API Keys**. Put the base Project URL, without `/rest/v1/`, in `SUPABASE_URL` and the key in `SUPABASE_PUBLISHABLE_KEY` in `frontend/app.py`. Skip this if the developer is setting up the project with you; otherwise, commit and push the configuration before users download or update the app. Regular app users should use the configured files and should not replace these values. Never put a database password or Secret/`service_role` key in the frontend or repository.
 
 After the SQL files, open **Authentication → Auth Hooks → Add Hook** in Supabase. Choose **Custom Access Token**, set **Hook Type** to **Postgres** (not HTTPS), select schema **`public`** and function **`custom_access_token_hook`**, then save the hook. When Supabase issues a user's sign-in token, this hook adds that user's assigned app role to it so the database can apply the correct permissions.
