@@ -215,7 +215,7 @@ STAFF_VIEWS = {"CropCalendar", "CurrentBedPlantings", "GardenAssets", "RestockLi
 STAFF_VIEW_COLUMNS = {
     "PendingRequests": ["request_date", "request_status", "item_name", "requested_by", "assigned_locations",
                         "quantity_requested", "total_cost", "review_status", "notes"],
-    "SchoolSupply": ["assignment_type", "location_name", "items_currently_checked_out", "purchase_items_pending"],
+    "SchoolSupply": ["assignment_type", "location_name", "items_currently_checked_out", "purchase_requests_pending"],
 }
 
 class ApiError(Exception):
