@@ -345,7 +345,6 @@ const LABELS = {
   associated_schools: "Associated Schools",
   unit_cost_at_request: "Unit Cost at Request",
   current_location_count: "Current Location Count",
-  current_total_quantity: "Current Total Quantity",
   planned_quantity: "Planned Quantity",
   in_ground_quantity: "In-Ground Quantity",
   harvested_quantity: "Harvested Quantity",
@@ -388,7 +387,7 @@ const VIEW_COLUMNS = {
     "item_name", "purchase_request_count", "total_quantity_ordered", "total_spent", "average_unit_cost",
   ],
   YearlyPurchase: ["school_year", "purchase_month", "purchase_request_count", "total_quantity_ordered", "total_spent", "pending_spending"],
-  PlantCount: ["plant_name", "current_location_count", "planned_quantity", "current_total_quantity", "in_ground_quantity", "harvested_quantity", "removed_quantity"],
+  PlantCount: ["plant_name", "current_location_count", "planned_quantity", "in_ground_quantity", "harvested_quantity", "removed_quantity"],
 };
 
 function label(name) {

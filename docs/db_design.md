@@ -269,7 +269,7 @@ Views provide readable reports without changing the underlying records.
 - `CurrentBedPlantings`: shows in-ground and harvested plantings with the associated bed details and estimated harvest date.
 - `CropCalendar`: shows planned, current, and past crop rotations with an estimated harvest date.
 - `GardenAssets`: lists each bed, irrigation system, and compost unit with its location and lifecycle and condition statuses.
-- `PlantCount`: summarizes each plant's current location count, planned quantity, current total quantity (Planned plus In-ground), in-ground quantity, harvested quantity, and removed quantity.
+- `PlantCount`: summarizes each plant's current location count, planned quantity, in-ground quantity, harvested quantity, and removed quantity.
 
 ## Functions and triggers
 

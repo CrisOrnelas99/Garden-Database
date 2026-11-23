@@ -264,9 +264,6 @@ SELECT
         WHERE cr.status = 'Planned'
     ), 0) AS planned_quantity,
     COALESCE(SUM(cr.quantity) FILTER (
-        WHERE cr.status IN ('Planned', 'In-ground')
-    ), 0) AS current_total_quantity,
-    COALESCE(SUM(cr.quantity) FILTER (
         WHERE cr.status = 'In-ground'
     ), 0) AS in_ground_quantity,
     COALESCE(SUM(cr.quantity) FILTER (
